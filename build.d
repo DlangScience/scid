@@ -75,9 +75,13 @@ void buildLib()
 {
     ensureDir(libDir);
     auto sources = getSources();
-    auto buildCmd = "dmd "
+
+    version (Posix)     immutable libFile = "lib"~libName~".a";
+    version (Windows)   immutable libFile = libName~".lib";
+
+    immutable buildCmd = "dmd "
         ~std.string.join(sources, " ")
-        ~" -lib -od"~libDir~" -of"~libName;
+        ~" -lib -od"~libDir~" -of"~libFile;
     writeln(buildCmd);
     enforce(system(buildCmd) == 0, "Error building library");
 }
@@ -115,8 +119,8 @@ void buildHTML()
     string moduleList = "MODULES =\n";
     foreach (s; sources)
     {
-        version (Posix)   { immutable slash = "/"; }
-        version (Windows) { immutable slash = "\\"; }
+        version (Posix)     immutable slash = "/";
+        version (Windows)   immutable slash = "\\";
         htmlFiles ~= basename(replace(s, slash, "_"),".d") ~ ".html";
         moduleList ~=
             "\t$(MODULE "
