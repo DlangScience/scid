@@ -23,8 +23,8 @@
     rdmd build html
     ---
 */
-import std.contracts, std.file, std.path, std.process, std.stdio, std.string,
-    std.zip;
+import std.algorithm, std.contracts, std.file, std.path, std.process,
+    std.stdio, std.string, std.zip;
 
 
 
@@ -111,6 +111,7 @@ void buildDi()
 void buildHTML()
 {
     auto sources = getSources();
+    sort(sources);
 
     ensureDir(htmlDir);
     unzip("candydoc.zip", htmlDir);
@@ -122,10 +123,14 @@ void buildHTML()
         version (Posix)     immutable slash = "/";
         version (Windows)   immutable slash = "\\";
         htmlFiles ~= basename(replace(s, slash, "_"),".d") ~ ".html";
-        moduleList ~=
-            "\t$(MODULE "
-            ~basename(replace(s, slash, "."), ".d")
-            ~")\n";
+
+        // Do not list the scid.internal.* modules in the
+        // doc browser tree.
+        if (std.string.indexOf(s, "internal") == -1)
+            moduleList ~=
+                "\t$(MODULE "
+                ~basename(replace(s, slash, "."), ".d")
+                ~")\n";
     }
 
     immutable modulesDdoc = std.path.join(htmlDir, "candydoc", "modules.ddoc");
@@ -151,13 +156,15 @@ void buildClean()
     void rm(string path)
     {
         if (!exists(path)) return;
-        writeln("Removing ", path);
-        rmdirRecurse(path);
+        writeln("Removing: ", path);
+        if (isdir(path)) rmdirRecurse(path);
+        else std.file.remove(path);
     }
 
     rm(libDir);
     rm(diDir);
     rm(htmlDir);
+    rm(__FILE__~".deps");   // Clean up after rdmd as well
 }
 
 
