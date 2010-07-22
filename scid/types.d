@@ -11,6 +11,8 @@ import std.conv;
 import std.string: format;
 import std.math;
 
+import scid.core.testing;
+
 
 
 
@@ -29,10 +31,14 @@ struct Result(V, E=V)
     E error;
 
 
-    /** Negate the value. */
-    Result opNeg()
+    Result opUnary(string op)()  if (op == "-")
     {
-        return Result(-value, error);
+        mixin ("return Result("~op~"value, error);");
+    }
+
+    Result opUnary(string op)()  if (op == "+")
+    {
+        return this;
     }
 
 
@@ -51,66 +57,44 @@ struct Result(V, E=V)
         in addition to these.
 
     */
-    Result opAdd(Result r)
+    Result opBinary(string op)(Result rhs)  if (op == "+" || op == "-")
     {
-        return Result(value+r.value, error+r.error);
+        auto lhs = this;
+        return lhs.opOpAssign!op(rhs);;
     }
 
     /// ditto
-    Result opAddAssign(Result r)
+    Result opOpAssign(string op)(Result rhs)  if (op == "+" || op == "-")
     {
-        return Result(value+=r.value, error+=r.error);
+        mixin ("return Result(value"~op~"=rhs.value, error+=rhs.error);");
     }
 
-    /// ditto
-    Result opSub(Result r)
-    {
-        return Result(value-r.value, error+r.error);
-    }
-
-    /// ditto
-    Result opSubAssign(Result r)
-    {
-        return Result(value-=r.value, error+=r.error);
-    }
 
     static if (is (V==E))
     {
         /// ditto
-        Result opMul(Result r)
+        Result opBinary(string op)(Result rhs)  if (op == "*" || op == "/")
+        {
+            auto lhs = this;
+            return lhs.opOpAssign!op(rhs);
+        }
+
+        /// ditto
+        Result opOpAssign(string op)(Result rhs)  if (op == "*")
         {
             return Result(
-                value*r.value,
-                abs(value*r.error) + abs(r.value*error)
+                value*=rhs.value,
+                error = abs(value*rhs.error) + abs(rhs.value*error)
             );
         }
 
         /// ditto
-        Result opMulAssign(Result r)
+        Result opOpAssign(string op)(Result rhs)  if (op == "/")
         {
-            return Result(
-                value*=r.value,
-                error = abs(value*r.error) + abs(r.value*error)
-            );
-        }
-
-        /// ditto
-        Result opDiv(Result r)
-        {
-            V inv = 1/r.value;
-            return Result(
-                value*inv,
-                (error + abs(r.error*value*inv))*abs(inv)
-            );
-        }
-
-        /// ditto
-        Result opDivAssign(Result r)
-        {
-            V inv = 1/r.value;
+            V inv = 1/rhs.value;
             return Result(
                 value*=inv,
-                error = (error + abs(r.error*value*inv))*abs(inv)
+                error = (error + abs(rhs.error*value*inv))*abs(inv)
             );
         }
     }
@@ -121,4 +105,29 @@ unittest
 {
     alias Result!(real) rr;
     alias Result!(real, int) rri;
+}
+
+
+unittest
+{
+    auto r1 = Result!double(1.0, 0.1);
+    auto r2 = Result!double(2.0, 0.2);
+
+    check (+r1 == r1);
+    
+    auto ra = -r1;
+    check (ra.value == -1.0);
+    check (ra.error == 0.1);
+
+    auto rb = r1 + r2;
+    check (abs(rb.value - 3.0) < double.epsilon);
+    check (abs(rb.error - 0.3) < double.epsilon);
+
+    auto rc = r1 - r2;
+    check (abs(rc.value + 1.0) < double.epsilon);
+    check (abs(rc.error - 0.3) < double.epsilon);
+
+    auto rd = r1 * r2;
+
+    auto re = r1 / r2;
 }
