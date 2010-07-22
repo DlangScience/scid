@@ -37,7 +37,7 @@ import std.algorithm, std.contracts, std.file, std.path, std.process,
     just leave them the way they are.
 */
 immutable libDir    = "built";          // Location of lib file
-immutable diDir     = "built/headers";  // Location of .di files
+immutable headerDir = "built/headers";  // Location of .di files
 immutable htmlDir   = "built/html";     // Location of .html files
 
 /** The name of the library. */
@@ -53,9 +53,9 @@ body
 {
     try
     {
-        if (args.length == 1)           { buildLib(); buildDi(); }
+        if (args.length == 1)           { buildLib(); buildHeaders(); }
         else if (args[1] == "lib")      buildLib();
-        else if (args[1] == "headers")  buildDi();
+        else if (args[1] == "headers")  buildHeaders();
         else if (args[1] == "html")     buildHTML();
         else if (args[1] == "clean")    buildClean();
         else enforce(false, "Unknown command: " ~ args[1]);
@@ -89,13 +89,13 @@ void buildLib()
 
 
 /** Generate header files. */
-void buildDi()
+void buildHeaders()
 {
-    ensureDir(diDir);
+    ensureDir(headerDir);
     auto sources = getSources();
     foreach (s; sources)
     {
-        immutable d = join(diDir, dirname(s));
+        immutable d = join(headerDir, dirname(s));
         ensureDir(d);
 
         immutable diName = basename(s, ".d")~".di";
@@ -162,7 +162,7 @@ void buildClean()
     }
 
     rm(libDir);
-    rm(diDir);
+    rm(headerDir);
     rm(htmlDir);
     rm(__FILE__~".deps");   // Clean up after rdmd as well
 }
