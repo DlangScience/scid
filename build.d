@@ -36,9 +36,19 @@ import std.algorithm, std.contracts, std.file, std.path, std.process,
     directory, the root directory or any such thing.  Preferably,
     just leave them the way they are.
 */
-immutable libDir    = "built";          // Location of lib file
-immutable headerDir = "built/headers";  // Location of .di files
-immutable htmlDir   = "built/html";     // Location of .html files
+version (Posix)
+{
+    immutable libDir    = "generated";          // Location of lib file
+    immutable headerDir = "generated/headers";  // Location of .di files
+    immutable htmlDir   = "generated/html";     // Location of .html files
+}
+version (Windows)
+{
+    immutable libDir    = r"generated";
+    immutable headerDir = r"generated\headers";
+    immutable htmlDir   = r"generated\html";
+}
+
 
 /** The name of the library. */
 immutable libName   = "scid";
