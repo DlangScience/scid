@@ -2,16 +2,14 @@
     Copyright:  Copyright (c) 2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
-module scid.internal.calculus.integrate_qng;
+module scid.internal.calculus.integrate_qk;
 
 
 import std.algorithm: max, min;
-import std.conv;
 import std.math;
 import std.numeric;
 import std.traits;
 
-import scid.exception;
 import scid.types;
 
 version(unittest)
@@ -32,55 +30,71 @@ enum GaussKronrod
     rule61 = 61,
 }
 
-Result!Real qk(GaussKronrod rule, Func, Real)
+Result!Real qk(GaussKronrod rule, Func, Real = ReturnType!Func)
     (Func f, Real a, Real b, out Real absResult, out Real fVariance)
 {
     alias FPTemporary!Real T;
 
+    // Declare lists of abscissae and weights.
     mixin PointsWeights!(rule, T);
 
     immutable halfLength = (b - a)/2;
-
     immutable center = (a + b)/2;
     immutable fCenter = f(center);
 
-    real gaussResult = 0;
-    static if (rule == 15 || rule == 31 || rule == 51)
-    {
-        T[gkWeight.length] fSave1, fSave2;
-        real kronrodResult = 0;
-    }
+    // For storing function values.
+    T[gkWeight.length-1] fSave1, fSave2;
+
+
+    // Calculate Gauss-Kronrod approximation to integral.
+    static if (gWeight.length == (gkWeight.length - 1) / 2)
+        T gaussResult = 0;
     else
+        T gaussResult = gWeight[$-1] * fCenter;
+    T kronrodResult = gkWeight[$-1] * fCenter;
+    T absResult_ = abs(kronrodResult);
+
+    for (int k=0, g=0; k < gkWeight.length-1; k++)
     {
-        T[gkWeight.length-1] fSave1, fSave2;
-        real kronrodResult = gkWeight[$-1] * fCenter;
-    }
-    real absResult = abs(kronrodResult);
-
-
-    foreach (j; 0 .. gWeights.length)
-    {
-        immutable j2 = j*2;
-
-        immutable x = halfLength * gkAbscissa[j2];
+        immutable x = halfLength * gkAbscissa[k];
         immutable fValue1 = f(center - x);
         immutable fValue2 = f(center + x);
 
-        fSave1[jtw] = fValue1;
-        fSave2[jtw] = fValue2;
+        fSave1[k] = fValue1;
+        fSave2[k] = fValue2;
 
         immutable fSum = fValue1 + fValue2;
-        gaussResult   +=  gWeight[j] * fSum;
-        kronrodResult += gkWeight[jtw] * fSum;
-        absResult     += gkWeight[jtw] * (abs(fValue1) + abs(fValue2));
+        if (k & 1)
+        {
+            gaussResult += gWeight[g] * fSum;
+            g++;
+        }
+        kronrodResult += gkWeight[k] * fSum;
+        absResult_    += gkWeight[k] * (abs(fValue1) + abs(fValue2));
     }
 
-    foreach (j; 0 .. fSave1.length-gWeight.length)
+    // Calculate the variance of f over the interval
+    immutable fMean = kronrodResult/2;
+    T fVariance_ = gkWeight[$-1] * abs(fCenter - fMean);
+    foreach (j; 0 .. fSave1.length)
     {
-        immutable j2m1 = j*2 - 1;
+        fVariance_ += gkWeight[j]
+            * (abs(fSave1[j] - fMean) + abs(fSave2[j] - fMean));
+    }
 
-        immutable x = halfLength * gkWeight
+    // Calculate result, error, and other return values.
+    immutable result = kronrodResult * halfLength;
+    immutable absHalfLength = abs(halfLength);
+    absResult = absResult_ * absHalfLength;
+    fVariance = fVariance_ * absHalfLength;
 
+    Real error = abs((kronrodResult - gaussResult) * halfLength);
+    if (fVariance != 0  &&  error != 0)
+        error = fVariance * min(1, (200*error/fVariance)^^1.5);
+    if (absResult > Real.min/(50 * Real.epsilon))
+        error = max(Real.epsilon * 50 * absResult, error);
+
+    return typeof(return)(result, error);
 }
 
 
@@ -334,7 +348,7 @@ private mixin template PointsWeights(GaussKronrod rule, Real)
             0.0614711898_7142531666_1544131965_264,
             0.0615808180_6783293507_8759824240_066];
     }
-    else static if (rule == GaussKronrod.rule51)
+    else static if (rule == GaussKronrod.rule61)
     {
         static immutable Real[31] gkAbscissa = [
             0.9994844100_5049063757_1325895705_811,
@@ -422,3 +436,38 @@ private mixin template PointsWeights(GaussKronrod rule, Real)
     else static assert (false);
 }
 
+
+unittest
+{
+    // Check that it compiles for different types.
+    alias qk!(GaussKronrod.rule15, float delegate(float))    fqk;
+    alias qk!(GaussKronrod.rule21, double delegate(double))  dqk;
+    alias qk!(GaussKronrod.rule31, double function(double)) dfqk;
+    alias qk!(GaussKronrod.rule41, real delegate(real))      rqk;
+}
+
+
+unittest
+{
+    void test(GaussKronrod rule)()
+    {
+        double alpha;
+        double f(double x) { return exp(alpha*x); }
+
+        foreach (i; 1 .. 8)
+        {
+            alpha = i;
+            double resabs, variance;
+            auto result = qk!rule(&f, 0.0, 1.0, resabs, variance);
+            auto expect = (exp(alpha) - 1) / alpha;
+            check(isAccurate(result.value, result.error, expect, 1e-8));
+        }
+    }
+
+    test!(GaussKronrod.rule15)();
+    test!(GaussKronrod.rule21)();
+    test!(GaussKronrod.rule31)();
+    test!(GaussKronrod.rule41)();
+    test!(GaussKronrod.rule51)();
+    test!(GaussKronrod.rule61)();
+}

@@ -69,6 +69,7 @@ import scid.core.meta;
 import scid.core.testing;
 import scid.core.traits;
 
+import scid.internal.calculus.integrate_qk;
 import scid.internal.calculus.integrate_qng;
 
 import scid.calculus;
