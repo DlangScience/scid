@@ -23,7 +23,7 @@
     rdmd build html
     ---
 */
-import std.algorithm, std.contracts, std.file, std.path, std.process,
+import std.algorithm, std.exception, std.file, std.path, std.process,
     std.stdio, std.string, std.zip;
 
 
