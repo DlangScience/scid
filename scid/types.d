@@ -8,8 +8,9 @@ module scid.types;
 
 
 import std.conv;
-import std.string: format;
+import std.format;
 import std.math;
+import std.string: format;
 
 import scid.core.testing;
 
@@ -29,6 +30,9 @@ struct Result(V, E=V)
 
     /// Error.
     E error;
+
+    invariant() { assert (error >= 0); }
+
 
 
     Result opUnary(string op)()  if (op == "-")
@@ -98,6 +102,30 @@ struct Result(V, E=V)
             );
         }
     }
+
+
+    /** Get a string representation of the result. */
+    string toString
+        (void delegate(const(char)[]) sink = null, string formatSpec = "%s")
+        const
+    {
+        if (sink == null)
+        {
+            char[] buf;
+            buf.reserve(100);
+            toString((const(char)[] s) { buf ~= s; }, formatSpec);
+            return cast(string) buf;
+        }
+
+        // Uncomment for DMD 2.048
+        pragma(msg, "Using temporary implementation of scid.types.Result.toString()");
+        //formattedWrite(sink, formatSpec, value);
+        sink(format(formatSpec, value));
+        sink("\u00B1");
+        sink(format(formatSpec, error));
+        //formattedWrite(sink, formatSpec, error);
+        return null;
+    }
 }
 
 
@@ -130,4 +158,11 @@ unittest
     auto rd = r1 * r2;
 
     auto re = r1 / r2;
+}
+
+
+unittest
+{
+    auto r1 = Result!double(1.0, 0.1);
+    check (r1.toString() == "1±0.1");
 }
