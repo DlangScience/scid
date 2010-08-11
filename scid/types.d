@@ -118,12 +118,9 @@ struct Result(V, E=V)
         }
 
         // Uncomment for DMD 2.048
-        pragma(msg, "Using temporary implementation of scid.types.Result.toString()");
-        //formattedWrite(sink, formatSpec, value);
-        sink(format(formatSpec, value));
+        formattedWrite(sink, formatSpec, value);
         sink("\u00B1");
-        sink(format(formatSpec, error));
-        //formattedWrite(sink, formatSpec, error);
+        formattedWrite(sink, formatSpec, error);
         return null;
     }
 }
@@ -165,4 +162,7 @@ unittest
 {
     auto r1 = Result!double(1.0, 0.1);
     check (r1.toString() == "1±0.1");
+
+    auto r2 = Result!double(0.123456789, 0.00123456789);
+    check (r2.toString(null, "%.8e") == "1.23456789e-01±1.23456789e-03");
 }
