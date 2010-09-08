@@ -1,8 +1,12 @@
-/** Methods for solution of nonlinear equations, i.e. finding
+/** Functions related to the solving of nonlinear equations, i.e. finding
     roots of nonlinear functions.
 
+    See_also:
+    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot()),
+    for solving nonlinear equations in one variable.
+
     Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
+    Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.nonlinear;
@@ -24,6 +28,7 @@ version (unittest)
     import std.math;
     import scid.core.testing;
 }
+
 
 
 
@@ -180,3 +185,93 @@ unittest
     check (approxEqual(root, [1.0L, 1.0L].dup, 1e-6));
 }
 
+
+
+
+/** Divides the interval into the given number of equal-sized subintervals,
+    checks whether any of the subintervals bracket a root, and returns
+    the ones that do.  If an endpoint of a subinterval [a,b] $(I is) a root,
+    i.e. f(a)=0, then the interval is returned as [a,a].
+
+    A buffer of length at least nIntervals+1, for storing the brackets, may
+    optionally be provided.  If not, one will be allocated.
+
+    This function is primarily meant for use with
+    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot()).
+*/
+T[2][] bracketRoots(T, Func)(Func f, T lower, T upper, uint nIntervals,
+    T[2][] buffer = null)
+{
+    buffer.length = nIntervals+1;
+    int numBrackets = 0;
+
+    auto lo = lower;
+    auto flo = f(lo);
+    immutable step = (upper - lower)/nIntervals;
+
+    foreach (i; 0 .. nIntervals)
+    {
+        immutable hi = (i < nIntervals - 1 ? lo + step : upper);
+        immutable fhi = f(hi);
+
+        if (flo == 0)
+        {
+            T[2] b;
+            b[0] = lo;
+            b[1] = lo;
+            buffer[numBrackets] = b;
+            ++numBrackets;
+        }
+        else
+        {
+            if (flo * fhi < 0)
+            {
+                T[2] b;
+                b[0] = lo;
+                b[1] = hi;
+                buffer[numBrackets] = b;
+                ++numBrackets;
+            }
+        }
+
+        lo = hi;
+        flo = fhi;
+    }
+
+    // Check for a root in the endpoint as well.
+    if (flo == 0)
+    {
+        T[2] b;
+        b[0] = lo;
+        b[1] = lo;
+        buffer[numBrackets] = b;
+        ++numBrackets;
+    }
+    
+    buffer.length = numBrackets;
+    return buffer;
+}
+
+
+
+
+unittest
+{
+    real f(real x)
+    {
+        return (2+x) * (1+x) * x * (1-x) * (2-x);
+    }
+
+    bool has(real[2] intv, real x)
+    {
+        return intv[0] < x && intv[1] > x;
+    }
+
+    auto b = bracketRoots(&f, -2.0L, 2.0L, 15);
+    check (b.length == 5);
+    check (b[0][0] == -2 && b[0][1] == -2);
+    check (has(b[1], -1));
+    check (has(b[2], 0));
+    check (has(b[3], 1));
+    check (b[4][0] ==  2 && b[4][1] ==  2);
+}
