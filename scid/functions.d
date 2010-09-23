@@ -44,6 +44,96 @@ private real chebEval(real x, const real[] coefficients)
 
 
 
+/** Modified Bessel function of the first kind, order 0. */
+real besselI0(real x)
+{
+    // Chebyshev coefficients for exp(-x) I0(x)
+    // in the interval [0,8].
+    //
+    // lim(x->0){ exp(-x) I0(x) } = 1.
+    immutable real[30] chebCoeffsA = [
+       -4.41534164647933937950e-18L,
+        3.33079451882223809783e-17L,
+       -2.43127984654795469359e-16L,
+        1.71539128555513303061e-15L,
+       -1.16853328779934516808e-14L,
+        7.67618549860493561688e-14L,
+       -4.85644678311192946090e-13L,
+        2.95505266312963983461e-12L,
+       -1.72682629144155570723e-11L,
+        9.67580903537323691224e-11L,
+       -5.18979560163526290666e-10L,
+        2.65982372468238665035e-9L,
+       -1.30002500998624804212e-8L,
+        6.04699502254191894932e-8L,
+       -2.67079385394061173391e-7L,
+        1.11738753912010371815e-6L,
+       -4.41673835845875056359e-6L,
+        1.64484480707288970893e-5L,
+       -5.75419501008210370398e-5L,
+        1.88502885095841655729e-4L,
+       -5.76375574538582365885e-4L,
+        1.63947561694133579842e-3L,
+       -4.32430999505057594430e-3L,
+        1.05464603945949983183e-2L,
+       -2.37374148058994688156e-2L,
+        4.93052842396707084878e-2L,
+       -9.49010970480476444210e-2L,
+        1.71620901522208775349e-1L,
+       -3.04682672343198398683e-1L,
+        6.76795274409476084995e-1L  ];
+
+    // Chebyshev coefficients for exp(-x) sqrt(x) I0(x)
+    // in the inverted interval [8,infinity].
+    //
+    // lim(x->inf){ exp(-x) sqrt(x) I0(x) } = 1/sqrt(2pi).
+    immutable real[25] chebCoeffsB = [
+       -7.23318048787475395456e-18L,
+       -4.83050448594418207126e-18L,
+        4.46562142029675999901e-17L,
+        3.46122286769746109310e-17L,
+       -2.82762398051658348494e-16L,
+       -3.42548561967721913462e-16L,
+        1.77256013305652638360e-15L,
+        3.81168066935262242075e-15L,
+       -9.55484669882830764870e-15L,
+       -4.15056934728722208663e-14L,
+        1.54008621752140982691e-14L,
+        3.85277838274214270114e-13L,
+        7.18012445138366623367e-13L,
+       -1.79417853150680611778e-12L,
+       -1.32158118404477131188e-11L,
+       -3.14991652796324136454e-11L,
+        1.18891471078464383424e-11L,
+        4.94060238822496958910e-10L,
+        3.39623202570838634515e-9L,
+        2.26666899049817806459e-8L,
+        2.04891858946906374183e-7L,
+        2.89137052083475648297e-6L,
+        6.88975834691682398426e-5L,
+        3.36911647825569408990e-3L,
+        8.04490411014108831608e-1L  ];
+
+    if (x < 0)  x = -x;
+
+    if (x < 8)
+        return exp(x) * chebEval(x/2 - 2, chebCoeffsA);
+    else
+        return exp(x) * chebEval(32/x - 2, chebCoeffsB) / sqrt(x);
+}
+
+
+unittest
+{
+    check (approxEqual(besselI0( 1), 1.2660658777520083356e0, 8.2e-17));
+    check (approxEqual(besselI0(10), 2.8157166284662544715e3, 8.2e-17));
+    check (besselI0(- 1) == besselI0( 1));
+    check (besselI0(-10) == besselI0(10));
+}
+
+
+
+
 /** Modified Bessel function of the first kind, order 1. */
 real besselI1(real x)
 {
@@ -109,7 +199,6 @@ real besselI1(real x)
        -9.76109749136146840777e-3L,
         7.78576235018280120474e-1L  ];
 
-
     auto z = fabs(x);
     if (z <= 8)
     {
@@ -130,6 +219,78 @@ unittest
 {
     check (approxEqual(besselI1( 1), 5.6515910399248502721e-1, 1.2e-16));
     check (approxEqual(besselI1(10), 2.6709883037012546543e3,  1.2e-16));
+    check (besselI1(- 1) == -besselI1( 1));
+    check (besselI1(-10) == -besselI1(10));
+}
+
+
+
+
+/** Modified Bessel function of the second kind, order 0. */
+real besselK0(real x)
+in { assert(x > 0, "Can only calculate K0 for positive argument"); }
+body {
+    /* Chebyshev coefficients for K0(x) + log(x/2) I0(x)
+     * in the interval [0,2].  The odd order coefficients are all
+     * zero; only the even order coefficients are listed.
+     * 
+     * lim(x->0){ K0(x) + log(x/2) I0(x) } = -EUL.
+     */
+    immutable real[10] chebCoeffsA = [
+        1.37446543561352307156e-16L,
+        4.25981614279661018399e-14L,
+        1.03496952576338420167e-11L,
+        1.90451637722020886025e-9L,
+        2.53479107902614945675e-7L,
+        2.28621210311945178607e-5L,
+        1.26461541144692592338e-3L,
+        3.59799365153615016266e-2L,
+        3.44289899924628486886e-1L,
+       -5.35327393233902768720e-1L  ];
+
+    /* Chebyshev coefficients for exp(x) sqrt(x) K0(x)
+     * in the inverted interval [2,infinity].
+     * 
+     * lim(x->inf){ exp(x) sqrt(x) K0(x) } = sqrt(pi/2).
+     */
+    immutable real[25] chebCoeffsB = [
+        5.30043377268626276149e-18L,
+       -1.64758043015242134646e-17L,
+        5.21039150503902756861e-17L,
+       -1.67823109680541210385e-16L,
+        5.51205597852431940784e-16L,
+       -1.84859337734377901440e-15L,
+        6.34007647740507060557e-15L,
+       -2.22751332699166985548e-14L,
+        8.03289077536357521100e-14L,
+       -2.98009692317273043925e-13L,
+        1.14034058820847496303e-12L,
+       -4.51459788337394416547e-12L,
+        1.85594911495471785253e-11L,
+       -7.95748924447710747776e-11L,
+        3.57739728140030116597e-10L,
+       -1.69753450938905987466e-9L,
+        8.57403401741422608519e-9L,
+       -4.66048989768794782956e-8L,
+        2.76681363944501510342e-7L,
+       -1.83175552271911948767e-6L,
+        1.39498137188764993662e-5L,
+       -1.28495495816278026384e-4L,
+        1.56988388573005337491e-3L,
+       -3.14481013119645005427e-2L,
+        2.44030308206595545468e0L   ];
+
+    if (x <= 2)
+        return chebEval(x^^2 - 2, chebCoeffsA) - log(x/2) * besselI0(x);
+    else
+        return exp(-x) * chebEval(8/x - 2, chebCoeffsB) / sqrt(x);
+}
+
+
+unittest
+{
+    check (approxEqual(besselK0( 1), 4.2102443824070833334e-1, 1.3e-16));
+    check (approxEqual(besselK0(10), 1.7780062316167651811e-5, 1.3e-16));
 }
 
 
@@ -139,8 +300,11 @@ unittest
 real besselK1(real x)
 in { assert(x > 0, "Can only calculate K1 for positive argument"); }
 body {
-    // Chebyshev coefficients for x(K1(x) - log(x/2) I1(x))
-    // in the interval [0,2].
+    /* Chebyshev coefficients for x(K1(x) - log(x/2) I1(x))
+     * in the interval [0,2].
+     * 
+     * lim(x->0){ x(K1(x) - log(x/2) I1(x)) } = 1.
+     */
     immutable real[11] chebCoeffsA = [
        -7.02386347938628759343e-18L,
        -2.42744985051936593393e-15L,
@@ -154,8 +318,11 @@ body {
        -3.53155960776544875667e-1L,
         1.52530022733894777053e0L  ];
 
-    // Chebyshev coefficients for exp(x) sqrt(x) K1(x)
-    // in the interval [2,infinity].
+    /* Chebyshev coefficients for exp(x) sqrt(x) K1(x)
+     * in the interval [2,infinity].
+     *
+     * lim(x->inf){ exp(x) sqrt(x) K1(x) } = sqrt(pi/2).
+     */
     immutable real[25] chebCoeffsB = [
        -5.75674448366501715755e-18L,
         1.79405087314755922667e-17L,
@@ -183,16 +350,11 @@ body {
         1.03923736576817238437e-1L,
         2.72062619048444266945e0L   ];
 
-
     real z = 0.5 * x;
     if (x <= 2.0)
-    {
-        real y = x^^2 - 2;
-        y = log(z) * besselI1(x) + chebEval(y, chebCoeffsA[]) / x;
-        return y;
-    }
-    
-    return exp(-x) * chebEval(8.0/x - 2.0, chebCoeffsB[]) / sqrt(x);
+        return log(z) * besselI1(x) + chebEval(x^^2 - 2, chebCoeffsA) / x;
+    else
+        return exp(-x) * chebEval(8.0/x - 2.0, chebCoeffsB) / sqrt(x);
 }
 
 
