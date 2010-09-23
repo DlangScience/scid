@@ -137,8 +137,11 @@ unittest
 /** Modified Bessel function of the first kind, order 1. */
 real besselI1(real x)
 {
-    // Chebyshev coefficients for exp(-x) I1(x) / x
-    // in the interval [0,8].
+    /* Chebyshev coefficients for exp(-x) I1(x) / x
+     * in the interval [0,8].
+     *
+     * lim(x->0){ exp(-x) I1(x) / x } = 1/2.
+     */
     immutable real[29] chebCoeffsA = [
         2.77791411276104639959e-18L,
        -2.11142121435816608115e-17L,
@@ -170,8 +173,11 @@ real besselI1(real x)
        -1.76416518357834055153e-1L,
         2.52587186443633654823e-1L  ];
 
-    // Chebyshev coefficients for exp(-x) sqrt(x) I1(x)
-    // in the inverted interval [8,infinity].
+    /* Chebyshev coefficients for exp(-x) sqrt(x) I1(x)
+     * in the inverted interval [8,infinity].
+     *
+     * lim(x->inf){ exp(-x) sqrt(x) I1(x) } = 1/sqrt(2pi).
+     */
     immutable real[25] chebCoeffsB = [
         7.51729631084210481353e-18L,
         4.41434832307170791151e-18L,
