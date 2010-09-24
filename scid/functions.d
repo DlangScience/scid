@@ -24,7 +24,7 @@ import scid.core.testing;
     Coefficients are stored in reverse order, i.e. the
     zeroth-order term is the last in the array.
 */
-private real chebEval(real x, const real[] coefficients)
+private real chebEval(real x, const real[] coefficients) @safe pure nothrow
 {
     real
         b0 = coefficients[0],
@@ -45,7 +45,7 @@ private real chebEval(real x, const real[] coefficients)
 
 
 /** Modified Bessel function of the first kind, order 0. */
-real besselI0(real x)
+real besselI0(real x) pure
 {
     // Chebyshev coefficients for exp(-x) I0(x)
     // in the interval [0,8].
@@ -114,12 +114,12 @@ real besselI0(real x)
         3.36911647825569408990e-3L,
         8.04490411014108831608e-1L  ];
 
-    if (x < 0)  x = -x;
+    auto y = fabs(x);
 
-    if (x < 8)
-        return exp(x) * chebEval(x/2 - 2, chebCoeffsA);
+    if (y < 8)
+        return exp(y) * chebEval(y/2 - 2, chebCoeffsA);
     else
-        return exp(x) * chebEval(32/x - 2, chebCoeffsB) / sqrt(x);
+        return exp(y) * chebEval(32/y - 2, chebCoeffsB) / sqrt(y);
 }
 
 
@@ -135,7 +135,7 @@ unittest
 
 
 /** Modified Bessel function of the first kind, order 1. */
-real besselI1(real x)
+real besselI1(real x) pure
 {
     /* Chebyshev coefficients for exp(-x) I1(x) / x
      * in the interval [0,8].
@@ -233,7 +233,7 @@ unittest
 
 
 /** Modified Bessel function of the second kind, order 0. */
-real besselK0(real x)
+real besselK0(real x) pure
 in { assert(x > 0, "Can only calculate K0 for positive argument"); }
 body {
     /* Chebyshev coefficients for K0(x) + log(x/2) I0(x)
@@ -303,7 +303,7 @@ unittest
 
 
 /** Modified Bessel function of the second kind, order 1. */
-real besselK1(real x)
+real besselK1(real x) pure
 in { assert(x > 0, "Can only calculate K1 for positive argument"); }
 body {
     /* Chebyshev coefficients for x(K1(x) - log(x/2) I1(x))

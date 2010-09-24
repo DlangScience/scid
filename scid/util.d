@@ -22,7 +22,7 @@ import scid.core.traits;
     assert (chop(1e-20) == 0.0);
     ---
 */
-pure Real chop(Real)(Real x, real threshold = 1e-10L)
+Real chop(Real)(Real x, real threshold = 1e-10L) pure nothrow
     if (isFloatingPoint!(Real))
 {
     if (fabs(x) < threshold) return 0.0;
@@ -49,6 +49,7 @@ unittest
     ---
 */
 Real[] chop(Real) (Real[] x, real threshold = 1e-10L, Real[] buffer=null)
+    nothrow
     if (isFloatingPoint!Real)
 {
     if (buffer.length < x.length) buffer.length = x.length;
