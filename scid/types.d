@@ -35,14 +35,10 @@ struct Result(V, E=V)
 
 
 
-    Result opUnary(string op)()  if (op == "-")
+    Result opUnary(string op)() const nothrow
+        if (op == "-" || op == "+")
     {
         mixin ("return Result("~op~"value, error);");
-    }
-
-    Result opUnary(string op)()  if (op == "+")
-    {
-        return this;
     }
 
 
@@ -61,45 +57,50 @@ struct Result(V, E=V)
         in addition to these.
 
     */
-    Result opBinary(string op)(Result rhs)  if (op == "+" || op == "-")
+    Result opBinary(string op)(Result rhs) nothrow
+        if (op == "+" || op == "-")
     {
         auto lhs = this;
-        return lhs.opOpAssign!op(rhs);;
+        return lhs.opOpAssign!op(rhs);
     }
 
     /// ditto
-    Result opOpAssign(string op)(Result rhs)  if (op == "+" || op == "-")
+    Result opOpAssign(string op)(Result rhs) nothrow
+        if (op == "+" || op == "-")
     {
-        mixin ("return Result(value"~op~"=rhs.value, error+=rhs.error);");
+        mixin ("value "~op~"= rhs.value;");
+        error += rhs.error;
+        return this;
     }
 
 
     static if (is (V==E))
     {
         /// ditto
-        Result opBinary(string op)(Result rhs)  if (op == "*" || op == "/")
+        Result opBinary(string op)(Result rhs) nothrow
+            if (op == "*" || op == "/")
         {
             auto lhs = this;
             return lhs.opOpAssign!op(rhs);
         }
 
         /// ditto
-        Result opOpAssign(string op)(Result rhs)  if (op == "*")
+        Result opOpAssign(string op)(Result rhs) nothrow
+            if (op == "*")
         {
-            return Result(
-                value*=rhs.value,
-                error = abs(value*rhs.error) + abs(rhs.value*error)
-            );
+            value *= rhs.value;
+            error = abs(value*rhs.error) + abs(rhs.value*error);
+            return this;
         }
 
         /// ditto
-        Result opOpAssign(string op)(Result rhs)  if (op == "/")
+        Result opOpAssign(string op)(Result rhs) nothrow
+            if (op == "/")
         {
             V inv = 1/rhs.value;
-            return Result(
-                value*=inv,
-                error = (error + abs(rhs.error*value*inv))*abs(inv)
-            );
+            value *= inv;
+            error = (error + abs(rhs.error*value*inv))*abs(inv);
+            return this;
         }
     }
 
@@ -117,7 +118,6 @@ struct Result(V, E=V)
             return cast(string) buf;
         }
 
-        // Uncomment for DMD 2.048
         formattedWrite(sink, formatSpec, value);
         sink("\u00B1");
         formattedWrite(sink, formatSpec, error);
