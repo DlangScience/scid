@@ -13,6 +13,7 @@ module scid.nonlinear;
 
 
 import std.traits;
+import std.typecons;
 
 import scid.core.memory;
 import scid.core.traits;
@@ -253,8 +254,6 @@ T[2][] bracketRoots(T, Func)(Func f, T lower, T upper, uint nIntervals,
 }
 
 
-
-
 unittest
 {
     real f(real x)
@@ -274,4 +273,52 @@ unittest
     check (has(b[2], 0));
     check (has(b[3], 1));
     check (b[4][0] ==  2 && b[4][1] ==  2);
+}
+
+
+
+
+/** Given a function f and a starting point x0, this routine searches
+    along the x-axis in the positive (scale>0) or negative (scale<0)
+    direction until f(x) has an opposite sign from f(x0).
+    (It first tries x0+scale, then, for each iteration, scale is
+    multiplied by a constant factor.)
+
+    If such a point is found, bracketFrom() returns a tuple containing
+    x and f(x).  If not, an exception is thrown.
+*/
+Tuple!(T, "x", T, "fx") bracketFrom
+    (T, Func)
+    (Func f, T x0, T scale, int maxIterations=10)
+in
+{
+    assert (scale != 0);
+    assert (maxIterations > 0);
+}
+body
+{
+    immutable fx0 = f(x0);
+
+    enum expandFactor = 1.6;
+    real step = scale;
+    foreach (i; 0 .. maxIterations)
+    {
+        immutable x = x0 + step;
+        immutable fx = f(x);
+        if (fx0 * fx < 0) return typeof(return)(x, fx);
+        step *= expandFactor;
+    }
+
+    enforceNE(false, NE.Limit);
+    assert(0);
+}
+
+
+unittest
+{
+    real f(real x) { return x^^2 - 100; }
+    
+    auto upper = bracketFrom(&f, 0.0L, 1.0L);
+    check(f(upper.x) == upper.fx);
+    check(upper.fx > 0);
 }
