@@ -11,6 +11,8 @@ private import std.traits;
 private import scid.core.traits;
 
 
+
+
 /** Evaluates to the zero value for a given type.
     ---
     assert (Zero!creal == 0.0+0.0i);
@@ -105,6 +107,6 @@ string replace(string text, string from, string to)
 
 unittest
 {
-    enum string test = replace("foo bar baz", "bar", "boob");
-    static assert (test == "foo boob baz");
+    enum string test = replace("foo bar baz", "bar", "bob");
+    static assert (test == "foo bob baz");
 }
