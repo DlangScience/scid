@@ -1,10 +1,6 @@
 /** Functions related to the solving of nonlinear equations, i.e. finding
     roots of nonlinear functions.
 
-    See_also:
-    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot()),
-    for solving nonlinear equations in one variable.
-
     Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
@@ -189,20 +185,109 @@ unittest
 
 
 
-/** Divides the interval into the given number of equal-sized subintervals,
+/** An interval bracketing a root of some function.
+
+    If a function f(x) is continuous on an interval (x1,x2),
+    and f(x1) and f(x2) have opposite sign, we know the function
+    must pass through zero somewhere in the interval.
+    Such an interval is said to 'bracket' a root of the function.
+*/
+struct BracketingInterval(X, Y)
+{
+    /// The interval limits.
+    X x1;
+    X x2;   /// ditto
+
+    /// The function value at x1 and x2, respectively
+    Y y1;
+    Y y2;   /// ditto
+}
+
+
+
+
+/** Find a root of the function f, given an interval that
+    is known to bracket a root.
+
+    This function is included for convenient use with
+    BracketingIntervals returned by the bracketing functions
+    in this module.  Under the hood it just forwards to the
+    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot())
+    function in Phobos.
+*/
+T findRoot(T, R)(R delegate(T) f, BracketingInterval!(T, R) bracket)
+{
+    return std.numeric.findRoot(f,
+        bracket.x1, bracket.x2,
+        bracket.y1, bracket.y2,
+        (T a, T b) { return false; }    // Machine precision
+        ).field[0];
+}
+
+
+
+
+/** Uses bracketRoots() to divide the interval [a,b] into subintervals
+    and check which ones bracket roots.  Then, findRoot() is applied
+    to each bracketing interval, and an array containing the roots
+    is returned.
+
+    A buffer of length at least nIntervals+1, for storing the roots,
+    may optionally be provided.
+*/
+T[] findRoots(T, Func)(Func f, T a, T b, uint nIntervals,
+    T[] buffer=null)
+{
+    mixin(scid.core.memory.newFrame);
+
+    // Find bracketing subintervals.
+    auto bracketBuffer =
+        newStack!(BracketingInterval!(T, ReturnType!Func))(nIntervals+1);
+    auto intervals =
+        bracketRoots!(T,Func)(f, a, b, nIntervals, bracketBuffer);
+
+    // Find all the bracketed roots.
+    buffer.length = intervals.length;
+    foreach (i, iv; intervals)
+    {
+        // If both endpoints are equal, this value *is* the root.
+        if (iv.x1 == iv.x2)  buffer[i] = iv.x1;
+
+        // If not, call findRoot() to locate the root.
+        else buffer[i] = findRoot(f, iv);
+    }
+
+    return buffer;
+}
+
+
+unittest
+{
+    real f(real x)
+    {
+        return (2+x) * (1+x) * x * (1-x) * (2-x);
+    }
+
+    auto r = findRoots(&f, -2.0L, 2.0L, 15);
+    check (r.length == 5);
+    check (approxEqual(r, [-2.0, -1.0, 0.0, 1.0, 2.0], real.epsilon));
+}
+
+
+
+
+/** Divides the interval [a,b] into the given number of equal-sized
+    subintervals,
     checks whether any of the subintervals bracket a root, and returns
     the ones that do, together with the function values at those points.
-    If an endpoint of a subinterval [a,b] $(I is) a root,
-    i.e. f(a)=0, then the interval is returned as [a,a].
+    If an endpoint of a subinterval [x1,x2] $(I is) a root,
+    i.e. f(x1)=0, then the interval is returned as [x1,x1].
 
     A buffer of length at least nIntervals+1, for storing the brackets, may
     optionally be provided.  If not, one will be allocated.
-
-    This function is primarily meant for use with
-    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot()).
 */
 BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
-    (Func f, T lower, T upper, uint nIntervals,
+    (Func f, T a, T b, uint nIntervals,
      BracketingInterval!(T, ReturnType!Func)[] buffer = null)
 {
     static assert (is (typeof(buffer) == typeof(return)));
@@ -211,31 +296,31 @@ BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
     buffer.length = nIntervals+1;
     int numBrackets = 0;
 
-    auto lo = lower;
+    auto lo = a;
     auto flo = f(lo);
-    immutable step = (upper - lower)/nIntervals;
+    immutable step = (b - a)/nIntervals;
 
     foreach (i; 0 .. nIntervals)
     {
-        immutable hi = (i < nIntervals - 1 ? lo + step : upper);
+        immutable hi = (i < nIntervals - 1 ? lo + step : b);
         immutable fhi = f(hi);
 
         if (flo == 0)
         {
-            B b;
-            b.x1 = lo;  b.y1 = flo;
-            b.x2 = lo;  b.y2 = flo;
-            buffer[numBrackets] = b;
+            B br;
+            br.x1 = lo;  br.y1 = flo;
+            br.x2 = lo;  br.y2 = flo;
+            buffer[numBrackets] = br;
             ++numBrackets;
         }
         else
         {
             if (flo * fhi < 0)
             {
-                B b;
-                b.x1 = lo;  b.y1 = flo;
-                b.x2 = hi;  b.y2 = fhi;
-                buffer[numBrackets] = b;
+                B br;
+                br.x1 = lo;  br.y1 = flo;
+                br.x2 = hi;  br.y2 = fhi;
+                buffer[numBrackets] = br;
                 ++numBrackets;
             }
         }
@@ -247,10 +332,10 @@ BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
     // Check for a root in the endpoint as well.
     if (flo == 0)
     {
-        B b;
-        b.x1 = lo;  b.y1 = flo;
-        b.x2 = lo;  b.y2 = flo;
-        buffer[numBrackets] = b;
+        B br;
+        br.x1 = lo;  br.y1 = flo;
+        br.x2 = lo;  br.y2 = flo;
+        buffer[numBrackets] = br;
         ++numBrackets;
     }
     
@@ -284,65 +369,54 @@ unittest
 
 
 
-/** An interval bracketing a root of some function. */
-struct BracketingInterval(X, Y)
-{
-    /// The interval limits.
-    X x1;
-    X x2;   /// ditto
+/** Given a function f and a starting point x1, this routine searches
+    along the x-axis in the positive (scale>0) or negative (scale<0)
+    direction until it reaches a point x2 where f(x2) has an opposite
+    sign from f(x1).
 
-    /// The function value at x1 and x2, respectively
-    Y y1;
-    Y y2;   /// ditto
-}
+    If such a point is found, a BracketingInterval containing the two
+    points x1 and x2, as well as the function values in those points,
+    is returned.  If not, an exception is thrown.
 
-
-
-
-/** Uses bracketRoots() to divide the given interval into subintervals
-    and check which ones bracket roots.  Then
-    $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot())
-    is applied to each interval, and an array containing the roots
-    is returned.
-
-    A buffer of length at least nIntervals+1, for storing the roots,
-    may optionally be provided.
+    On the first iteration, x2 = x1+scale.  Hence, scale should be a
+    characteristic scale for the function (i.e. a scale over which the
+    function changes significantly).  Thereafter, the interval is expanded
+    geometrically by multiplying scale by a constant factor for each iteration.
 */
-T[] allRoots(T, Func)(Func f, T lower, T upper, uint nIntervals,
-    T[] buffer=null)
+BracketingInterval!(T, ReturnType!Func) bracketFrom(T, Func)
+    (Func f, T x1, T scale, int maxIterations=40)
+in
 {
-    mixin(scid.core.memory.newFrame);
+    assert (scale != 0);
+    assert (maxIterations > 0);
+}
+body
+{
+    immutable fx1 = f(x1);
 
-    // Find bracketing subintervals.
-    auto bracketBuffer =
-        newStack!(BracketingInterval!(T, ReturnType!Func))(nIntervals+1);
-    auto intervals =
-        bracketRoots!(T,Func)(f, lower, upper, nIntervals, bracketBuffer);
-
-    // Find all the bracketed roots.
-    buffer.length = intervals.length;
-    foreach (i, iv; intervals)
+    enum expandFactor = 1.6;
+    real step = scale;
+    foreach (i; 0 .. maxIterations)
     {
-        // If both endpoints are equal, this value *is* the root.
-        if (iv.x1 == iv.x2)  buffer[i] = iv.x1;
-
-        // If not, call findRoot() to locate the root.
-        else buffer[i] = std.numeric.findRoot(f, iv.x1, iv.x2,
-            iv.y1, iv.y2, (T a, T b) { return false; }).field[0];
+        immutable x2 = x1 + step;
+        immutable fx2 = f(x2);
+        if (fx1 * fx2 < 0) return typeof(return)(x1, x2, fx1, fx2);
+        step *= expandFactor;
     }
 
-    return buffer;
+    enforceNE(false, NE.Limit);
+    assert(0);
 }
 
 
 unittest
 {
-    real f(real x)
-    {
-        return (2+x) * (1+x) * x * (1-x) * (2-x);
-    }
-
-    auto r = allRoots(&f, -2.0L, 2.0L, 15);
-    check (r.length == 5);
-    check (approxEqual(r, [-2.0, -1.0, 0.0, 1.0, 2.0], real.epsilon));
+    real f(real x) { return x^^2 - 100; }
+    
+    auto bracket = bracketFrom(&f, 0.0L, 1.0L);
+    check(bracket.x1 == 0);
+    check(f(bracket.x1) == bracket.y1);
+    check(f(bracket.x2) == bracket.y2);
+    check(bracket.x2 > 10);
+    check(bracket.y2 > 0);
 }
