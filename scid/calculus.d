@@ -100,6 +100,7 @@ import scid.internal.calculus.integrate_qng;
 import scid.ports.quadpack.qag;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagse;
+import scid.ports.quadpack.qawce;
 import scid.exception;
 import scid.matrix;
 import scid.types;
@@ -484,6 +485,74 @@ unittest
     auto i = integrateQAGI(&f, 0.0, Infinite.upper);
     double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
     check(isAccurate(i.value, i.error, expected, 1e-6));
+}
+
+
+
+
+/** Calculate a Cauchy principal value integral.
+
+    Use this to calculate the integral of f(x)/(x-c) over the finite
+    interval (a,b), where f(x) is smooth on the entire interval and
+    c is not one of the endpoints.
+
+    The strategy is globally adaptive.  Modified Clenshaw-Curtis
+    integration is used on those intervals containing the point
+    x = c.
+
+    Example:
+    ---
+    // Integrate cos(x-1)/(x-1) over the interval (0,3)
+    real f(real x) { return cos(x-1); }
+    auto i = integrateQAWC(&f, 0.0L, 3.0L, 1.0L, 1e-15L);
+    ---
+*/
+Result!Real integrateQAWC(Func, Real)(Func f, Real a, Real b, Real c,
+    Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+in
+{
+    assert (epsAbs >= 0 && epsRel >= 0, "Requested accuracy is negative.");
+    assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+        "Requested accuracy is too small.");
+    assert (c != a && c != b, "Singularity at interval endpoint.");
+}
+body
+{
+    Real result, abserr;
+    int neval, ier, last;
+
+    enum limit = 500;
+    Real[limit] alist, blist, rlist, elist;
+    int[limit] iord;
+
+    qawce!(Real, Func)(f, a, b, c, epsAbs, epsRel, limit, result, abserr,
+        neval, ier, alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr,
+        last);
+
+    NE errCode;
+    switch (ier)
+    {
+        case 0: return typeof(return)(result, abserr);
+        case 1: errCode = NE.Limit; break;
+        case 2: errCode = NE.Roundoff; break;
+        case 3: errCode = NE.Behaviour; break;
+        case 6: errCode = NE.InvalidInput; break;
+        default: assert(0);
+    }
+    enforceNE(false, errCode);
+    assert(0);
+}
+
+
+unittest
+{
+    // This is just a simple test of basic functionality.
+    // More thorough unittests are in the scid.ports.quadpack.qawce module.
+    enum eps = 1e-15L;
+    enum expect = 0.085576905873896861036L;
+    static real f(real x) { return cos(x-1); }
+    auto i = integrateQAWC(&f, 0.0L, 3.0L, 1.0L, eps);
+    check(abs(i.value-expect) < eps*expect && i.error <= eps);
 }
 
 
