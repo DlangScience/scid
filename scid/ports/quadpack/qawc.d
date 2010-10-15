@@ -202,32 +202,44 @@ unittest
     alias qawc!(real, real delegate(real)) rqawc;
 }
 
+
 unittest
 {
-    real f(real x) { return 1/(5*(x^^3) + 6); }
-    
-    enum : real
+    // Integral 17 in the QUADPACK book.
+    enum : double
     {
-        a = -1,
+        a = 0,
         b = 5,
-        c = 0,
+        c = 2,
         epsabs = 0,
-        epsrel = 1e-10
+        epsrel = 1e-8,
     }
-    real result, abserr;
+    double result, abserr;
     int neval, ier, last;
-    enum
-    {
-        limit = 500,
-        lenw = limit*4,
-    }
+    enum limit = 500, lenw = limit*4;
     int[limit] iwork;
-    real[lenw] work;
+    double[lenw] work;
 
-    qawc(&f, a, b, c, epsabs, epsrel, result, abserr, neval, ier, limit,
-        lenw, last, iwork.ptr, work.ptr);
+    foreach (alpha; 0 .. 10)
+    {
+        double f(double x)
+        {
+            return 2.0^^(-alpha) / ((x-1)^^2 + 4.0^^(-alpha));
+        }
 
-    real ans = log(125.0/631.0)/18.0;
-    check (isAccurate(result, abserr, ans, epsrel, epsabs));
+        qawc(&f, a, b, c, epsabs, epsrel,
+            result, abserr, neval, ier, limit,
+            lenw, last, iwork.ptr, work.ptr);
+
+        double exact =
+            (
+                2.0^^(-alpha) * log(3.0/2)
+              - 2.0^^(-alpha-1) * log((16+4.0^^(-alpha))/(1+4.0^^(-alpha)))
+              - atan(2.0^^(alpha+2))
+              - atan(2.0^^alpha)
+            )
+          / (1 + 4.0^^(-alpha));
+
+        check(isAccurate(result, abserr, exact, epsrel, epsabs));
+    }
 }
-
