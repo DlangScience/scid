@@ -12,6 +12,7 @@ import std.stdio;
 import std.string;
 
 import scid.core.meta: Zero;
+import scid.types;
 
 
 
@@ -65,6 +66,14 @@ private CheckReport _checkReport;
     &&  absError <= max(abs(result*relAccuracy), absAccuracy)
     ---
 */
+bool isAccurate(T)(Result!T result, T expected, T relAccuracy,
+    T absAccuracy=Zero!T)
+{
+    return isAccurate(result.value, result.error, expected, relAccuracy,
+        absAccuracy);
+}
+
+/// ditto
 bool isAccurate(T)(T result, T absError, T expected, T relAccuracy,
     T absAccuracy=Zero!T)
 in

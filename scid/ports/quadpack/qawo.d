@@ -272,7 +272,7 @@ unittest
     qawo(&dlog, a, b, omega, integr, epsabs, epsrel, result, abserr,
         neval, ier, leniw, maxp1, lenw, last, iwork.ptr, work.ptr);
 
-    const double ans = -0.128136848399167;
+    double ans = -0.128136848399167;
     check (isAccurate!double(result, abserr, ans, epsrel, epsabs));
 }
 
