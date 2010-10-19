@@ -1,5 +1,8 @@
 /** Functions for numerical integration (quadrature) and differentiation.
 
+    It is recommended to read the following before using any of the
+    functions in this module, as it discusses issues that are common
+    to several of them.
     
     Integration:
 
@@ -30,13 +33,19 @@
     Gaussian quadrature is
     $(LINK2 http://mathworld.wolfram.com/NumericalIntegration.html,considered)
     to be the most accurate method available for numerical integration of
-    smooth functions.
+    smooth functions.  The QUADPACK integrators are named integrateQ*() below.
 
-    Currently, this module only contains interfaces to a few of the QUADPACK
-    routines.  In the future, all of them will be available, but until then
-    the remaining ones can be accessed from the scid.ports.quadpack package
-    directly (albeit through rather ugly FORTRAN-like interfaces).
+    In addition, SciD has support for
+    $(LINK2 http://mathworld.wolfram.com/DoubleExponentialIntegration.html,double exponential integration).
+    The DE algorithms are ported from Takuya Ooura's
+    $(LINK2 http://www.kurims.kyoto-u.ac.jp/~ooura/intde.html,DE-Quadrature package),
+    and are available in this module through the integrateDE*() functions.
 
+    Note that SciD contains complete ports of QUADPACK and DE-Quadrature,
+    but not all the methods are available through this module yet.  This
+    will happen, but until then they can be accessed directly from the
+    scid.ports.quadpack and scid.ports.intde packages, albeit with rather
+    ugly C/FORTRAN-style interfaces.
 
     Differentiation:
 
@@ -68,7 +77,7 @@
 
     Some functions in this module, like diff(), use another method by Ridders,
     which extrapolates the results of finite-difference formulas like the
-    above to make the approximation more accurate - usually a lot more so.
+    above to make the approximation more accurate – usually a lot more so.
     This requires several function evaluations and is therefore also a lot
     slower than simple finite differences.
 
@@ -97,6 +106,7 @@ import std.traits;
 import scid.core.memory;
 import scid.core.traits;
 import scid.internal.calculus.integrate_qng;
+import scid.ports.intde.intde1;
 import scid.ports.quadpack.qage;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagse;
@@ -550,6 +560,35 @@ unittest
     static real f(real x) { return cos(x-1); }
     auto i = integrateQAWC(&f, 0.0L, 3.0L, 1.0L, eps);
     check(abs(i.value-expect) < eps*expect && i.error <= eps);
+}
+
+
+
+
+/** Calculate the integral of f over the finite interval (a,b) using
+    double exponential integration.
+
+    Example:
+    ---
+    double f(double x) { return x^^2 * log(1/x); }
+    auto i = integrateDE(&f, 0.0, 1.0);
+    ---
+*/
+Result!Real integrateDE(Func, Real)(Func f, Real a, Real b,
+    Real epsRel = cast(Real) 1e-6)
+{
+    Real result, error;
+    intde(f, a, b, epsRel, &result, &error);
+    enforceNE(error >= 0, NE.Convergence);
+    return typeof(return)(result, error);
+}
+
+
+unittest
+{
+    double f(double x) { return x^^2 * log(1/x); }
+    auto result = integrateDE(&f, 0.0, 1.0, 1e-7);
+    check (isAccurate(result.value, result.error, 1.0/9, 1e-6));
 }
 
 
