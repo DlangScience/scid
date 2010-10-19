@@ -109,6 +109,7 @@ import scid.internal.calculus.integrate_qng;
 import scid.ports.intde.intde1;
 import scid.ports.quadpack.qage;
 import scid.ports.quadpack.qagie;
+import scid.ports.quadpack.qagpe;
 import scid.ports.quadpack.qagse;
 import scid.ports.quadpack.qawce;
 import scid.exception;
@@ -418,7 +419,70 @@ unittest
     double f(double x) { return 1/sqrt(abs(x-1.0/3)); }
     auto i = integrateQAGS(&f, 0.0, 1.0);
     double expected = 2 * (sqrt(2.0/3) + sqrt(1.0/3));
-    check (isAccurate(i.value, i.error, expected, 1e-8));
+    check (isAccurate(i, expected, 1e-8));
+}
+
+
+
+
+/** Calculate the integral of f over the finite interval (a,p),
+    taking into account known points of special difficulty
+    inside the interval.
+
+    This routine uses the same integration method as QAGS,
+    but allows you to specify an array of points where the
+    integrand has internal singularities, discontinuities or
+    other types of bad behaviour.
+*/
+Result!Real integrateQAGP(Func, Real)(Func f, Real a, Real b,
+    Real[] trouble, Real epsRel = cast(Real) 1e-6,
+    Real epsAbs = cast(Real) 0)
+{
+    if (trouble.length == 0)  return integrateQAGS(f, a, b, epsRel, epsAbs);
+
+    mixin(newFrame);
+
+    Real result, abserr;
+    int neval, ier;
+    int last;
+
+    enum int limit = 500;
+    Real[limit] alist, blist, rlist, elist;
+    int[limit] iord, level;
+
+    // The array passed to qagp must have two unused slots.
+    // Unfortunately, this will sometimes cause an allocation.
+    int npts2 = trouble.length + 2;
+    trouble.length = npts2;
+    auto pts = newStack!Real(npts2);
+    auto ndin = newStack!int(npts2);
+
+    qagpe(f, a, b, npts2, trouble.ptr, epsAbs, epsRel, limit,
+        result, abserr, neval, ier,
+        alist.ptr, blist.ptr, rlist.ptr, elist.ptr, pts.ptr,
+        iord.ptr, level.ptr, ndin.ptr, last);
+
+    switch (ier)
+    {
+    case 0:     return typeof(return)(result, abserr);
+
+    case 1:     enforceNE(false, NE.Limit);
+    case 2:     enforceNE(false, NE.Roundoff);
+    case 3:     enforceNE(false, NE.Behaviour);
+    case 4:     enforceNE(false, NE.Roundoff);
+    case 5:     enforceNE(false, NE.Convergence);
+    case 6:     enforceNE(false, NE.InvalidInput);
+    default:    assert(0);
+    }
+}
+
+
+unittest
+{
+    real f(real x) { return abs(x - PI/4)^^(-0.4L); }
+    auto i = integrateQAGP(&f, 0.0L, 1.0L, [PI/4], 1e-8L);
+    auto expect = ((1-PI/4)^^0.6L + (PI/4)^^0.6L)/0.6L;
+    check (isAccurate(i, expect, 1e-8L));
 }
 
 
