@@ -97,7 +97,7 @@ import std.traits;
 import scid.core.memory;
 import scid.core.traits;
 import scid.internal.calculus.integrate_qng;
-import scid.ports.quadpack.qag;
+import scid.ports.quadpack.qage;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagse;
 import scid.ports.quadpack.qawce;
@@ -318,23 +318,20 @@ Result!Real integrateQAG(Func, Real)
     (Func f, Real a, Real b, GaussKronrod rule = GaussKronrod.rule31,
      Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
-    Real result, error;
+    Real result, abserr;
     int neval, ier, last;
 
-    enum
-    {
-        limit = 500,
-        lenw = 4*limit,
-    }
-    int[limit] iwork;
-    Real[lenw] work;
+    enum int limit = 500;
+    Real[limit] alist, blist, rlist, elist;
+    int[limit] iord;
 
-    scid.ports.quadpack.qag.qag(f, a, b, epsAbs, epsRel, rule, result, error,
-        neval, ier, limit, lenw, last, iwork.ptr, work.ptr);
+    qage(f, a, b, epsAbs, epsRel, rule, limit, result, abserr,
+        neval, ier, alist.ptr, blist.ptr, rlist.ptr, elist.ptr,
+        iord.ptr, last);
 
     switch (ier)
     {
-    case 0:     return typeof(return)(result, error);
+    case 0:     return typeof(return)(result, abserr);
 
     case 1:     enforceNE(false, NE.Limit);
     case 2:     enforceNE(false, NE.Roundoff);
