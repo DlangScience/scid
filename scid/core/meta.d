@@ -110,3 +110,21 @@ unittest
     enum string test = replace("foo bar baz", "bar", "bob");
     static assert (test == "foo bob baz");
 }
+
+
+
+/** Repeats a string n times.
+    (std.string.repeat() doesn't work at compile time.)
+*/
+string repeat(string s, uint n)
+{
+    string result;
+    foreach (i; 0 .. n)  result ~= s;
+    return result;
+}
+
+unittest
+{
+    enum string test = repeat("foo", 3);
+    static assert (test == "foofoofoo");
+}
