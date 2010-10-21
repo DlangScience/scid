@@ -20,8 +20,13 @@ import scid.exception;
 
 
 
-/** Check whether two numbers are equal to within the specified number
-    of significant digits.
+/** Check whether lhs and rhs are equal to within the specified number
+    of significant digits.  Both lhs and rhs can be floating-point
+    numbers, complex numbers, or input ranges of floating-point or
+    complex numbers.
+    ---
+    assert (matchDigits(0.1234567, 0.1234568));
+    ---
 */
 bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
     if ((isFloatingPoint!L || is(L T == Complex!T)) &&
