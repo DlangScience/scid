@@ -7,13 +7,132 @@
 module scid.util;
 
 
+import std.complex;
 import std.math;
+import std.range;
 import std.traits;
 import std.typecons;
 
 import scid.core.testing;
 import scid.core.traits;
 import scid.exception;
+
+
+
+
+/** Check whether two numbers are equal to within the specified number
+    of significant digits.
+*/
+bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
+    if ((isFloatingPoint!L || is(L T == Complex!T)) &&
+        (isFloatingPoint!R || is(R U == Complex!U)))
+in
+{
+    static if (isFloatingPoint!L && isFloatingPoint!R)
+    {
+        assert (significantDigits*LOG2T < CommonType!(L, R).mant_dig,
+            "The requested precision is too high for the given type(s)");
+    }
+}
+body
+{
+    static if (is(L T == Complex!T))
+    {
+        static if (is(R U == Complex!U))
+        {
+            // lhs and rhs are complex
+            return matchDigits(lhs.re, rhs.re, significantDigits)
+                && matchDigits(lhs.im, rhs.im, significantDigits);
+        }
+        else
+        {
+            // lhs is complex, rhs is real
+            return matchDigits(lhs.re, rhs, significantDigits)
+                && matchDigits(lhs.im, 0.0, significantDigits);
+        }
+    }
+    else
+    {
+        static if (is(R U == Complex!U))
+        {
+            // lhs is real, rhs is complex
+            return matchDigits(lhs, rhs.re, significantDigits)
+                && matchDigits(0.0, rhs.im, significantDigits);
+        }
+        else
+        {
+            // lhs and rhs are real
+            return feqrel!(CommonType!(L, R))(lhs, rhs)
+                > significantDigits*LOG2T;
+        }
+    }
+}
+
+
+unittest
+{
+    check(matchDigits(1.0, 1.0, 15)); 
+    check(matchDigits(0.1234567, 0.1234568, 6));
+    check(!matchDigits(0.1234567, 0.1234568, 7));
+
+    auto z = Complex!real(0.1234567, 0.0);
+    check(matchDigits(z, 0.1234568, 6));
+    check(matchDigits(0.1234568, z, 6));
+
+    auto u = Complex!real(0.1234567, 0.1234567);
+    auto v = Complex!real(0.1234568, 0.1234567);
+    auto w = Complex!real(0.1234567, 0.1234568);
+    check(matchDigits(u, v, 6));
+    check(matchDigits(u, w, 6));
+    check(matchDigits(v, w, 6));
+}
+
+
+
+
+/// ditto
+bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
+    if (isInputRange!L || isInputRange!R)
+{
+    static if (isInputRange!L)
+    {
+        static if (isInputRange!R)
+        {
+            // Both lhs and rhs are ranges.
+            for (;; lhs.popFront(), rhs.popFront())
+            {
+                if (lhs.empty) return rhs.empty;
+                if (rhs.empty) return lhs.empty;
+                if (!matchDigits(lhs.front, rhs.front, significantDigits))
+                    return false;
+            }
+        }
+        else
+        {
+            // lhs is a range, rhs is a number.
+            for (; !lhs.empty; lhs.popFront)
+            {
+                if (!matchDigits(lhs.front, rhs, significantDigits))
+                    return false;
+            }
+            return true;
+        }
+    }
+    else
+    {
+        // lhs is a number, rhs is a range.
+        return matchDigits(rhs, lhs, significantDigits);
+    }
+}
+
+
+unittest
+{
+    check(matchDigits([0.1234566, 0.1234567, 0.1234568], 0.1234567, 6));
+    check(matchDigits(0.1234567, [0.1234566, 0.1234567, 0.1234568], 6));
+    check(matchDigits([0.1234566, 0.1234567, 0.1234568], 
+        [0.1234567, 0.1234567, 0.1234567], 6));
+}
 
 
 
