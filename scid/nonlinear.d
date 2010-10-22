@@ -378,6 +378,9 @@ unittest
     points x1 and x2, as well as the function values in those points,
     is returned.  If not, an exception is thrown.
 
+    If the function is exactly zero in one of the endpoints, a
+    BracketingInterval starting and ending at that point is returned.
+
     On the first iteration, x2 = x1+scale.  Hence, scale should be a
     characteristic scale for the function (i.e. a scale over which the
     function changes significantly).  Thereafter, the interval is expanded
@@ -393,6 +396,7 @@ in
 body
 {
     immutable fx1 = f(x1);
+    if (fx1 == 0) return typeof(return)(x1, x1, fx1, fx1);
 
     enum expandFactor = 1.6;
     real step = scale;
@@ -400,6 +404,7 @@ body
     {
         immutable x2 = x1 + step;
         immutable fx2 = f(x2);
+        if (fx2 == 0) return typeof(return)(x2, x2, fx2, fx2);
         if (fx1 * fx2 < 0) return typeof(return)(x1, x2, fx1, fx2);
         step *= expandFactor;
     }
