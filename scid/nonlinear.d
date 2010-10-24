@@ -191,6 +191,10 @@ unittest
     and f(x1) and f(x2) have opposite sign, we know the function
     must pass through zero somewhere in the interval.
     Such an interval is said to 'bracket' a root of the function.
+
+    Note that this library considers the interval to be bracketing
+    a root also if the root is located exactly at one of the
+    endpoints.
 */
 struct BracketingInterval(X, Y)
 {
@@ -201,6 +205,13 @@ struct BracketingInterval(X, Y)
     /// The function value at x1 and x2, respectively
     Y y1;
     Y y2;   /// ditto
+
+
+    version(unittest) bool contains(X point)
+    {
+        if (x1 <= x2) return (point >= x1 && point <= x2);
+        else          return (point >= x2 && point <= x1);
+    }
 }
 
 
@@ -217,6 +228,8 @@ struct BracketingInterval(X, Y)
 */
 T findRoot(T, R)(R delegate(T) f, BracketingInterval!(T, R) bracket)
 {
+    if (bracket.y1 == 0) return bracket.x1;
+    if (bracket.y2 == 0) return bracket.x2;
     return std.numeric.findRoot(f,
         bracket.x1, bracket.x2,
         bracket.y1, bracket.y2,
@@ -250,11 +263,13 @@ T[] findRoots(T, Func)(Func f, T a, T b, uint nIntervals,
     buffer.length = intervals.length;
     foreach (i, iv; intervals)
     {
-        // If both endpoints are equal, this value *is* the root.
-        if (iv.x1 == iv.x2)  buffer[i] = iv.x1;
+        // Check if a root is located at the "lower" endpoint.
+        if (iv.y1 == 0) buffer[i] = iv.x1;
 
         // If not, call findRoot() to locate the root.
-        else buffer[i] = findRoot(f, iv);
+        // Note that if it is located at the "higher" end point it will
+        // be caught in the next iteration.
+        else if (iv.y2 != 0) buffer[i] = findRoot(f, iv);
     }
 
     return buffer;
@@ -280,8 +295,6 @@ unittest
     subintervals,
     checks whether any of the subintervals bracket a root, and returns
     the ones that do, together with the function values at those points.
-    If an endpoint of a subinterval [x1,x2] $(I is) a root,
-    i.e. f(x1)=0, then the interval is returned as [x1,x1].
 
     A buffer of length at least nIntervals+1, for storing the brackets, may
     optionally be provided.  If not, one will be allocated.
@@ -305,24 +318,13 @@ BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
         immutable hi = (i < nIntervals - 1 ? lo + step : b);
         immutable fhi = f(hi);
 
-        if (flo == 0)
+        if (flo == 0 || flo * fhi < 0)
         {
             B br;
             br.x1 = lo;  br.y1 = flo;
-            br.x2 = lo;  br.y2 = flo;
+            br.x2 = hi;  br.y2 = fhi;
             buffer[numBrackets] = br;
             ++numBrackets;
-        }
-        else
-        {
-            if (flo * fhi < 0)
-            {
-                B br;
-                br.x1 = lo;  br.y1 = flo;
-                br.x2 = hi;  br.y2 = fhi;
-                buffer[numBrackets] = br;
-                ++numBrackets;
-            }
         }
 
         lo = hi;
@@ -351,19 +353,18 @@ unittest
         return (2+x) * (1+x) * x * (1-x) * (2-x);
     }
 
-    bool has(B)(B intv, real x)
-    {
-        return intv.x1 < x && intv.x2 > x;
-    }
-
     auto b = bracketRoots(&f, -2.0L, 2.0L, 15);
-    check (b.length == 5);
-    check (b[0].x1 == -2 && b[0].x2 == -2);
-    check (has(b[1], -1));
-    check (has(b[2], 0));
-    check (has(b[3], 1));
-    check (b[3].y1 == f(b[3].x1)  &&  b[3].y2 == f(b[3].x2));
-    check (b[4].x1 ==  2 && b[4].x2 ==  2);
+    check(b.length == 5);
+    foreach (i; b)
+    {
+        check(i.y1 == f(i.x1));
+        check(i.y2 == f(i.x2));
+    }
+    check(b[0].x1 == -2);
+    check(b[1].contains(-1));
+    check(b[2].contains(0));
+    check(b[3].contains(1));
+    check(b[4].x1 ==  2);
 }
 
 
@@ -390,22 +391,20 @@ BracketingInterval!(T, ReturnType!Func) bracketFrom(T, Func)
     (Func f, T x1, T scale, int maxIterations=40)
 in
 {
-    assert (scale != 0);
-    assert (maxIterations > 0);
+    assert (scale != 0, "scale must be nonzero");
+    assert (maxIterations > 0, "maxIterations must be positive");
 }
 body
 {
-    immutable fx1 = f(x1);
-    if (fx1 == 0) return typeof(return)(x1, x1, fx1, fx1);
-
     enum expandFactor = 1.6;
     real step = scale;
+
+    immutable fx1 = f(x1);
     foreach (i; 0 .. maxIterations)
     {
         immutable x2 = x1 + step;
         immutable fx2 = f(x2);
-        if (fx2 == 0) return typeof(return)(x2, x2, fx2, fx2);
-        if (fx1 * fx2 < 0) return typeof(return)(x1, x2, fx1, fx2);
+        if (fx1 * fx2 <= 0) return typeof(return)(x1, x2, fx1, fx2);
         step *= expandFactor;
     }
 
@@ -424,4 +423,62 @@ unittest
     check(f(bracket.x2) == bracket.y2);
     check(bracket.x2 > 10);
     check(bracket.y2 > 0);
+}
+
+
+
+
+/** This function does essentially the same as bracketFrom(), except that
+    it expands the interval in $(I both) directions until it brackets a root.
+*/
+BracketingInterval!(T, ReturnType!Func) bracketOut(T, Func)
+    (Func f, T x1, T scale, int maxIterations = 40)
+in
+{
+    assert (scale != 0, "scale must be nonzero");
+    assert (maxIterations > 0, "maxIterations must be positive");
+}
+body
+{
+    enum expandFactor = 1.6;
+
+    real x2 = x1 + scale;
+    real fx1 = f(x1);
+    real fx2 = f(x2);
+
+    foreach (i; 0 .. maxIterations)
+    {
+        if (fx1 * fx2 <= 0)  return typeof(return)(x1, x2, fx1, fx2);
+        if (fabs(fx1) < fabs(fx2))
+        {
+            x1 += expandFactor * (x1 - x2);
+            fx1 = f(x1);
+        }
+        else
+        {
+            x2 += expandFactor * (x2 - x1);
+            fx2 = f(x2);
+        }
+    }
+
+    enforceNE(false, NE.Limit);
+    assert(0);
+}
+
+
+unittest
+{
+    real f(real x) { return x^^3; }
+
+    auto bracket = bracketOut(&f, 1.0L, 0.1L);
+    check(f(bracket.x1) == bracket.y1);
+    check(f(bracket.x2) == bracket.y2);
+    check(bracket.y1 * bracket.y2 <= 0);
+    check(bracket.contains(0));
+
+    bracket = bracketOut(&f, -1.0L, -0.1L);
+    check(f(bracket.x1) == bracket.y1);
+    check(f(bracket.x2) == bracket.y2);
+    check(bracket.y1 * bracket.y2 <= 0);
+    check(bracket.contains(0));
 }
