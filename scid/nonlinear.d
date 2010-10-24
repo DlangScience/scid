@@ -385,8 +385,17 @@ unittest
     function changes significantly).  Thereafter, the interval is expanded
     geometrically by multiplying scale by a constant factor for each iteration.
 */
-BracketingInterval!(T, ReturnType!Func) bracketFrom(T, Func)
-    (Func f, T x1, T scale, int maxIterations=40)
+BracketingInterval!(T, ReturnType!F) bracketFrom(F, T)
+    (F f, T x1, T scale, int maxIterations=40)
+{
+    return bracketFrom(f, x1, f(x1), scale, maxIterations);
+}
+
+
+/// ditto
+BracketingInterval!(T, ReturnType!F) bracketFrom(F, T, R)
+    (F f, T x1, R fx1, T scale, int maxIterations=40)
+    if (is(ReturnType!F : R))
 in
 {
     assert (scale != 0, "scale must be nonzero");
@@ -397,7 +406,6 @@ body
     enum expandFactor = 1.6;
     real step = scale;
 
-    immutable fx1 = f(x1);
     foreach (i; 0 .. maxIterations)
     {
         immutable x2 = x1 + step;
