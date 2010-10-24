@@ -429,11 +429,22 @@ unittest
 
 
 
+enum HandleNaN : bool { yes = true, no = false }
+
 /** This function does essentially the same as bracketFrom(), except that
     it expands the interval in $(I both) directions until it brackets a root.
+
+    Unlike bracketFrom(), this function can optionally handle NaNs, in
+    the way that if the function returns a NaN at either endpoint the routine
+    stops searching in that direction.  Instead it tries to locate the point
+    where the function starts returning NaN, and uses that as one endpoint
+    while continuing the search in the other direction using bracketFrom().
+    This feature is disabled by default.  Pass HandleNaN.yes as the last
+    argument to enable it.
 */
 BracketingInterval!(T, ReturnType!Func) bracketOut(T, Func)
-    (Func f, T x1, T scale, int maxIterations = 40)
+    (Func f, T x1, T scale, int maxIterations = 40,
+     HandleNaN handleNaN = HandleNaN.no)
 in
 {
     assert (scale != 0, "scale must be nonzero");
@@ -449,6 +460,19 @@ body
 
     foreach (i; 0 .. maxIterations)
     {
+        if (handleNaN)
+        {
+            if (isNaN(fx1))
+            {
+                auto n = findNaN(f, x2, x1, fx2, scale*1e-6f);
+                return bracketFrom(f, n.xValid, x2-n.xValid, maxIterations-i);
+            }
+            else if (isNaN(fx2))
+            {
+                auto n = findNaN(f, x1, x2, fx1, scale*1e-6f);
+                return bracketFrom(f, n.xValid, x1-n.xValid, maxIterations-i);
+            }
+        }
         if (fx1 * fx2 <= 0)  return typeof(return)(x1, x2, fx1, fx2);
         if (fabs(fx1) < fabs(fx2))
         {
@@ -483,6 +507,22 @@ unittest
     check(bracket.y1 * bracket.y2 <= 0);
     check(bracket.contains(0));
 }
+
+
+unittest
+{
+    // Check the handleNaN feature
+    real f(real x) { return x <= 0 ? real.nan : sin(x); }
+
+    auto bracket = bracketOut(&f, 0.001L, 0.001L, 40, HandleNaN.yes);
+    check(bracket.x1 > 0);
+    check(f(bracket.x1) == bracket.y1);
+    check(f(bracket.x2) == bracket.y2);
+    check(bracket.y1 * bracket.y2 <= 0);
+    check(bracket.contains(PI/2));
+    check(isNaN(f(bracket.x1-0.000001)));
+}
+    
 
 
 
