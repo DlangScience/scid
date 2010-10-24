@@ -11,7 +11,6 @@ import std.complex;
 import std.math;
 import std.range;
 import std.traits;
-import std.typecons;
 
 import scid.core.testing;
 import scid.core.traits;

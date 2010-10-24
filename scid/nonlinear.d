@@ -10,6 +10,7 @@ module scid.nonlinear;
 
 import std.range;
 import std.traits;
+import std.typecons;
 
 import scid.core.memory;
 import scid.core.traits;
@@ -486,7 +487,132 @@ unittest
 
 
 
+/** Use bisection to find the point where the given predicate goes from
+    returning false to returning true.
+
+    Params:
+        f               =   The function.
+        predicate       =   The predicate, which must take a point and
+                            the function value at that point and return
+                            a boolean.
+        xTrue           =   A point where the predicate is true.
+        xFalse          =   A point where the predicate is false.
+        fTrue           =   (optional) The value of f at xTrue.
+        fFalse          =   (optional) The value of f at xFalse.
+        xTolerance      =   Success: When the absolute distance between
+                            xTrue and xFalse is less than this number,
+                            the function returns.
+        maxIterations   =   Failure: When the algorithm has failed to
+                            produce a result after maxIterations bisections,
+                            an exception is thrown.
+
+    Returns:
+    A tuple containing values named xTrue, xFalse, fTrue, and fFalse, which
+    satisfy
+    ---
+    f(xTrue) == fTrue
+    f(xFalse) == fFalse
+    predicate(xTrue, fTrue) == true
+    predicate(xFalse, fFalse) == false
+    abs(xTrue-xFalse) <= xTolerance
+    ---
+
+    Example:
+    ---
+    // Find a root by bisection
+    auto r = bisect(
+        (real x) { return x^^3; },
+        (real x, real fx) { return fx < 0; },
+        -1.0L, 1.5L, 1e-10L
+        );
+
+    // Let's check if we got the right answer.
+    enum root = 0.0L;
+    assert (abs(r.xTrue - root) <= 1e-10);
+    assert (abs(r.xFalse - root) <= 1e-10);
+
+    assert (r.fTrue < 0);
+    assert (r.fFalse >= 0);
+    assert (abs(r.xTrue - r.xFalse) <= 1e-10);
+    assert (r.xNaN < 0);
+    assert (abs(r.xValid - r.xNan) <= 1e-6);
+    ---
+*/
+Tuple!(T, "xTrue", T, "xFalse", R, "fTrue", R, "fFalse")
+bisect(F, T, R = ReturnType!F)
+    (F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
+     T xTolerance, int maxIterations=40)
+{
+    return bisect(f, predicate, xTrue, xFalse, f(xTrue), f(xFalse),
+        xTolerance, maxIterations);
+}
+
+
+/// ditto
+Tuple!(T, "xTrue", T, "xFalse", R, "fTrue", R, "fFalse")
+bisect(F, T, R = ReturnType!F)
+    (F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
+     R fTrue, R fFalse, T xTolerance, int maxIterations=40)
+    if (isFloatingPoint!T && isFloatingPoint!R)
+in
+{
+    assert (predicate(xTrue, fTrue) == true, "Predicate is false at xTrue");
+    assert (predicate(xFalse, fFalse) == false, "Predicate is true at xFalse");
+    assert (xTolerance > 0, "xTolerance must be positive");
+}
+body
+{
+    foreach (i; 0 .. maxIterations)
+    {
+        if (fabs(xTrue-xFalse) <= xTolerance)
+            return typeof(return)(xTrue, xFalse, fTrue, fFalse);
+
+        immutable xMid = (xTrue + xFalse) / 2;
+        immutable fMid = f(xMid);
+        if (predicate(xMid, fMid))
+        {
+            xTrue = xMid;
+            fTrue = fMid;
+        }
+        else
+        {
+            xFalse = xMid;
+            fFalse = fMid;
+        }
+    }
+
+    enforceNE(false, NE.Limit);
+    assert(0);
+}
+
+ 
+unittest
+{
+    auto r = bisect(
+        (real x) { return x^^3; },
+        (real x, real fx) { return fx < 0; },
+        -1.0L, 1.5L, 1e-10L
+        );
+
+    enum root = 0.0L;
+    check(abs(r.xTrue - root) <= 1e-10);
+    check(abs(r.xFalse - root) <= 1e-10);
+
+    check(r.fTrue == r.xTrue^^3);
+    check(r.fFalse == r.xFalse^^3);
+    check(r.fTrue < 0);
+    check(r.fFalse >= 0);
+    check(abs(r.xTrue - r.xFalse) <= 1e-10);
+}
+
+
+
+
+
 /** Use bisection to find the point where a function starts returning NaN.
+
+    This function has been superseded (and is now implemented in terms of)
+    the more general bisect().  It may be removed in the future.
 
     Params:
         f               =   The function.
@@ -542,26 +668,12 @@ in
 }
 body
 {
-    foreach (i; 0 .. maxIterations)
-    {
-        if (abs(xValid-xNaN) <= xTolerance)
-            return typeof(return)(xValid, xNaN, fValid);
-
-        immutable mid = (xValid + xNaN) / 2;
-        immutable fmid = f(mid);
-        if (isNaN(fmid))
-        {
-            xNaN = mid;
-        }
-        else
-        {
-            xValid = mid;
-            fValid = fmid;
-        }
-    }
-
-    enforceNE(false, NE.Limit);
-    assert(0);
+    auto b = bisect(
+        f,
+        (T x, R fx) { return isNaN(fx); },
+        xNaN, xValid, R.nan, fValid,
+        xTolerance, maxIterations);
+    return typeof(return)(b.xFalse, b.xTrue, b.fFalse);
 }
 
     
