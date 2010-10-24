@@ -460,6 +460,10 @@ body
 
     foreach (i; 0 .. maxIterations)
     {
+        // Check whether interval brackets a root
+        if (fx1 * fx2 <= 0)  return typeof(return)(x1, x2, fx1, fx2);
+
+        // Check for NaN
         if (handleNaN)
         {
             if (isNaN(fx1))
@@ -473,7 +477,8 @@ body
                 return bracketFrom(f, n.xValid, x1-n.xValid, maxIterations-i);
             }
         }
-        if (fx1 * fx2 <= 0)  return typeof(return)(x1, x2, fx1, fx2);
+
+        // Expand interval in the direction where f(x) is closest to zero.
         if (fabs(fx1) < fabs(fx2))
         {
             x1 += expandFactor * (x1 - x2);
