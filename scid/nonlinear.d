@@ -8,6 +8,7 @@
 module scid.nonlinear;
 
 
+import std.math;
 import std.range;
 import std.traits;
 import std.typecons;
@@ -21,11 +22,7 @@ import scid.exception;
 import scid.linalg;
 import scid.util;
 
-version (unittest)
-{
-    import std.math;
-    import scid.core.testing;
-}
+version (unittest) { import scid.core.testing; }
 
 
 
