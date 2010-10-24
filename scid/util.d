@@ -26,12 +26,19 @@ import scid.exception;
     ---
     assert (matchDigits(0.1234567, 0.1234568));
     ---
+
+    Note that numbers which are very close to zero should normally be
+    compared using an absolute difference criterion.  This can be
+    specified using an optional parameter, and is by default set to 1e-20.
+    Set it to zero if you do not want to use the absolute difference at all.
 */
-bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
+bool matchDigits(L, R)
+    (L lhs, R rhs, uint significantDigits = 6, real maxAbsDiff = 1e-20)
     if ((isFloatingPoint!L || is(L T == Complex!T)) &&
         (isFloatingPoint!R || is(R U == Complex!U)))
 in
 {
+    assert (maxAbsDiff >= 0);
     static if (isFloatingPoint!L && isFloatingPoint!R)
     {
         assert (significantDigits*LOG2T < CommonType!(L, R).mant_dig,
@@ -45,14 +52,14 @@ body
         static if (is(R U == Complex!U))
         {
             // lhs and rhs are complex
-            return matchDigits(lhs.re, rhs.re, significantDigits)
-                && matchDigits(lhs.im, rhs.im, significantDigits);
+            return matchDigits(lhs.re, rhs.re, significantDigits, maxAbsDiff)
+                && matchDigits(lhs.im, rhs.im, significantDigits, maxAbsDiff);
         }
         else
         {
             // lhs is complex, rhs is real
-            return matchDigits(lhs.re, rhs, significantDigits)
-                && matchDigits(lhs.im, 0.0, significantDigits);
+            return matchDigits(lhs.re, rhs, significantDigits, maxAbsDiff)
+                && matchDigits(lhs.im, 0.0, significantDigits, maxAbsDiff);
         }
     }
     else
@@ -60,14 +67,15 @@ body
         static if (is(R U == Complex!U))
         {
             // lhs is real, rhs is complex
-            return matchDigits(lhs, rhs.re, significantDigits)
-                && matchDigits(0.0, rhs.im, significantDigits);
+            return matchDigits(lhs, rhs.re, significantDigits, maxAbsDiff)
+                && matchDigits(0.0, rhs.im, significantDigits, maxAbsDiff);
         }
         else
         {
             // lhs and rhs are real
-            return feqrel!(CommonType!(L, R))(lhs, rhs)
-                > significantDigits*LOG2T;
+            return
+                feqrel!(CommonType!(L, R))(lhs, rhs) > significantDigits*LOG2T
+             || abs(lhs - rhs) <= maxAbsDiff;
         }
     }
 }
@@ -95,7 +103,8 @@ unittest
 
 
 /// ditto
-bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
+bool matchDigits(L, R)
+    (L lhs, R rhs, uint significantDigits = 6, real maxAbsDiff = 1e-20)
     if (isInputRange!L || isInputRange!R)
 {
     static if (isInputRange!L)
@@ -107,7 +116,7 @@ bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
             {
                 if (lhs.empty) return rhs.empty;
                 if (rhs.empty) return lhs.empty;
-                if (!matchDigits(lhs.front, rhs.front, significantDigits))
+                if (!matchDigits(lhs.front, rhs.front, significantDigits, maxAbsDiff))
                     return false;
             }
         }
@@ -116,7 +125,7 @@ bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
             // lhs is a range, rhs is a number.
             for (; !lhs.empty; lhs.popFront)
             {
-                if (!matchDigits(lhs.front, rhs, significantDigits))
+                if (!matchDigits(lhs.front, rhs, significantDigits, maxAbsDiff))
                     return false;
             }
             return true;
@@ -125,7 +134,7 @@ bool matchDigits(L, R)(L lhs, R rhs, uint significantDigits = 6)
     else
     {
         // lhs is a number, rhs is a range.
-        return matchDigits(rhs, lhs, significantDigits);
+        return matchDigits(rhs, lhs, significantDigits, maxAbsDiff);
     }
 }
 
