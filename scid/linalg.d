@@ -84,7 +84,7 @@ Real[] solve (MatrixViewA, Real)
         "solve: a and b have different element types");
 
     // Make a copy of a in TempAlloc space.
-    auto adup = tempdup(a.array);
+    auto adup = tempdup(tailConst(a.array));
 
     // b is copied into the buffer.
     buffer.length = b.length;
@@ -125,7 +125,7 @@ MatrixViewB solve (MatrixViewA, MatrixViewB)
         "solve: Not a FORTRAN-compatible type: "~Real.stringof);
 
     // Make a copy of a in TempAlloc space.
-    auto adup = tempdup(a.array);
+    auto adup = tempdup(tailConst(a.array));
 
     // Make an ordinary copy of b.
     auto bdup = copy(b);
