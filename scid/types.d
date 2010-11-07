@@ -171,4 +171,7 @@ unittest
 
 
 /** Trivially convert const(T[]) to const(T)[]. */
-const(T)[] tailConst(T)(const T[] a) { return a; }
+const(T)[] tailConst(T)(const T[] a) pure nothrow
+{
+    return a;
+}

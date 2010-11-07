@@ -246,7 +246,7 @@ public:
         matrices the number of columns is set equal to the number
         of rows.
     */
-    this (T[] a, size_t m)
+    this (T[] a, size_t m)  pure
     in
     {
         static if (isGen)  assert (a.length % m == 0);
@@ -272,7 +272,7 @@ public:
         ---
         These conditions are only checked in non-release builds.
     */
-    this (T[] a, size_t m, size_t n)
+    this (T[] a, size_t m, size_t n) pure
     in
     {
         static if (isGen)
