@@ -64,14 +64,14 @@ enum Triangle : char
     auto upMatrix = matrix!(real, Storage.Triangular)(2, 3.14L);
     ---
 */
-MatrixView!(T) matrix (T) (size_t rows, size_t cols)
+MatrixView!(T) matrix (T) (size_t rows, size_t cols) pure
 {
     return typeof(return)(new T[rows*cols], rows, cols);
 }
 
 
 /// ditto
-MatrixView!(T) matrix(T) (size_t rows, size_t cols, T init)
+MatrixView!(T) matrix(T) (size_t rows, size_t cols, T init) pure
 {
     auto array = new T[rows*cols];
     array[] = init;
@@ -83,6 +83,7 @@ MatrixView!(T) matrix(T) (size_t rows, size_t cols, T init)
 MatrixView!(T, stor, tri) matrix
     (T, Storage stor, Triangle tri = Triangle.Upper)
     (size_t n, T init=T.init)
+    pure
     if (stor == Storage.Triangular)
 {
     auto array = new T[(n*n+n)/2];
@@ -117,6 +118,7 @@ unittest
 /** A convenience function that creates a copy of the input matrix. */
 MatrixView!(T, stor, tri) copy(T, Storage stor, Triangle tri)
     (const MatrixView!(T, stor, tri) m)
+    pure
 {
     MatrixView!(T, stor, tri) mcopy;
     mcopy.rows = m.rows;
@@ -246,7 +248,7 @@ public:
         matrices the number of columns is set equal to the number
         of rows.
     */
-    this (T[] a, size_t m)  pure
+    this (T[] a, size_t m)  pure nothrow
     in
     {
         static if (isGen)  assert (a.length % m == 0);
@@ -272,7 +274,7 @@ public:
         ---
         These conditions are only checked in non-release builds.
     */
-    this (T[] a, size_t m, size_t n) pure
+    this (T[] a, size_t m, size_t n) pure nothrow
     in
     {
         static if (isGen)
@@ -309,7 +311,7 @@ public:
         ---
         You are hereby warned.
     */
-    ref T opIndex(size_t i, size_t j)
+    ref T opIndex(size_t i, size_t j) pure nothrow
     in
     {
         assert (i < rows  &&  j < cols);
@@ -348,7 +350,7 @@ public:
         a triangular matrix aren't assigned to, but only in non-release
         builds.
     */
-    T opIndexAssign(T value, size_t i, size_t j)
+    T opIndexAssign(T value, size_t i, size_t j) nothrow
     in
     {
         assert (i < rows  &&  j < cols);
