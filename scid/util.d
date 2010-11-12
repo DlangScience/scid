@@ -206,3 +206,26 @@ unittest
     chop(a, 1e-12L, a);
     check (a == x);
 }
+
+
+
+
+/** Create a static array literal without any heap allocation. */
+CommonType!(T)[T.length] staticArray(T...)(T elements)
+    @safe pure nothrow
+    if (!is(CommonType!T == void))
+{
+    // Inspired by code posted by David Simcha on the Phobos
+    // developers' mailing list.
+    typeof(return) a = void;
+    foreach (i, e; elements)  a[i] = e;
+    return a;
+}
+
+
+unittest
+{
+    auto a = staticArray(0, 1, 2, 3, 4);
+    int[5] b = [0, 1, 2, 3, 4];
+    check (a == b);
+}
