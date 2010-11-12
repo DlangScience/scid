@@ -418,3 +418,22 @@ unittest
 }
 
 
+
+
+/** Checks whether all the types U... are implicitly
+    convertible to T.
+*/
+template allConvertibleTo(T, U...) if (U.length > 0)
+{
+    static if (U.length == 1)
+        enum allConvertibleTo = is(U[0] : T);
+    else
+        enum allConvertibleTo = is(U[0] : T) && allConvertibleTo!(T, U[1 .. $]);
+}
+
+
+unittest
+{
+    static assert (allConvertibleTo!(dchar, char, wchar, dchar));
+    static assert (!allConvertibleTo!(wchar, char, wchar, dchar));
+}

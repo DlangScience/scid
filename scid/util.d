@@ -11,6 +11,7 @@ import std.complex;
 import std.math;
 import std.range;
 import std.traits;
+import std.typetuple: allSatisfy;
 
 import scid.core.testing;
 import scid.core.traits;
@@ -210,7 +211,11 @@ unittest
 
 
 
-/** Create a static array literal without any heap allocation. */
+/** Create a static array literal without any heap allocation.
+
+    staticArray() automatically deduces its type from the arguments,
+    while staticArrayOf() lets you specify the type explicitly.
+*/
 CommonType!(T)[T.length] staticArray(T...)(T elements)
     @safe pure nothrow
     if (!is(CommonType!T == void))
@@ -223,9 +228,22 @@ CommonType!(T)[T.length] staticArray(T...)(T elements)
 }
 
 
+/// ditto
+T[U.length] staticArrayOf(T, U...)(U elements)
+    @safe pure nothrow
+    if (allConvertibleTo!(T, U))
+{
+    typeof(return) a = void;
+    foreach (i, e; elements)  a[i] = e;
+    return a;
+}
+
+
 unittest
 {
-    auto a = staticArray(0, 1, 2, 3, 4);
-    int[5] b = [0, 1, 2, 3, 4];
-    check (a == b);
+    auto a = staticArray(0.0, 1.0, 2.0);
+    auto b = staticArrayOf!double(0.0F, 1.0, 2.0L);
+    double[3] c = [0.0, 1.0, 2.0];
+    check (a == c);
+    check (b == c);
 }
