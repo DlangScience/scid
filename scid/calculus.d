@@ -115,8 +115,13 @@ import scid.ports.quadpack.qawce;
 import scid.exception;
 import scid.matrix;
 import scid.types;
+import scid.util;
 
-version(unittest) import scid.core.testing;
+version(unittest)
+{
+    import std.range;
+    import scid.core.testing;
+}
 
 
 
@@ -798,6 +803,42 @@ unittest
     auto r = diff(&f, 1.0, 0.01, 5);
     check (approxEqual(r.value, 140.73773557129660339L,
         0.0L, min(r.error, sqrt(real.epsilon))));
+}
+
+
+
+
+/** Calculate the derivative of a function using a
+    forward-/backward-difference formula.  This is the least
+    accurate way to calculate derivatives, and should only
+    be used if the function is very expensive to compute.
+    
+    The relative error in the result is $(I at best) on the
+    order of sqrt(real.epsilon), usually it is higher.
+    
+    When scale is positive, the forward-difference formula is used,
+    and when scale is negative, the backward-difference formula
+    is used.
+*/
+real diff2(Func)(Func f, real x, real scale = 1.0)
+in { assert (scale != 0); }
+body
+{
+    enum sqrtEpsilon = sqrt(real.epsilon);
+    immutable xph = x + sqrtEpsilon*scale;
+    immutable h = xph - x;
+    return (f(xph) - f(x)) / h;
+}
+
+unittest
+{
+    real f(real x) { return sin(x) * log(x); }
+    real df(real x) { return cos(x) * log(x) + sin(x) / x; }
+
+    foreach (x; iota(0.1, 1.0, 0.1))
+    {
+        check (matchDigits(diff2(&f, x), df(x), 8));
+    }
 }
 
 
