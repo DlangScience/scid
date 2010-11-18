@@ -59,14 +59,20 @@ private CheckReport _checkReport;
 
 
 
-/** This function is used to check a computed value and optionally
-    the error estimate from the computation.  It evaluates to the
-    following:
+/** This function is used to check a computed value along with
+    its error estimate.  It evaluates to the following:
     ---
         abs(result-expected) <= absError
     &&  absError <= max(abs(result*relAccuracy), absAccuracy)
     ---
 */
+bool isAccurate(T)(Result!T result, T expected, T relAccuracy,
+    T absAccuracy=Zero!T)
+{
+    return isAccurate(result.value, result.error, expected, relAccuracy,
+        absAccuracy);
+}
+
 /// ditto
 bool isAccurate(T)(T result, T absError, T expected, T relAccuracy,
     T absAccuracy=Zero!T)
@@ -80,13 +86,6 @@ body
 {
     return abs(result-expected) <= absError
         &&  absError <= max(abs(result*relAccuracy), absAccuracy);
-}
-
-bool isAccurate(T)(Result!T result, T expected, T relAccuracy,
-    T absAccuracy=Zero!T)
-{
-    return isAccurate(result.value, result.error, expected, relAccuracy,
-        absAccuracy);
 }
 
 unittest
