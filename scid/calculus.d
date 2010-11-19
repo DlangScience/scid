@@ -813,21 +813,29 @@ unittest
     accurate way to calculate derivatives, and should only
     be used if the function is very expensive to compute.
     
-    The relative error in the result is $(I at best) on the
-    order of sqrt(real.epsilon), usually it is higher.
-    
-    When scale is positive, the forward-difference formula is used,
-    and when scale is negative, the backward-difference formula
-    is used.
+    Params:
+        f = The function to differentiate.
+        x = The point at which to take the derivative.
+        fx = The function value at x, i.e. f(x)
+        scale = A characteristic scale for f.  When this
+            is positive, the forward-difference formula
+            is used, and when it is negative, the
+            backward-difference formula is used.
+
+    Returns:
+        An approximation to the derivative of f at the point
+        x.  The relative error in the result is $(I at best)
+        on the order of sqrt(real.epsilon).
+        Usually it is much higher.
 */
-real diff2(Func)(Func f, real x, real scale = 1.0)
+real diff2(Func)(Func f, real x, real fx, real scale = 1.0)
 in { assert (scale != 0); }
 body
 {
     enum sqrtEpsilon = sqrt(real.epsilon);
     immutable xph = x + sqrtEpsilon*scale;
     immutable h = xph - x;
-    return (f(xph) - f(x)) / h;
+    return (f(xph) - fx) / h;
 }
 
 unittest
@@ -837,7 +845,7 @@ unittest
 
     foreach (x; iota(0.1, 1.0, 0.1))
     {
-        check (matchDigits(diff2(&f, x), df(x), 8));
+        check (matchDigits(diff2(&f, x, f(x)), df(x), 8));
     }
 }
 
