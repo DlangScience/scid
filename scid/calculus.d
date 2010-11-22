@@ -663,6 +663,36 @@ unittest
 
 
 
+/** Calculate the integral of f over the infinite interval (a,&infin;) using
+    double exponential integration.
+
+    Example:
+    ---
+    double f(double x) { return (1 + 10*x)^^(-2) / sqrt(x); }
+    auto i = integrateDEI(&f, 0.0);
+    ---
+*/
+Result!Real integrateDEI(Func, Real)(scope Func f, Real a,
+    Real epsRel = cast(Real) 1e-6)
+{
+    Real result, error;
+    intdei(f, a, epsRel, &result, &error);
+    enforceNE(error >= 0, NE.Convergence);
+    return typeof(return)(result, error);
+}
+
+
+unittest
+{
+    double f(double x) { return (1 + 10*x)^^(-2) / sqrt(x); }
+    auto result = integrateDEI(&f, 0.0);
+    double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
+    check(matchDigits(result.value, expected, 6));
+}
+
+
+
+
 /** Calculate the derivative of a function.
 
     This function uses Ridders' method of extrapolating the results
