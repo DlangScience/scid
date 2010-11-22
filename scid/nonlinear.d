@@ -74,7 +74,7 @@ version (unittest) { import scid.core.testing; }
     ---
 */
 Real[] findRoot (Real, Func)
-    (Func f, Real[] guess, Real epsRel, int maxFuncEvals = 0,
+    (scope Func f, Real[] guess, Real epsRel, int maxFuncEvals = 0,
     Real[] buffer=null)
 in
 {
@@ -224,7 +224,7 @@ struct BracketingInterval(X, Y)
     $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot())
     function in Phobos.
 */
-T findRoot(T, R)(R delegate(T) f, BracketingInterval!(T, R) bracket)
+T findRoot(T, R)(scope R delegate(T) f, BracketingInterval!(T, R) bracket)
 {
     if (bracket.y1 == 0) return bracket.x1;
     if (bracket.y2 == 0) return bracket.x2;
@@ -246,7 +246,7 @@ T findRoot(T, R)(R delegate(T) f, BracketingInterval!(T, R) bracket)
     A buffer of length at least nIntervals+1, for storing the roots,
     may optionally be provided.
 */
-T[] findRoots(T, Func)(Func f, T a, T b, uint nIntervals,
+T[] findRoots(T, Func)(scope Func f, T a, T b, uint nIntervals,
     T[] buffer=null)
 {
     mixin(scid.core.memory.newFrame);
@@ -298,7 +298,7 @@ unittest
     optionally be provided.  If not, one will be allocated.
 */
 BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
-    (Func f, T a, T b, uint nIntervals,
+    (scope Func f, T a, T b, uint nIntervals,
      BracketingInterval!(T, ReturnType!Func)[] buffer = null)
 {
     static assert (is (typeof(buffer) == typeof(return)));
@@ -386,7 +386,7 @@ unittest
     geometrically by multiplying scale by a constant factor for each iteration.
 */
 BracketingInterval!(T, ReturnType!F) bracketFrom(F, T)
-    (F f, T x1, T scale, int maxIterations=40)
+    (scope F f, T x1, T scale, int maxIterations=40)
 {
     return bracketFrom(f, x1, f(x1), scale, maxIterations);
 }
@@ -394,7 +394,7 @@ BracketingInterval!(T, ReturnType!F) bracketFrom(F, T)
 
 /// ditto
 BracketingInterval!(T, ReturnType!F) bracketFrom(F, T, R)
-    (F f, T x1, R fx1, T scale, int maxIterations=40)
+    (scope F f, T x1, R fx1, T scale, int maxIterations=40)
     if (is(ReturnType!F : R))
 in
 {
@@ -448,7 +448,7 @@ enum HandleNaN : bool { yes = true, no = false }
     argument to enable it.
 */
 BracketingInterval!(T, ReturnType!Func) bracketOut(T, Func)
-    (Func f, T x1, T scale, int maxIterations = 40,
+    (scope Func f, T x1, T scale, int maxIterations = 40,
      HandleNaN handleNaN = HandleNaN.no)
 in
 {
@@ -590,7 +590,7 @@ unittest
 */
 Tuple!(T, "xTrue", T, "xFalse", R, "fTrue", R, "fFalse")
 bisect(F, T, R = ReturnType!F)
-    (F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
+    (scope F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
      T xTolerance, int maxIterations=40)
 {
     return bisect(f, predicate, xTrue, xFalse, f(xTrue), f(xFalse),
@@ -601,7 +601,7 @@ bisect(F, T, R = ReturnType!F)
 /// ditto
 Tuple!(T, "xTrue", T, "xFalse", R, "fTrue", R, "fFalse")
 bisect(F, T, R = ReturnType!F)
-    (F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
+    (scope F f, bool delegate(T, R) predicate, T xTrue, T xFalse,
      R fTrue, R fFalse, T xTolerance, int maxIterations=40)
     if (isFloatingPoint!T && isFloatingPoint!R)
 in
@@ -694,7 +694,7 @@ unittest
     ---
 */
 Tuple!(T, "xValid", T, "xNaN", ReturnType!Func, "fValid") findNaN(Func, T)
-    (Func f, T xValid, T xNaN, T xTolerance, int maxIterations=40)
+    (scope Func f, T xValid, T xNaN, T xTolerance, int maxIterations=40)
 in
 {
     assert (isNaN(f(xNaN)), "f(xNaN) is not NaN");
@@ -708,7 +708,7 @@ body
 
 /// ditto
 Tuple!(T, "xValid", T, "xNaN", R, "fValid") findNaN(Func, T, R)
-    (Func f, T xValid, T xNaN, R fValid, T xTolerance, int maxIterations=40)
+    (scope Func f, T xValid, T xNaN, R fValid, T xTolerance, int maxIterations=40)
     if (isUnaryFunction!(Func, R, T) && isFloatingPoint!R)
 in
 {
