@@ -169,7 +169,7 @@ version(unittest)
     assert (abs(result.value - exact) < result.error);
     ---
 */
-Result!Real integrate (Func, Real)(Func f, Real a, Real b,
+Result!Real integrate (Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     if (isFinite(a))
@@ -279,7 +279,7 @@ unittest
     auto i = integrateQNG(&f, 0.0, 1.0);
     ---
 */
-Result!Real integrateQNG(Func, Real)(Func f, Real a, Real b,
+Result!Real integrateQNG(Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     return scid.internal.calculus.integrate_qng.qng(f, a, b, epsRel, epsAbs);
@@ -331,7 +331,7 @@ enum GaussKronrod { rule15 = 1, rule21, rule31, rule41, rule51, rule61 }
     ---
 */
 Result!Real integrateQAG(Func, Real)
-    (Func f, Real a, Real b, GaussKronrod rule = GaussKronrod.rule31,
+    (scope Func f, Real a, Real b, GaussKronrod rule = GaussKronrod.rule31,
      Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     Real result, abserr;
@@ -390,7 +390,7 @@ unittest
     auto i = integrateQAGS(&f, 0.0, 1.0);
     ---
 */
-Result!Real integrateQAGS(Func, Real)(Func f, Real a, Real b,
+Result!Real integrateQAGS(Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     Real result, abserr;
@@ -439,7 +439,7 @@ unittest
     integrand has internal singularities, discontinuities or
     other types of bad behaviour.
 */
-Result!Real integrateQAGP(Func, Real)(Func f, Real a, Real b,
+Result!Real integrateQAGP(Func, Real)(scope Func f, Real a, Real b,
     Real[] trouble, Real epsRel = cast(Real) 1e-6,
     Real epsAbs = cast(Real) 0)
 {
@@ -518,14 +518,14 @@ enum Infinite { upper = 1, lower = -1 }
     ---
 */
 Result!Real integrateQAGI(Func, Real)
-    (Func f, Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    (scope Func f, Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     return integrateQAGI(f, Real.init, cast(Infinite) 2, epsRel, epsAbs);
 }
 
 
 /// ditto
-Result!Real integrateQAGI(Func, Real)(Func f, Real a, Infinite inf,
+Result!Real integrateQAGI(Func, Real)(scope Func f, Real a, Infinite inf,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 {
     Real result, abserr;
@@ -583,7 +583,7 @@ unittest
     auto i = integrateQAWC(&f, 0.0L, 3.0L, 1.0L, 1e-15L);
     ---
 */
-Result!Real integrateQAWC(Func, Real)(Func f, Real a, Real b, Real c,
+Result!Real integrateQAWC(Func, Real)(scope Func f, Real a, Real b, Real c,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
 in
 {
@@ -643,7 +643,7 @@ unittest
     auto i = integrateDE(&f, 0.0, 1.0);
     ---
 */
-Result!Real integrateDE(Func, Real)(Func f, Real a, Real b,
+Result!Real integrateDE(Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6)
 {
     Real result, error;
@@ -722,7 +722,7 @@ unittest
     )
 */
 Result!real diff (Func)
-    (Func f, real x, real scale = 1.0, size_t tableauSize = 10)
+    (scope Func f, real x, real scale = 1.0, size_t tableauSize = 10)
 in
 {
     assert (tableauSize > 0);
@@ -833,7 +833,7 @@ unittest
         on the order of sqrt(real.epsilon).
         Usually it is much higher.
 */
-real diff2(Func)(Func f, real x, real fx, real scale = 1.0)
+real diff2(Func)(scope Func f, real x, real fx, real scale = 1.0)
 in { assert (scale != 0); }
 body
 {
@@ -874,7 +874,7 @@ unittest
         on the order of (real.epsilon)^(2/3), roughly three
         orders of magnitude more accurate than diff2().
 */
-real diff3(Func)(Func f, real x, real scale = 1.0)
+real diff3(Func)(scope Func f, real x, real scale = 1.0)
 in { assert (scale != 0); }
 body
 {
@@ -964,7 +964,7 @@ unittest
         $(LINK2 http://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant,Jacobian matrix and determinant).
     ))
 */
-MatrixView!Real jacobian (Real, Func) (Func f, Real[] x, real scale=1.0,
+MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     int m=-1, Real[] buffer=null)
 {
     mixin (newFrame);
@@ -1090,7 +1090,7 @@ unittest
     auto jFastest = jacobian2(&g, p, 1.0, gp, buffer, workspace);
     ---
 */
-MatrixView!Real jacobian2 (Real, Func) (Func f, Real[] x, real scale=1.0,
+MatrixView!Real jacobian2 (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     Real[] fx=null, Real[] buffer=null)
 {
     mixin (newFrame);
@@ -1225,7 +1225,7 @@ unittest
     ))
 */
 Real[] gradient (Real, Func)
-    (Func f, Real[] x, real scale=1.0, Real[] buffer=null)
+    (scope Func f, Real[] x, real scale=1.0, Real[] buffer=null)
 {
     static assert (isFloatingPoint!Real,
         "gradient: Not a floating-point type: "~Real.stringof);
@@ -1294,7 +1294,7 @@ unittest
     This function is used in the same way as gradient().
 */
 Real[] gradientR (Real, Func)
-    (Func f, Real[] x, real scale=1.0, Real[] buffer=null)
+    (scope Func f, Real[] x, real scale=1.0, Real[] buffer=null)
 {
     static assert (isFloatingPoint!Real,
         "gradientR: Not a floating-point type: "~Real.stringof);
@@ -1385,7 +1385,7 @@ unittest
     ))
 */
 MatrixView!(Real, Storage.Symmetric) hessian(Real, Func)
-    (Func f, Real[] x, real scale=1.0, Real[] buffer=null)
+    (scope Func f, Real[] x, real scale=1.0, Real[] buffer=null)
 {
     static assert (isFloatingPoint!Real,
         "hessian: Not a floating-point type: "~Real.stringof);
