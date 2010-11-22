@@ -808,11 +808,16 @@ unittest
 
 
 
-/** Calculate the derivative of a function using a
-    forward-/backward-difference formula.  This is the least
-    accurate way to calculate derivatives, and should only
-    be used if the function is very expensive to compute.
+/** Calculate the derivative of a function using a two-point
+    formula, i.e. a forward- or backward-difference formula.
     
+    This method only evaluates the function once (in addition
+    to the function value provided by the user), and is therefore
+    the fastest way to compute a derivative.  However, it is also
+    the least accurate method, and should only be used if the
+    function is very expensive to compute $(I and) you have
+    already calculated f(x).
+
     Params:
         f = The function to differentiate.
         x = The point at which to take the derivative.
@@ -835,7 +840,7 @@ body
     enum sqrtEpsilon = sqrt(real.epsilon);
     immutable xph = x + sqrtEpsilon*scale;
     immutable h = xph - x;
-    return (f(xph) - fx) / h;
+    return (f(xph) - fx) / (xph - x);
 }
 
 unittest
@@ -852,6 +857,47 @@ unittest
 
 
 
+/** Calculate the derivative of a function using a three-point
+    formula, a.k.a. a central difference formula.
+
+    The function is evaluated twice, at points just below and
+    just above x.
+
+    Params:
+        f = The function to differentiate.
+        x = The point at which to take the derivative.
+        scale = A characteristic scale for f.
+
+    Returns:
+        An approximation to the derivative of f at the point
+        x.  The relative error in the result is at best
+        on the order of (real.epsilon)^(2/3), roughly three
+        orders of magnitude more accurate than diff2().
+*/
+real diff3(Func)(Func f, real x, real scale = 1.0)
+in { assert (scale != 0); }
+body
+{
+    immutable h = cbrt(real.epsilon) * scale;
+    immutable xmh = x - h;
+    immutable xph = x + h;
+    return (f(xph) - f(xmh))/(xph - xmh);
+}
+
+unittest
+{
+    real f(real x) { return sin(x) * log(x); }
+    real df(real x) { return cos(x) * log(x) + sin(x) / x; }
+
+    foreach (x; iota(0.1, 1.0, 0.1))
+    {
+        check (matchDigits(diff3(&f, x), df(x), 11));
+    }
+}
+
+
+
+
 /** Calculate the Jacobian matrix associated with a set of m functions
     in n variables using a central-difference approximation to the
     Jacobian.
@@ -859,7 +905,7 @@ unittest
     This method requires 2n function evaluations, but is more
     accurate than the faster jacobian2() function. The relative
     accuracy in the result is, at best, on the order of
-    (real.epsilon)^(2/3).
+    (real.epsilon)^(2/3).  Note that this is
     
     Params:
         f = The set of functions. This is typically a function or delegate
