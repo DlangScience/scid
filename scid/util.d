@@ -7,6 +7,7 @@
 module scid.util;
 
 
+import std.algorithm;
 import std.complex;
 import std.math;
 import std.range;
@@ -246,4 +247,86 @@ unittest
     double[3] c = [0.0, 1.0, 2.0];
     check (a == c);
     check (b == c);
+}
+
+
+
+
+/** Returns a range that iterates over n equally-spaced floating-point
+    numbers in the inclusive interval [a,b].
+
+    This is similar to std.range.iota, except that it allows
+    you to specify the number of steps it takes rather than the step size,
+    and that the last point is exactly equal to b (unless n = 1, in
+    which case a is the first and last point).  This makes it
+    more useful than iota for iterating over floating-point numbers.
+
+    Example:
+    ---
+    int i = 0;
+    foreach (x; steps(0.0, 9.0, 10))
+    {
+        assert (x == i);
+        ++i;
+    }
+    ---
+*/
+Steps!(CommonType!(T, U)) steps(T, U)(T a, U b, int n)
+    if (isFloatingPoint!T && isFloatingPoint!U)
+{
+    return typeof(return)(a, b, n);
+}
+
+
+struct Steps(T) if (isFloatingPoint!T)
+{
+private:
+    int _i, _resolution;
+    T _delta, _start, _stop;
+
+public:
+    this(T start, T stop, int resolution)
+    in { assert (resolution >= 0); }
+    body {
+        _start = start;
+        _stop = stop;
+        if (resolution > 1) _delta = (stop - start) / (resolution - 1);
+        _i = resolution - 1;
+        _resolution = resolution;
+    }
+
+
+    bool empty() { return _i < 0; }
+
+
+    T front()
+    {
+        assert (!empty);
+        if (_i == _resolution - 1) return _start;
+        return _stop - _i*_delta;
+    }
+
+
+    void popFront() {
+        assert (!empty);
+        --_i;
+    }
+}
+
+
+unittest
+{
+    auto s1 = steps(-5.0, 5.0, 11);
+    check (equal(s1, [-5.0, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]));
+
+    auto s2 = steps(0.0, 1.0, 1);
+    check (equal(s2, [0.0]));
+
+    // From the example
+    int i = 0;
+    foreach (x; steps(0.0, 9.0, 10))
+    {
+        check (x == i);
+        ++i;
+    }
 }
