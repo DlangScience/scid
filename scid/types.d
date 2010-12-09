@@ -11,6 +11,7 @@ import std.conv;
 import std.format;
 import std.math;
 import std.string: format;
+import std.traits;
 
 import scid.core.testing;
 
@@ -165,4 +166,94 @@ unittest
 
     auto r2 = Result!double(0.123456789, 0.00123456789);
     check (r2.toString(null, "%.8e") == "1.23456789e-01±1.23456789e-03");
+}
+
+
+
+
+/** An interval [a,b] along the real line, where either endpoint may
+    be infinite.
+
+    Examples:
+    ---
+    auto i1 = interval(1, 5);
+    assert (i1.length == 4);
+    
+    auto i2 = interval(0, real.infinity);
+    assert (i2.isInfinite);
+    ---
+*/
+struct Interval(T) if (isSigned!T)
+{
+    /** The interval endpoints. */
+    T a;
+    T b;        ///ditto
+
+
+pure: // TODO: Mark as nothrow as soon as DMD bug 5191 is fixed (DMD 2.051)
+
+
+    /** The length of the interval, defined as b-a. */
+    @property T length() @safe const { return b - a; }
+
+
+    /** Determine whether the interval is infinite.  This is true if:
+        $(UL
+            $(LI a is infinite, b is finite)
+            $(LI a is finite, b is infinite)
+            $(LI a and b are infinite, but have opposite sign.
+        )
+        If T is an integer type, this is always false.
+    */
+    @property bool isInfinite() @trusted const
+    {
+        static if (isFloatingPoint!T) return isInfinity(length);
+        else return false;
+    }
+
+
+    /** Determine whether this is an ordered interval, i.e.
+        whether a <= b.
+    */
+    @property bool isOrdered() @safe const { return a <= b; }
+
+
+    /** If a > b, swap the endpoints. */
+    void order() @safe
+    {
+        if (a > b)
+        {
+            immutable tmp = a;
+            a = b;
+            b = tmp;
+        }
+    }
+}
+
+
+///ditto
+Interval!(CommonType!(T, U)) interval(T, U)(T a, U b)
+    @safe pure //nothrow
+{
+    return typeof(return)(a, b);
+}
+
+
+unittest
+{
+    auto fin = interval(1, 4);
+    check(fin.a == 1);
+    check(fin.b == 4);
+    check(fin.length == 3);
+    check(!fin.isInfinite);
+    check(fin.isOrdered);
+    fin.a = 9;
+    check(!fin.isOrdered);
+    fin.order();
+    check(fin.a == 4 && fin.b == 9);
+    check(fin.isOrdered);
+
+    auto uin = interval(0.0, real.infinity);
+    check(uin.isInfinite);
+    check(uin.isOrdered);
 }
