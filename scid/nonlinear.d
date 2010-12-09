@@ -19,7 +19,6 @@ import scid.ports.minpack.hybrd;
 import scid.ports.napack.quasi;
 import scid.calculus;
 import scid.exception;
-import scid.linalg;
 import scid.util;
 
 version (unittest) { import scid.core.testing; }
