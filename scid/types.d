@@ -166,12 +166,3 @@ unittest
     auto r2 = Result!double(0.123456789, 0.00123456789);
     check (r2.toString(null, "%.8e") == "1.23456789e-01±1.23456789e-03");
 }
-
-
-
-
-/** Trivially convert const(T[]) to const(T)[]. */
-const(T)[] tailConst(T)(const T[] a) pure nothrow
-{
-    return a;
-}

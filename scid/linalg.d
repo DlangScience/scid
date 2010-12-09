@@ -46,7 +46,6 @@ import scid.core.testing;
 import scid.core.traits;
 import scid.exception;
 import scid.matrix;
-import scid.types;
 import scid.util;
 
 
