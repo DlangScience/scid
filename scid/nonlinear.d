@@ -19,6 +19,7 @@ import scid.ports.minpack.hybrd;
 import scid.ports.napack.quasi;
 import scid.calculus;
 import scid.exception;
+import scid.types;
 import scid.util;
 
 version (unittest) { import scid.core.testing; }
@@ -532,6 +533,135 @@ unittest
     check(isNaN(f(bracket.x1-0.000001)));
 }
     
+
+
+
+/** Bracket roots of a function.  Experimental, but will hopefully
+    replace all the other bracketXXX() functions.
+*/
+BracketingInterval!(T, ReturnType!F) bracketRoot(T, F)
+    (scope F f, T start, T scale, int maxFuncEvals = 100)
+    if (isFloatingPoint!T && isUnaryFunction!(F, T))
+{
+    return bracketRoot(f, interval(-T.infinity, T.infinity), start,
+        scale, maxFuncEvals);
+}
+
+
+/// ditto
+BracketingInterval!(T, ReturnType!F) bracketRoot(F, T)
+    (scope F f, Interval!T xLimits, T start, T scale,
+    int maxFuncEvals = 100)
+    if (isFloatingPoint!T && isUnaryFunction!(F, T))
+in
+{
+    assert (xLimits.contains(start),
+        "start point is not inside the searchable interval");
+    assert (scale != 0, "scale must be nonzero");
+    assert (maxFuncEvals > 2, "maxFuncEvals must be greater than 2");
+}
+body
+{
+    alias typeof(return) BI;
+    enum expandFactor = 1.6;
+
+    int funcEvals = 0;
+    xLimits.order();
+
+
+    // Search in the positive direction
+    BI upwards2(real x, real fx)
+    {
+        real step = x - xLimits.a;
+        immutable fa = f(xLimits.a); ++funcEvals;
+        while (funcEvals < maxFuncEvals)
+        {
+            if (fa * fx <= 0) return BI(xLimits.a, x, fa, fx);
+            enforceNE(x != xLimits.b, "Unable to bracket root inside interval");
+            
+            step *= expandFactor;
+            x = min(x + step, xLimits.b);
+            fx = f(x); ++funcEvals;
+        }
+        enforceNE(false, NE.Limit);
+        assert(0);
+    }
+    BI upwards1(real x) { ++funcEvals; return upwards2(x, f(x)); }
+
+
+    // Search in the negative direction
+    BI downwards2(real x, real fx)
+    {
+        real step = xLimits.b - x;
+        immutable fb = f(xLimits.b); ++funcEvals;
+        while (funcEvals < maxFuncEvals)
+        {
+            if (fb * fx <= 0) return BI(x, xLimits.b, fx, fb);
+            enforceNE(x != xLimits.a, "Unable to bracket root inside interval");
+            
+            step *= expandFactor;
+            x = max(x - step, xLimits.a);
+            fx = f(x); ++funcEvals;
+        }
+        enforceNE(false, NE.Limit);
+        assert(0);
+    }
+    BI downwards1(real x) { ++funcEvals; return downwards2(x, f(x)); }
+
+
+    // Determine which search to use
+    real x1 = start;
+    if (x1 == xLimits.a) return upwards1(x1 + abs(scale));
+    if (x1 == xLimits.b) return downwards1(x1 - abs(scale));
+
+    real x2 = x1 + abs(scale);
+    if (x2 >= xLimits.b) return downwards1(x1);
+
+    
+    // Bidirectional search
+    real fx1 = f(x1);
+    real fx2 = f(x2);
+    funcEvals += 2;
+
+    while (funcEvals < maxFuncEvals)
+    {
+        // Check whether interval brackets a root
+        if (fx1 * fx2 <= 0)  return BI(x1, x2, fx1, fx2);
+
+        // Expand interval in the direction where f(x) is closest to zero.
+        if (fabs(fx1) < fabs(fx2))
+        {
+            x1 += expandFactor * (x1 - x2);
+            if (x1 <= xLimits.a) return upwards2(x2, fx2);
+            fx1 = f(x1); ++funcEvals;
+        }
+        else
+        {
+            x2 += expandFactor * (x2 - x1);
+            if (x2 >= xLimits.b) return downwards2(x1, fx1);
+            fx2 = f(x2); ++funcEvals;
+        }
+    }
+
+    enforceNE(false, NE.Limit);
+    assert(0);
+}
+
+
+unittest
+{
+    real f(real x) { return 1 - x; }
+    auto b = bracketRoot(&f, -100.0L, 1.0L);
+    check (b.contains(1));
+}
+
+unittest
+{
+    real f(real x) { return log(x); }
+    auto b = bracketRoot(&f, interval(real.epsilon, real.infinity),
+        2*real.epsilon, 0.1L);
+    check (b.contains(1));
+}
 
 
 

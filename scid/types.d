@@ -228,6 +228,15 @@ pure: // TODO: Mark as nothrow as soon as DMD bug 5191 is fixed (DMD 2.051)
             b = tmp;
         }
     }
+
+
+    /** Check whether the value x is contained in the interval,
+        i.e. whether a <= x <= b or b <= x <= a.
+    */
+    bool contains(X)(X x) @safe const
+    {
+        return (a <= x && x <= b) || (b <= x && x <= a);
+    }
 }
 
 

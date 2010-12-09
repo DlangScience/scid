@@ -131,6 +131,36 @@ unittest
 
 
 
+/** Evaluates to true if the following compiles:
+    ---
+    F f;
+    ArgT x;
+    f(x);       // no return type check
+    ---
+*/
+template isUnaryFunction(F, ArgT)
+{
+    enum isUnaryFunction = __traits(compiles,
+    {
+        F f;
+        ArgT x;
+        f(x);
+    });
+}
+
+
+unittest
+{
+    real f(real x) { return x*1.0; }
+    static assert (isUnaryFunction!(typeof(&f), real));
+    static assert (isUnaryFunction!(typeof(&f), double));
+    static assert (isUnaryFunction!(typeof(&f), int));
+    static assert (!isUnaryFunction!(typeof(&f), string));
+}
+
+
+
+
 /** Evaluates to true if FuncType is a vector field, i.e. a callable type
     that takes an ArgType[] array as input and returns a RetType[] array.
 */
