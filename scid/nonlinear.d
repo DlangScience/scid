@@ -218,21 +218,59 @@ struct BracketingInterval(X, Y)
 /** Find a root of the function f, given an interval that
     is known to bracket a root.
 
+    It is possible to specify the desired number of digits of precision
+    in the final answer.  If this is left out, the algorithm will
+    try to achieve full machine precision.
+
     This function is included for convenient use with
     BracketingIntervals returned by the bracketing functions
     in this module.  Under the hood it just forwards to the
     $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot())
     function in Phobos.
 */
+T findRoot(T, R)
+    (scope R delegate(T) f, BracketingInterval!(T, R) bracket, int precision)
+{
+    return findRootImpl(f, bracket,
+        (T a, T b) { return matchDigits(a, b, precision); });
+}
+
+
+/// ditto
 T findRoot(T, R)(scope R delegate(T) f, BracketingInterval!(T, R) bracket)
+{
+    return findRootImpl(f, bracket,
+        (T a, T b) { return false; });
+}
+
+
+private T findRootImpl(T, R)(
+    scope R delegate(T) f,
+    BracketingInterval!(T, R) bracket,
+    scope bool delegate(T, T) tolerance)
 {
     if (bracket.y1 == 0) return bracket.x1;
     if (bracket.y2 == 0) return bracket.x2;
     return std.numeric.findRoot(f,
         bracket.x1, bracket.x2,
         bracket.y1, bracket.y2,
-        (T a, T b) { return false; }    // Machine precision
-        ).field[0];
+        tolerance
+    ).field[0];
+}
+
+
+unittest
+{
+    real f(real x) { return log(x); }
+    auto bracket = bracketRoot(&f, interval(real.epsilon, real.infinity),
+        0.5L, 1.0L);
+
+    immutable inaccurateRoot = findRoot(&f, bracket, 2);
+    check (matchDigits(inaccurateRoot, 1.0, 2));
+    check (!matchDigits(inaccurateRoot, 1.0, 10));
+
+    immutable accurateRoot = findRoot(&f, bracket);
+    check (accurateRoot == 1.0);
 }
 
 
