@@ -8,6 +8,7 @@
 module scid.nonlinear;
 
 
+import std.algorithm;
 import std.math;
 import std.range;
 import std.traits;
@@ -19,7 +20,7 @@ import scid.ports.minpack.hybrd;
 import scid.ports.napack.quasi;
 import scid.calculus;
 import scid.exception;
-import scid.types;
+//import scid.types;
 import scid.util;
 
 version (unittest) { import scid.core.testing; }
@@ -183,74 +184,67 @@ unittest
 
 
 
-/** An interval bracketing a root of some function.
+/** Find a root of the function f.
 
-    If a function f(x) is continuous on an interval (x1,x2),
-    and f(x1) and f(x2) have opposite sign, we know the function
-    must pass through zero somewhere in the interval.
-    Such an interval is said to 'bracket' a root of the function.
-
-    Note that this library considers the interval to be bracketing
-    a root also if the root is located exactly at one of the
-    endpoints.
-*/
-struct BracketingInterval(X, Y)
-{
-    /// The interval limits.
-    X x1;
-    X x2;   /// ditto
-
-    /// The function value at x1 and x2, respectively
-    Y y1;
-    Y y2;   /// ditto
-
-
-    version(unittest) bool contains(X point)
-    {
-        if (x1 <= x2) return (point >= x1 && point <= x2);
-        else          return (point >= x2 && point <= x1);
-    }
-}
-
-
-
-
-/** Find a root of the function f, given an interval that
-    is known to bracket a root.
-
-    It is possible to specify the desired number of digits of precision
-    in the final answer.  If this is left out, the algorithm will
-    try to achieve full machine precision.
-
-    This function is included for convenient use with
-    BracketingIntervals returned by the bracketing functions
-    in this module.  Under the hood it just forwards to the
+    This function first calls $(LINK2 #bracketRoot,bracketRoot) to
+    obtain an interval inside which there must be a root, and then calls
     $(LINK2 http://www.digitalmars.com/d/2.0/phobos/std_numeric.html#findRoot,std.numeric.findRoot())
-    function in Phobos.
+    to pin down the location of the root.
+
+    The parameters x0, scale, xMin, and xMax are just passed on to
+    $(LINK2 #bracketRoot,bracketRoot), and they are described in detail
+    in its documentation.  In brief, x0 should be an estimate of the
+    root's location, while scale should be a characteristic scale for
+    the function, i.e. a distance over which the function changes
+    significantly.  [xMin,xMax] is the interval inside which the algorithm
+    is allowed to search.
+
+    You may specify the desired (minimum) number of digits of precision
+    in the answer.  If this is left out, the algorithm will attempt
+    to achieve full machine precision.
 */
 T findRoot(T, R)
-    (scope R delegate(T) f, BracketingInterval!(T, R) bracket, int precision)
+    (scope R delegate(T) f, T x0, T scale, T xMin, T xMax,
+     int precision)
+    if (isFloatingPoint!T && isFloatingPoint!R)
 {
-    return findRootImpl(f, bracket,
+    return findRootImpl(f, x0, scale, xMin, xMax,
         (T a, T b) { return matchDigits(a, b, precision); });
 }
 
+/// ditto
+T findRoot(T, R)
+    (scope R delegate(T) f, T x0, T scale, int precision)
+    if (isFloatingPoint!T && isFloatingPoint!R)
+{
+    return findRoot(f, x0, scale, -T.infinity, T.infinity, precision);
+}
 
 /// ditto
-T findRoot(T, R)(scope R delegate(T) f, BracketingInterval!(T, R) bracket)
+T findRoot(T, R)
+    (scope R delegate(T) f, T x0, T scale, T xMin = -T.infinity,
+     T xMax = T.infinity)
+    if (isFloatingPoint!T && isFloatingPoint!R)
 {
-    return findRootImpl(f, bracket,
+    return findRootImpl(f, x0, scale, xMin, xMax,
         (T a, T b) { return false; });
 }
 
 
-private T findRootImpl(T, R)(
-    scope R delegate(T) f,
-    BracketingInterval!(T, R) bracket,
-    scope bool delegate(T, T) tolerance)
+// Implementation of findRoot()
+private T findRootImpl(T, R)
+    (
+        scope R delegate(T) f,
+        T x0, T scale,
+        T xMin, T xMax,
+        scope bool delegate(T, T) tolerance
+    )
+    if (isFloatingPoint!T && isFloatingPoint!R)
 {
+    auto bracket = bracketRoot(f, x0, scale, xMin, xMax);
     if (bracket.y1 == 0) return bracket.x1;
     if (bracket.y2 == 0) return bracket.x2;
+
     return std.numeric.findRoot(f,
         bracket.x1, bracket.x2,
         bracket.y1, bracket.y2,
@@ -262,15 +256,194 @@ private T findRootImpl(T, R)(
 unittest
 {
     real f(real x) { return log(x); }
-    auto bracket = bracketRoot(&f, interval(real.epsilon, real.infinity),
-        0.5L, 1.0L);
 
-    immutable inaccurateRoot = findRoot(&f, bracket, 2);
+    immutable inaccurateRoot =
+        findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity, 2);
     check (matchDigits(inaccurateRoot, 1.0, 2));
     check (!matchDigits(inaccurateRoot, 1.0, 10));
 
-    immutable accurateRoot = findRoot(&f, bracket);
+    immutable accurateRoot =
+        findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity);
     check (accurateRoot == 1.0);
+}
+
+
+
+
+/** Bracket a root of the function f.
+
+    If a function f(x) is continuous on an interval [x1,x2],
+    and f(x1) and f(x2) have opposite sign, we know the function
+    must pass through zero somewhere in the interval.
+    The points x1 and x2 are then said to 'bracket' the
+    root.  This is usually the first step in locating the root
+    of a function.
+
+    If this function succeeds, it returns a RootBracket containing
+    the points x1 and x2, together with the function values f(x1)
+    and f(x2).  If it fails, an exception is thrown.
+    Note that this library considers the points to be bracketing
+    a root also if the root is located exactly at x1 and/or x2,
+    i.e. if f(x1)=0 and/or f(x2)=0.
+
+    Details:
+
+    This function will start by evaluating f(x) in the points
+    x0 and x0+scale and see if those
+    points bracket a root of the given function.  If not, the interval
+    is expanded geometrically (i.e. the distance between the points
+    is multiplied by a constant factor), always in the direction where
+    f(x) is smallest, until the points bracket a root.
+
+    You may optionally specify a limiting interval [xMin, xMax], and the
+    algorithm will never search outside it.  This is useful,
+    for instance, for functions that are only defined for certain
+    values of x.  If you do specify such an interval, the
+    initial point x0 must lie inside it.
+
+    It is usually worthwhile analysing the behaviour of the function
+    in order to find appropriate values for x0 and scale.
+    The closer x0 is to the actual root, the fewer steps (i.e. the
+    fewer evaluations of f) this algorithm will require to succeed.
+    If scale is too large, and the function has several roots,
+    there is a chance that it will just step across both roots
+    and not find any of them.  On the other hand, if it is too small,
+    it may again cause the algorithm to take more steps than would
+    otherwise be necessary.
+*/
+RootBracket!(T, ReturnType!F) bracketRoot(F, T)
+    (
+        scope F f,
+        in T x0, in T scale,
+        in T xMin = -T.infinity, in T xMax = T.infinity,
+    )
+    if (isFloatingPoint!T && isUnaryFunction!(F, T))
+in
+{
+    assert (scale != 0, "scale must be nonzero");
+    assert (xMin < xMax, "xMin must be smaller than xMax");
+    assert (xMin <= x0 && x0 <= xMax, "x0 must be in the interval [xMin,xMax]");
+}
+body
+{
+    alias typeof(return) B;
+    enum expandFactor = 1.6;
+
+
+    // Function that searches upwards from xMin
+    B upwards(real x, real fx, real dx)
+    {
+        immutable fxMin = f(xMin);
+        for (;;)
+        {
+            if (fxMin * fx <= 0) return B(xMin, x, fxMin, fx);
+            enforceNE(x != xMax, "Unable to bracket root");
+            
+            dx *= expandFactor;
+            x = min(x + dx, xMax);
+            fx = f(x);
+        }
+        assert(0);
+    }
+
+
+    // Function that searches downwards from xMax
+    B downwards(real x, real fx, real dx)
+    {
+        immutable fxMax = f(xMax);
+        for (;;)
+        {
+            if (fxMax * fx <= 0) return B(x, xMax, fx, fxMax);
+            enforceNE(x != xMin, "Unable to bracket root");
+            
+            dx *= expandFactor;
+            x = max(x - dx, xMin);
+            fx = f(x);
+        }
+        assert(0);
+    }
+
+
+    // These are the initial points
+    real x1 = x0;
+    real x2 = x0 + scale;
+
+    // If x0 is either endpoint of the allowed interval, or if x2
+    // falls outside the interval, search only in one direction.
+    if (x1 == xMin || x2 <= xMin)
+    {
+        immutable x = min(x1 + abs(scale), xMax);
+        return upwards(x, f(x), abs(scale));
+    }
+    if (x1 == xMax || x2 >= xMax)
+    {
+        immutable x = max(x1 - abs(scale), xMin);
+        return downwards(x, f(x), abs(scale));
+    }
+
+    
+    // Both x1 and x2 fall inside [xMin, xMax], so we use bidirectional search
+    if (x1 > x2) swap(x1, x2);
+    real fx1 = f(x1);
+    real fx2 = f(x2);
+
+    for (;;)
+    {
+        // Check whether interval brackets a root
+        if (fx1 * fx2 <= 0)  return B(x1, x2, fx1, fx2);
+
+        // Expand interval in the direction where f(x) is closest to zero.
+        if (fabs(fx1) < fabs(fx2))
+        {
+            x1 += expandFactor * (x1 - x2);
+            if (x1 <= xMin) return upwards(x2, fx2, x2-x1);
+            fx1 = f(x1);
+        }
+        else
+        {
+            x2 += expandFactor * (x2 - x1);
+            if (x2 >= xMax) return downwards(x1, fx1, x2-x1);
+            fx2 = f(x2);
+        }
+    }
+    assert(0);
+}
+
+
+unittest
+{
+    real f(real x) { return 1 - x; }
+    auto b = bracketRoot(&f, -100.0L, 1.0L);
+    check (b.contains(1));
+}
+
+unittest
+{
+    real f(real x) { return log(x); }
+    auto b = bracketRoot(&f, 2*real.epsilon, 0.1L, real.epsilon, real.infinity);
+    check (b.contains(1));
+}
+
+
+
+
+/** A set of points that bracket a root of some function. */
+struct RootBracket(X, Y)
+{
+    /// Two points that bracket a root.
+    X x1;
+    X x2;   /// ditto
+
+    /// The function value at x1 and x2, respectively
+    Y y1;
+    Y y2;   /// ditto
+
+
+    version(unittest) private bool contains(X point)
+    {
+        if (x1 <= x2) return (point >= x1 && point <= x2);
+        else          return (point >= x2 && point <= x1);
+    }
 }
 
 
@@ -291,7 +464,7 @@ T[] findRoots(T, Func)(scope Func f, T a, T b, uint nIntervals,
 
     // Find bracketing subintervals.
     auto bracketBuffer =
-        newStack!(BracketingInterval!(T, ReturnType!Func))(nIntervals+1);
+        newStack!(RootBracket!(T, ReturnType!Func))(nIntervals+1);
     auto intervals =
         bracketRoots!(T,Func)(f, a, b, nIntervals, bracketBuffer);
 
@@ -305,7 +478,9 @@ T[] findRoots(T, Func)(scope Func f, T a, T b, uint nIntervals,
         // If not, call findRoot() to locate the root.
         // Note that if it is located at the "higher" end point it will
         // be caught in the next iteration.
-        else if (iv.y2 != 0) buffer[i] = findRoot(f, iv);
+        else if (iv.y2 != 0) buffer[i] =
+            std.numeric.findRoot(f, iv.x1, iv.x2, iv.y1, iv.y2,
+                (T a, T b) { return false; })[0];
     }
 
     return buffer;
@@ -335,9 +510,9 @@ unittest
     A buffer of length at least nIntervals+1, for storing the brackets, may
     optionally be provided.  If not, one will be allocated.
 */
-BracketingInterval!(T, ReturnType!Func)[] bracketRoots(T, Func)
+RootBracket!(T, ReturnType!Func)[] bracketRoots(T, Func)
     (scope Func f, T a, T b, uint nIntervals,
-     BracketingInterval!(T, ReturnType!Func)[] buffer = null)
+     RootBracket!(T, ReturnType!Func)[] buffer = null)
 {
     static assert (is (typeof(buffer) == typeof(return)));
     alias ElementType!(typeof(return)) B;
@@ -406,32 +581,32 @@ unittest
 
 
 
-/** Given a function f and a starting point x1, this routine searches
+/*  Given a function f and a starting point x1, this routine searches
     along the x-axis in the positive (scale>0) or negative (scale<0)
     direction until it reaches a point x2 where f(x2) has an opposite
     sign from f(x1).
 
-    If such a point is found, a BracketingInterval containing the two
+    If such a point is found, a RootBracket containing the two
     points x1 and x2, as well as the function values in those points,
     is returned.  If not, an exception is thrown.
 
     If the function is exactly zero in one of the endpoints, a
-    BracketingInterval starting and ending at that point is returned.
+    RootBracket starting and ending at that point is returned.
 
     On the first iteration, x2 = x1+scale.  Hence, scale should be a
     characteristic scale for the function (i.e. a scale over which the
     function changes significantly).  Thereafter, the interval is expanded
     geometrically by multiplying scale by a constant factor for each iteration.
 */
-BracketingInterval!(T, ReturnType!F) bracketFrom(F, T)
+RootBracket!(T, ReturnType!F) bracketFrom(F, T)
     (scope F f, T x1, T scale, int maxIterations=40)
 {
     return bracketFrom(f, x1, f(x1), scale, maxIterations);
 }
 
 
-/// ditto
-BracketingInterval!(T, ReturnType!F) bracketFrom(F, T, R)
+//  ditto
+RootBracket!(T, ReturnType!F) bracketFrom(F, T, R)
     (scope F f, T x1, R fx1, T scale, int maxIterations=40)
     if (is(ReturnType!F : R))
 in
@@ -474,7 +649,7 @@ unittest
 
 enum HandleNaN : bool { yes = true, no = false }
 
-/** This function does essentially the same as bracketFrom(), except that
+/*  This function does essentially the same as bracketFrom(), except that
     it expands the interval in $(I both) directions until it brackets a root.
 
     Unlike bracketFrom(), this function can optionally handle NaNs, in
@@ -485,7 +660,7 @@ enum HandleNaN : bool { yes = true, no = false }
     This feature is disabled by default.  Pass HandleNaN.yes as the last
     argument to enable it.
 */
-BracketingInterval!(T, ReturnType!Func) bracketOut(T, Func)
+RootBracket!(T, ReturnType!Func) bracketOut(T, Func)
     (scope Func f, T x1, T scale, int maxIterations = 40,
      HandleNaN handleNaN = HandleNaN.no)
 in
@@ -569,136 +744,6 @@ unittest
     check(bracket.y1 * bracket.y2 <= 0);
     check(bracket.contains(PI/2));
     check(isNaN(f(bracket.x1-0.000001)));
-}
-    
-
-
-
-/** Bracket roots of a function.  Experimental, but will hopefully
-    replace all the other bracketXXX() functions.
-*/
-BracketingInterval!(T, ReturnType!F) bracketRoot(T, F)
-    (scope F f, T start, T scale, int maxFuncEvals = 100)
-    if (isFloatingPoint!T && isUnaryFunction!(F, T))
-{
-    return bracketRoot(f, interval(-T.infinity, T.infinity), start,
-        scale, maxFuncEvals);
-}
-
-
-/// ditto
-BracketingInterval!(T, ReturnType!F) bracketRoot(F, T)
-    (scope F f, Interval!T xLimits, T start, T scale,
-    int maxFuncEvals = 100)
-    if (isFloatingPoint!T && isUnaryFunction!(F, T))
-in
-{
-    assert (xLimits.contains(start),
-        "start point is not inside the searchable interval");
-    assert (scale != 0, "scale must be nonzero");
-    assert (maxFuncEvals > 2, "maxFuncEvals must be greater than 2");
-}
-body
-{
-    alias typeof(return) BI;
-    enum expandFactor = 1.6;
-
-    int funcEvals = 0;
-    xLimits.order();
-
-
-    // Search in the positive direction
-    BI upwards2(real x, real fx)
-    {
-        real step = x - xLimits.a;
-        immutable fa = f(xLimits.a); ++funcEvals;
-        while (funcEvals < maxFuncEvals)
-        {
-            if (fa * fx <= 0) return BI(xLimits.a, x, fa, fx);
-            enforceNE(x != xLimits.b, "Unable to bracket root inside interval");
-            
-            step *= expandFactor;
-            x = min(x + step, xLimits.b);
-            fx = f(x); ++funcEvals;
-        }
-        enforceNE(false, NE.Limit);
-        assert(0);
-    }
-    BI upwards1(real x) { ++funcEvals; return upwards2(x, f(x)); }
-
-
-    // Search in the negative direction
-    BI downwards2(real x, real fx)
-    {
-        real step = xLimits.b - x;
-        immutable fb = f(xLimits.b); ++funcEvals;
-        while (funcEvals < maxFuncEvals)
-        {
-            if (fb * fx <= 0) return BI(x, xLimits.b, fx, fb);
-            enforceNE(x != xLimits.a, "Unable to bracket root inside interval");
-            
-            step *= expandFactor;
-            x = max(x - step, xLimits.a);
-            fx = f(x); ++funcEvals;
-        }
-        enforceNE(false, NE.Limit);
-        assert(0);
-    }
-    BI downwards1(real x) { ++funcEvals; return downwards2(x, f(x)); }
-
-
-    // Determine which search to use
-    real x1 = start;
-    if (x1 == xLimits.a) return upwards1(x1 + abs(scale));
-    if (x1 == xLimits.b) return downwards1(x1 - abs(scale));
-
-    real x2 = x1 + abs(scale);
-    if (x2 >= xLimits.b) return downwards1(x1);
-
-    
-    // Bidirectional search
-    real fx1 = f(x1);
-    real fx2 = f(x2);
-    funcEvals += 2;
-
-    while (funcEvals < maxFuncEvals)
-    {
-        // Check whether interval brackets a root
-        if (fx1 * fx2 <= 0)  return BI(x1, x2, fx1, fx2);
-
-        // Expand interval in the direction where f(x) is closest to zero.
-        if (fabs(fx1) < fabs(fx2))
-        {
-            x1 += expandFactor * (x1 - x2);
-            if (x1 <= xLimits.a) return upwards2(x2, fx2);
-            fx1 = f(x1); ++funcEvals;
-        }
-        else
-        {
-            x2 += expandFactor * (x2 - x1);
-            if (x2 >= xLimits.b) return downwards2(x1, fx1);
-            fx2 = f(x2); ++funcEvals;
-        }
-    }
-
-    enforceNE(false, NE.Limit);
-    assert(0);
-}
-
-
-unittest
-{
-    real f(real x) { return 1 - x; }
-    auto b = bracketRoot(&f, -100.0L, 1.0L);
-    check (b.contains(1));
-}
-
-unittest
-{
-    real f(real x) { return log(x); }
-    auto b = bracketRoot(&f, interval(real.epsilon, real.infinity),
-        2*real.epsilon, 0.1L);
-    check (b.contains(1));
 }
 
 
@@ -826,7 +871,7 @@ unittest
 
 
 
-/** Use bisection to find the point where a function starts returning NaN.
+/*  Use bisection to find the point where a function starts returning NaN.
 
     This function has been superseded (and is now implemented in terms of)
     the more general bisect().  It may be removed in the future.
@@ -873,7 +918,7 @@ body
 }
 
 
-/// ditto
+//  ditto
 Tuple!(T, "xValid", T, "xNaN", R, "fValid") findNaN(Func, T, R)
     (scope Func f, T xValid, T xNaN, R fValid, T xTolerance, int maxIterations=40)
     if (isUnaryFunction!(Func, R, T) && isFloatingPoint!R)
