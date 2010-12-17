@@ -9,6 +9,7 @@ module scid.nonlinear;
 
 
 import std.algorithm;
+import std.functional;
 import std.math;
 import std.range;
 import std.traits;
@@ -203,28 +204,24 @@ unittest
     in the answer.  If this is left out, the algorithm will attempt
     to achieve full machine precision.
 */
-T findRoot(T, R)
-    (scope R delegate(T) f, T x0, T scale, T xMin, T xMax,
-     int precision)
-    if (isFloatingPoint!T && isFloatingPoint!R)
+T findRoot(F, T)(scope F f, T x0, T scale, T xMin, T xMax, int precision)
+    if (isUnaryFunction!(F, T) && isFloatingPoint!T)
 {
     return findRootImpl(f, x0, scale, xMin, xMax,
         (T a, T b) { return matchDigits(a, b, precision); });
 }
 
 /// ditto
-T findRoot(T, R)
-    (scope R delegate(T) f, T x0, T scale, int precision)
-    if (isFloatingPoint!T && isFloatingPoint!R)
+T findRoot(F, T)(scope F f, T x0, T scale, int precision)
+    if (isUnaryFunction!(F, T) && isFloatingPoint!T)
 {
     return findRoot(f, x0, scale, -T.infinity, T.infinity, precision);
 }
 
 /// ditto
-T findRoot(T, R)
-    (scope R delegate(T) f, T x0, T scale, T xMin = -T.infinity,
-     T xMax = T.infinity)
-    if (isFloatingPoint!T && isFloatingPoint!R)
+T findRoot(F, T)
+    (scope F f, T x0, T scale, T xMin = -T.infinity, T xMax = T.infinity)
+    if (isUnaryFunction!(F, T) && isFloatingPoint!T)
 {
     return findRootImpl(f, x0, scale, xMin, xMax,
         (T a, T b) { return false; });
@@ -232,24 +229,32 @@ T findRoot(T, R)
 
 
 // Implementation of findRoot()
-private T findRootImpl(T, R)
+private T findRootImpl(F, T)
     (
-        scope R delegate(T) f,
+        scope F f,
         T x0, T scale,
         T xMin, T xMax,
         scope bool delegate(T, T) tolerance
     )
-    if (isFloatingPoint!T && isFloatingPoint!R)
+    if (isUnaryFunction!(F, T) && isFloatingPoint!T)
 {
     auto bracket = bracketRoot(f, x0, scale, xMin, xMax);
     if (bracket.y1 == 0) return bracket.x1;
     if (bracket.y2 == 0) return bracket.x2;
 
-    return std.numeric.findRoot(f,
+    // std.numeric.findRoot() only takes a delegate
+    static if (is (F == delegate))
+        auto dg = f;
+    else static if (isFunctionPointer!F)
+        auto dg = toDelegate(f);
+    else static if (isFunctor!F)
+        scope ReturnType!F delegate(ParameterTypeTuple!F) dg = &f.opCall;
+
+    return std.numeric.findRoot(dg,
         bracket.x1, bracket.x2,
         bracket.y1, bracket.y2,
         tolerance
-    ).field[0];
+    )[0];
 }
 
 
@@ -259,12 +264,27 @@ unittest
 
     immutable inaccurateRoot =
         findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity, 2);
-    check (matchDigits(inaccurateRoot, 1.0, 2));
-    check (!matchDigits(inaccurateRoot, 1.0, 10));
+    check(matchDigits(inaccurateRoot, 1.0, 2));
+    check(!matchDigits(inaccurateRoot, 1.0, 10));
 
     immutable accurateRoot =
         findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity);
-    check (accurateRoot == 1.0);
+    check(accurateRoot == 1.0);
+}
+
+unittest
+{
+    // Function
+    static real f(real x) { return x; }
+    check(findRoot(&f, 1.0L, 1.0L) == 0.0L);
+}
+
+unittest
+{
+    // Functor
+    struct Functor { real opCall(real x) { return x^^3; } }
+    Functor g;
+    check(findRoot(g, 1.0L, 1.0L) == 0.0L);
 }
 
 
