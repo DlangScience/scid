@@ -339,3 +339,104 @@ const(T)[] tailConst(T)(const T[] a) pure nothrow
 {
     return a;
 }
+
+
+
+
+/** Limit the number of times a function can be called.
+
+    Given a delegate dg and an integer maxCalls, this function
+    returns a functor with the same parameter and return types as dg,
+    and that forwards up to maxCalls calls to dg.  On the maxCalls+1th
+    call it throws an exception.  This is useful for algorithms such
+    as scid.nonlinear.findRoot() which may require an arbitrary
+    number of function calls to complete.
+    ---
+    void f(int i) { ... }
+    auto g = limitCalls(&f, 2);
+
+    g(0);    // succeeds
+    g(0);    // succeeds
+    g(0);    // throws
+    ---
+
+    In the example above, when we're taking the address of f, its
+    context may be copied to the heap.  This is a potentially expensive
+    operation.  To avoid it, use the unsafe function scopeLimitCalls()
+    instead.  This should only be used if you are absolutely sure that
+    the returned delegate never escapes the current scope.
+    ---
+    alias void delegate(int) DgType;
+
+    // Here, the delegate escapes by being assigned to a variable
+    // outside the function scope.
+    DgType someGlobal;
+    void badIdea1()
+    {
+        void f(int i) { ... }
+        someGlobal = scopeLimitCalls(&f, 10);
+    }
+
+    // Here it escapes because we return it.
+    DgType badIdea2()
+    {
+        void f(int i) { ... }
+        return scopeLimitCalls(&f, 10);
+    }
+    ---
+*/
+LimitCalls!(R, T) limitCalls(R, T...)
+    (R delegate(T) dg, uint maxCalls)
+{
+    typeof(return) functor = void;
+    functor.dg = dg;
+    functor.maxCalls = maxCalls;
+    functor.calls = 0;
+    return functor;
+}
+
+/// ditto
+LimitCalls!(R, T) scopeLimitCalls(R, T...)
+    (scope R delegate(T) dg, uint maxCalls)
+{
+    typeof(return) functor = void;
+    functor.dg = dg;
+    functor.maxCalls = maxCalls;
+    functor.calls = 0;
+    return functor;
+}
+
+struct LimitCalls(R, T...)
+{
+private:
+    R delegate(T) dg;
+    uint maxCalls;
+    uint calls;
+
+public:
+    R opCall(T params)
+    {
+        if (calls++ >= maxCalls)
+            throw new Exception("Function called too many times");
+        return dg(params);
+    }
+}
+
+
+unittest
+{
+    int sum;
+    void add(int i) { sum += i; }
+
+    auto f = limitCalls(&add, 2);
+    f(3);
+    f(1);
+    try { f(10); check(false); } catch (Exception e) { check(true); }
+    check(sum == 4);
+
+    auto g = scopeLimitCalls(&add, 2);
+    g(2);
+    g(5);
+    try { g(10); check(false); } catch (Exception e) { check(true); }
+    check(sum == 11);
+}
