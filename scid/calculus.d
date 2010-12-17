@@ -99,7 +99,7 @@
 module scid.calculus;
 
 
-import std.algorithm: max;
+import std.algorithm;
 import std.math;
 import std.traits;
 
