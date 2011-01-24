@@ -2,9 +2,10 @@ SciD
 ====
 
 SciD is a collection of numerical routines and bindings written in and for
-the D programming language.  For more information, go to
+the D programming language.  The project page can be found at
 
-    http://www.dsource.org/projects/scid
+    https://github.com/kyllingstad/scid
+
 
 Author:     Lars Tandle Kyllingstad
 Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad.
