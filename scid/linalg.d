@@ -48,6 +48,9 @@ import scid.exception;
 import scid.matrix;
 import scid.util;
 
+pragma(lib, "blas");
+pragma(lib, "lapack");
+
 
 
 
