@@ -457,7 +457,7 @@ Result!Real integrateQAGP(Func, Real)(scope Func f, Real a, Real b,
 
     // The array passed to qagp must have two unused slots.
     // Unfortunately, this will sometimes cause an allocation.
-    int npts2 = trouble.length + 2;
+    int npts2 = (cast(int) trouble.length) + 2;
     trouble.length = npts2;
     auto pts = newStack!Real(npts2);
     auto ndin = newStack!int(npts2);
@@ -1007,7 +1007,7 @@ MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
 
     // Do we have to evaluate the function once just to determine how
     // long the f-vector is? (That would be stupid.)
-    if (m < 0)  m = f(x).length;
+    if (m < 0)  m = cast(int) f(x).length;
 
     immutable size_t n = x.length;
     

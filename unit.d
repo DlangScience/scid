@@ -75,7 +75,7 @@ import scid.core.traits;
 import scid.internal.calculus.integrate_qk;
 import scid.internal.calculus.integrate_qng;
 
-//import scid.calculus;
+import scid.calculus;
 import scid.constants;
 import scid.exception;
 import scid.functions;
