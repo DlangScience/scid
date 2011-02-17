@@ -1,10 +1,4 @@
-#!/usr/local/bin/rdmd --shebang --force -m64 -w -d -unittest -L-lgfortran -L-lblas -L-llapack
-
-// Run unittests.
-module unit;
-
-
-import std.stdio;
+module unittests;
 
 
 import scid.bindings.blas.blas;
@@ -82,6 +76,8 @@ import scid.nonlinear;
 import scid.types;
 import scid.util;
 
+
+import std.stdio;
 
 void main()
 {
