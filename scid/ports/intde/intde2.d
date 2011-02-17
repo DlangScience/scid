@@ -67,8 +67,9 @@ import std.math;
                               is very high.
     </pre>
 */
-void intdeini(Real)(int lenaw, Real tiny, Real eps, Real *aw)
+void intdeini(Real)(size_t lenaw, Real tiny, Real eps, Real *aw)
 {
+    assert (lenaw > 1000);
     /* ---- adjustable parameter ---- */
     enum : Real { EFS = 0.1, HOFF = 8.5 }
     /* ------------------------------ */
@@ -296,8 +297,9 @@ unittest
                               as x -> infinity.
     </pre>
 */
-void intdeiini(Real)(int lenaw, Real tiny, Real eps, Real *aw)
+void intdeiini(Real)(size_t lenaw, Real tiny, Real eps, Real *aw)
 {
+    assert (lenaw > 1000);
     /* ---- adjustable parameter ---- */
     enum : Real { EFS = 0.1, HOFF = 11.0 }
     /* ------------------------------ */
@@ -530,8 +532,9 @@ unittest
     </pre>
 */
 
-void intdeoini(Real)(int lenaw, Real tiny, Real eps, Real *aw)
+void intdeoini(Real)(size_t lenaw, Real tiny, Real eps, Real *aw)
 {
+    assert (lenaw > 1000);
     /* ---- adjustable parameter ---- */
     enum LMAX = 5;
     enum : Real { EFS = 0.1, ENOFF = 0.40, PQOFF = 2.9, PPOFF = -0.72 }
