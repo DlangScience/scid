@@ -5,7 +5,7 @@
     $(LINK2 http://www.netlib.org/cephes/,Cephes) library.
 
     Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2010, Lars T. Kyllingstad. All rights reserved.
+    Copyright:  Copyright (c) 2010–2011, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.functions;
