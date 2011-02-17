@@ -61,11 +61,11 @@ import scid.ports.quadpack.qk41;
 import scid.ports.quadpack.qk51;
 import scid.ports.quadpack.qk61;
 import scid.ports.quadpack.qmomo;
++/
 import scid.ports.quadpack.qpsrt;
 import scid.ports.quadpack.qwgtc;
 import scid.ports.quadpack.qwgtf;
 import scid.ports.quadpack.qwgts;
-+/
 
 import scid.core.fortran;
 import scid.core.memory;
