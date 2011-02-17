@@ -65,6 +65,7 @@ import scid.ports.quadpack.qpsrt;
 import scid.ports.quadpack.qwgtc;
 import scid.ports.quadpack.qwgtf;
 import scid.ports.quadpack.qwgts;
++/
 
 import scid.core.fortran;
 import scid.core.memory;
@@ -74,18 +75,15 @@ import scid.core.traits;
 import scid.internal.calculus.integrate_qk;
 import scid.internal.calculus.integrate_qng;
 
-import scid.calculus;
+//import scid.calculus;
 import scid.constants;
 import scid.exception;
 import scid.functions;
-+/
 import scid.linalg;
 import scid.matrix;
-/+
-import scid.nonlinear;
+//import scid.nonlinear;
 import scid.types;
 import scid.util;
-+/
 
 
 void main()
