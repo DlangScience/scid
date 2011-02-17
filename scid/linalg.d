@@ -174,27 +174,27 @@ private void solveImpl(Real, Storage aStorage, Triangle aTriangle)
     {
         int* ipiv = cast(int*) TempAlloc.malloc(aRows*int.sizeof);
         gesv(
-            cast(int) aRows,          // N
-            cast(int) bCols,          // NRHS
-            aMatrix.ptr,    // A
-            cast(int) aRows,          // LDA
-            ipiv,           // IPIV
-            bxMatrix.ptr,   // B
-            cast(int) bRows,          // LDB
-            info);          // INFO
+            cast(int) aRows,    // N
+            cast(int) bCols,    // NRHS
+            aMatrix.ptr,        // A
+            cast(int) aRows,    // LDA
+            ipiv,               // IPIV
+            bxMatrix.ptr,       // B
+            cast(int) bRows,    // LDB
+            info);              // INFO
     }
     else static if (aStorage == Storage.Symmetric)
     {
         int* ipiv = cast(int*) TempAlloc.malloc(aRows*int.sizeof);
         spsv(
-            aTriangle,      // UPLO
-            cast(int) aRows,          // N
-            cast(int) bCols,          // NRHS
-            aMatrix.ptr,    // AP
-            ipiv,           // IPIV
-            bxMatrix.ptr,   // B
-            cast(int) bRows,          // LDB
-            info);          // INFO
+            aTriangle,          // UPLO
+            cast(int) aRows,    // N
+            cast(int) bCols,    // NRHS
+            aMatrix.ptr,        // AP
+            ipiv,               // IPIV
+            bxMatrix.ptr,       // B
+            cast(int) bRows,    // LDB
+            info);              // INFO
     }
     else static if (aStorage == Storage.Triangular)
     {
@@ -203,15 +203,15 @@ private void solveImpl(Real, Storage aStorage, Triangle aTriangle)
                                 // is unit triangular.
 
         tptrs(
-            aTriangle,      // UPLO
-            trans,          // TRANS
-            diag,           // DIAG
-            cast(int) aRows,          // N
-            cast(int) bCols,          // NRHS
-            aMatrix.ptr,    // AP
-            bxMatrix.ptr,   // B
-            cast(int) bRows,          // LDB
-            info);          // INFO
+            aTriangle,          // UPLO
+            trans,              // TRANS
+            diag,               // DIAG
+            cast(int) aRows,    // N
+            cast(int) bCols,    // NRHS
+            aMatrix.ptr,        // AP
+            bxMatrix.ptr,       // B
+            cast(int) bRows,    // LDB
+            info);              // INFO
 
     }
     else static assert (false, "solve: Unsupported matrix storage.");
@@ -638,13 +638,13 @@ body
     auto work = newStack!T(to!int(optimal.re));
 
     // Call LAPACK routine GEEV to calculate eigenvalues.
-    geev('N', 'N',                          // Don't compute eigenvectors.
-        n, cast(cT*) m.array.ptr, n,        // Input matrix.
-        cast(cT*) buffer.ptr,               // Eigenvalues.
+    geev('N', 'N',                  // Don't compute eigenvectors.
+        n, cast(cT*) m.array.ptr, n,                // Input matrix.
+        cast(cT*) buffer.ptr,                       // Eigenvalues.
         null, 1,                    // Left eigenvectors, not calculated.
         null, 1,                    // Right eigenvectors, not calculated.
-        cast(cT*) work.ptr, cast(int) work.length,    // Workspace 1.
-        rwork.ptr,                          // Workspace 2.
+        cast(cT*) work.ptr, cast(int) work.length,  // Workspace 1.
+        rwork.ptr,                                  // Workspace 2.
         info);
 
     if (info == 0)          // Success!
@@ -833,7 +833,7 @@ body
     T optimal;
     getri(
         cast(int) m.rows, null, cast(int) m.leading,    // Info about M
-        null, &optimal, -1,         // Do workspace query
+        null, &optimal, -1,                             // Do workspace query
         info);
 
     // Allocate workspace memory.
@@ -848,7 +848,7 @@ body
     // Invert matrix.
     getri(
         cast(int) m.rows, m.array.ptr, cast(int) m.leading, // Matrix
-        ipiv, work.ptr, cast(int) work.length,    // Workspace
+        ipiv, work.ptr, cast(int) work.length,              // Workspace
         info);
 
     assert (info >= 0);
