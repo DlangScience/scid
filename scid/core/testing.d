@@ -1,7 +1,7 @@
 /** Unit testing tools.
 
     Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
+    Copyright:  Copyright (c) 2009–2011, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.core.testing;
