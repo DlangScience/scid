@@ -1,21 +1,17 @@
 /** Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2010, Lars T. Kyllingstad. All rights reserved.
+    Copyright:  Copyright (c) 2010–2011, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.internal.calculus.integrate_qk;
 
 
-import std.algorithm: max, min;
 import std.math;
 import std.numeric;
 import std.traits;
 
 import scid.types;
 
-version(unittest)
-{
-    import scid.core.testing;
-}
+version(unittest) import scid.core.testing;
 
 
 
@@ -90,9 +86,9 @@ Result!Real qk(GaussKronrod rule, Func, Real = ReturnType!Func)
 
     Real error = abs((kronrodResult - gaussResult) * halfLength);
     if (fVariance != 0  &&  error != 0)
-        error = fVariance * min(1, (200*error/fVariance)^^1.5);
+        error = fVariance * fmin(1, (200*error/fVariance)^^1.5);
     if (absResult > Real.min/(50 * Real.epsilon))
-        error = max(Real.epsilon * 50 * absResult, error);
+        error = fmax(Real.epsilon * 50 * absResult, error);
 
     return typeof(return)(result, error);
 }

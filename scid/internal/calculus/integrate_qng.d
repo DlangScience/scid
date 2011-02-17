@@ -1,11 +1,10 @@
 /** Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2010, Lars T. Kyllingstad. All rights reserved.
+    Copyright:  Copyright (c) 2010–2011, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.internal.calculus.integrate_qng;
 
 
-import std.algorithm: max, min;
 import std.conv;
 import std.math;
 import std.numeric;
@@ -15,10 +14,7 @@ import scid.exception;
 import scid.types;
 import scid.util;
 
-version(unittest)
-{
-    import scid.core.testing;
-}
+version(unittest) import scid.core.testing;
 
 
 
@@ -32,8 +28,8 @@ Result!Real qng(Func, Real = ReturnType!Func)
     enforceNE(
         epsAbs > 0 || epsRel > epsRelMin,
         NE.InvalidInput,
-        "Invalid accuracy request (must have epsAbs > 0 or epsRel > "
-            ~to!string(epsRelMin)~")");
+        text("Invalid accuracy request (must have epsAbs > 0 or epsRel > ",
+            epsRelMin, ")"));
 
 
     // This function is used to calculate the absolute error.
@@ -41,9 +37,9 @@ Result!Real qng(Func, Real = ReturnType!Func)
     {
         T error = estimate;
         if (variance != 0 && error != 0)
-            error = variance * min(1, (200*error/variance)^^1.5);
+            error = variance * fmin(1, (200*error/variance)^^1.5);
         if (absResult > T.min_normal/(50*T.epsilon))
-            error = max(error, 50*T.epsilon*absResult);
+            error = fmax(error, 50*T.epsilon*absResult);
         return error;
     }
 
@@ -269,7 +265,7 @@ Result!Real qng(Func, Real = ReturnType!Func)
         immutable error = errorCalc(abs((result21 - result10)*halfLength),
             resultAbs, variance);
 
-        if (error <= max(epsAbs, epsRel * abs(result)))
+        if (error <= fmax(epsAbs, epsRel * abs(result)))
             return typeof(return)(result, error);
     }
 
@@ -293,7 +289,7 @@ Result!Real qng(Func, Real = ReturnType!Func)
         immutable error = errorCalc(abs((result43-result21)*halfLength),
             resultAbs, variance);
 
-        if (error <= max(epsAbs, epsRel * abs(result)))
+        if (error <= fmax(epsAbs, epsRel * abs(result)))
             return typeof(return)(result, error);
     }
 
@@ -316,7 +312,7 @@ Result!Real qng(Func, Real = ReturnType!Func)
             resultAbs, variance);
 
         enforceNE(
-            error <= max(epsAbs, epsRel * abs(result)),
+            error <= fmax(epsAbs, epsRel * abs(result)),
             NE.Convergence,
             "Integral didn't converge to the requested accuracy");
 
