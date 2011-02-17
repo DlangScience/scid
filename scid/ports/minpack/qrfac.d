@@ -71,7 +71,7 @@ private import scid.ports.minpack.enorm;
         can coincide with rdiag.
 */
 void qrfac(Real)(size_t m, size_t n, Real* a, size_t lda,
-    bool pivot, int* ipvt, size_t lipvt, Real* rdiag, Real* acnorm,
+    bool pivot, size_t* ipvt, size_t lipvt, Real* rdiag, Real* acnorm,
     Real* wa)
 {
     size_t i, j, ij, ikmax, jp1, k, kmax, minmn;

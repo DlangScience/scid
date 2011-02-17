@@ -16,7 +16,6 @@ import scid.bindings.blas.types;
 import scid.ports.intde.intde1;
 import scid.ports.intde.intde2;
 
-/+
 import scid.ports.minpack.dogleg;
 import scid.ports.minpack.enorm;
 import scid.ports.minpack.fdjac1;
@@ -26,6 +25,7 @@ import scid.ports.minpack.qrfac;
 import scid.ports.minpack.r1mpyq;
 import scid.ports.minpack.r1updt;
 
+/+
 import scid.ports.napack.addchg;
 import scid.ports.napack.quasi;
 import scid.ports.napack.stopit;

@@ -162,7 +162,7 @@ void hybrd(Real, Func)(Func fcn, size_t n, Real* x, Real* fvec,
     ptrdiff_t jm1;
     long msum;
     int iflag;
-    int[1] iwa;
+    size_t[1] iwa;
     bool jeval, sing;
     Real actred, delta, fnorm, fnorm1, pnorm, prered, ratio, sum, temp, xnorm;
 
