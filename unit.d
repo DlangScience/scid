@@ -29,6 +29,7 @@ import scid.ports.minpack.r1updt;
 import scid.ports.napack.addchg;
 import scid.ports.napack.quasi;
 import scid.ports.napack.stopit;
++/
 
 import scid.ports.quadpack.qag;
 import scid.ports.quadpack.qage;
@@ -61,7 +62,6 @@ import scid.ports.quadpack.qk41;
 import scid.ports.quadpack.qk51;
 import scid.ports.quadpack.qk61;
 import scid.ports.quadpack.qmomo;
-+/
 import scid.ports.quadpack.qpsrt;
 import scid.ports.quadpack.qwgtc;
 import scid.ports.quadpack.qwgtf;
