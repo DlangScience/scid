@@ -9,6 +9,7 @@ module scid.core.fortran;
 
 import std.conv;
 import std.traits: Unqual;
+
 import scid.core.testing;
 
 

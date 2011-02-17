@@ -9,7 +9,6 @@ import std.algorithm: max, min;
 import std.math: fabs;
 
 import scid.core.fortran;
-import scid.core.meta: Zero, One;
 import scid.ports.quadpack.qk15i;
 import scid.ports.quadpack.qpsrt;
 import scid.ports.quadpack.qelg;
