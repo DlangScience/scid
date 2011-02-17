@@ -1,4 +1,4 @@
-#!/usr/local/bin/rdmd --shebang --force -w -d -unittest -L-lgfortran -L-lblas -L-llapack
+#!/usr/local/bin/rdmd --shebang --force -m64 -w -d -unittest -L-lgfortran -L-lblas -L-llapack
 
 // Run unittests.
 module unit;
@@ -6,7 +6,10 @@ module unit;
 
 import std.stdio;
 
+import scid.core.testing;
 
+
+/+
 import scid.bindings.blas.blas;
 import scid.bindings.blas.dblas;
 import scid.bindings.blas.types;
@@ -66,7 +69,6 @@ import scid.ports.quadpack.qwgts;
 import scid.core.fortran;
 import scid.core.memory;
 import scid.core.meta;
-import scid.core.testing;
 import scid.core.traits;
 
 import scid.internal.calculus.integrate_qk;
@@ -81,6 +83,7 @@ import scid.matrix;
 import scid.nonlinear;
 import scid.types;
 import scid.util;
++/
 
 
 void main()

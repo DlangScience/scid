@@ -82,13 +82,13 @@ version(unittest)
 /** Replace all occurences of from in text with to. */
 string replace(string text, string from, string to)
 {
-    char[] s = text.dup;
+    auto s = text.dup;
     //s[] = (cast(char[])text)[];
 
-    int i=0;
+    size_t i = 0;
     while (i<s.length)
     {
-        int ipl = i + from.length;
+        auto ipl = i + from.length;
         if (ipl > s.length)  break;
 
         if (s[i .. ipl] == from)
