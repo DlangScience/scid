@@ -6,8 +6,6 @@ module unit;
 
 import std.stdio;
 
-import scid.core.testing;
-
 
 import scid.bindings.blas.blas;
 import scid.bindings.blas.dblas;
@@ -25,11 +23,9 @@ import scid.ports.minpack.qrfac;
 import scid.ports.minpack.r1mpyq;
 import scid.ports.minpack.r1updt;
 
-/+
 import scid.ports.napack.addchg;
 import scid.ports.napack.quasi;
 import scid.ports.napack.stopit;
-+/
 
 import scid.ports.quadpack.qag;
 import scid.ports.quadpack.qage;
@@ -70,6 +66,7 @@ import scid.ports.quadpack.qwgts;
 import scid.core.fortran;
 import scid.core.memory;
 import scid.core.meta;
+import scid.core.testing;
 import scid.core.traits;
 
 import scid.internal.calculus.integrate_qk;
@@ -81,7 +78,7 @@ import scid.exception;
 import scid.functions;
 import scid.linalg;
 import scid.matrix;
-//import scid.nonlinear;
+import scid.nonlinear;
 import scid.types;
 import scid.util;
 
