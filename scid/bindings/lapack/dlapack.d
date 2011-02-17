@@ -3191,10 +3191,10 @@ void ilaenvset(f_int ispec, char *name, char *opts, f_int n1, f_int n2, f_int n3
 
 ///
 f_float slamch(char[]cmach) {
-    return slamch_(cmach.ptr, cmach.length);
+    return slamch_(cmach.ptr, cast(int) cmach.length);
 }
 f_double dlamch(char[]cmach) {
-    return dlamch_(cmach.ptr, cmach.length);
+    return dlamch_(cmach.ptr, cast(int) cmach.length);
 }
 
 ///

@@ -9,11 +9,11 @@ import std.stdio;
 import scid.core.testing;
 
 
-/+
 import scid.bindings.blas.blas;
 import scid.bindings.blas.dblas;
 import scid.bindings.blas.types;
 
+/+
 import scid.ports.intde.intde1;
 import scid.ports.intde.intde2;
 
@@ -78,8 +78,10 @@ import scid.calculus;
 import scid.constants;
 import scid.exception;
 import scid.functions;
++/
 import scid.linalg;
 import scid.matrix;
+/+
 import scid.nonlinear;
 import scid.types;
 import scid.util;
