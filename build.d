@@ -23,7 +23,7 @@
     rdmd build html
     ---
 */
-import std.algorithm, std.exception, std.file, std.path, std.process,
+import std.algorithm, std.array, std.exception, std.file, std.path, std.process,
     std.stdio, std.string, std.zip;
 
 
@@ -105,7 +105,7 @@ void buildHeaders()
     auto sources = getSources();
     foreach (s; sources)
     {
-        immutable d = join(headerDir, dirname(s));
+        immutable d = std.path.join(headerDir, dirname(s));
         ensureDir(d);
 
         immutable diName = basename(s, ".d")~".di";
@@ -130,8 +130,8 @@ void buildHTML()
     string moduleList = "MODULES =\n";
     foreach (s; sources)
     {
-        version (Posix)     immutable slash = "/";
-        version (Windows)   immutable slash = "\\";
+        version (Posix)     auto slash = "/";
+        version (Windows)   auto slash = "\\";
         htmlFiles ~= basename(replace(s, slash, "_"),".d") ~ ".html";
 
         // Do not list the scid.internal.* modules in the
