@@ -40,6 +40,7 @@ import std.math;
 import std.traits;
 
 import scid.bindings.lapack.dlapack;
+import scid.core.fortran;
 import scid.core.memory;
 import scid.core.meta;
 import scid.core.testing;
@@ -174,27 +175,27 @@ private void solveImpl(Real, Storage aStorage, Triangle aTriangle)
     {
         int* ipiv = cast(int*) TempAlloc.malloc(aRows*int.sizeof);
         gesv(
-            cast(int) aRows,    // N
-            cast(int) bCols,    // NRHS
-            aMatrix.ptr,        // A
-            cast(int) aRows,    // LDA
-            ipiv,               // IPIV
-            bxMatrix.ptr,       // B
-            cast(int) bRows,    // LDB
-            info);              // INFO
+            toInt(aRows),   // N
+            toInt(bCols),   // NRHS
+            aMatrix.ptr,    // A
+            toInt(aRows),   // LDA
+            ipiv,           // IPIV
+            bxMatrix.ptr,   // B
+            toInt(bRows),   // LDB
+            info);          // INFO
     }
     else static if (aStorage == Storage.Symmetric)
     {
         int* ipiv = cast(int*) TempAlloc.malloc(aRows*int.sizeof);
         spsv(
-            aTriangle,          // UPLO
-            cast(int) aRows,    // N
-            cast(int) bCols,    // NRHS
-            aMatrix.ptr,        // AP
-            ipiv,               // IPIV
-            bxMatrix.ptr,       // B
-            cast(int) bRows,    // LDB
-            info);              // INFO
+            aTriangle,      // UPLO
+            toInt(aRows),   // N
+            toInt(bCols),   // NRHS
+            aMatrix.ptr,    // AP
+            ipiv,           // IPIV
+            bxMatrix.ptr,   // B
+            toInt(bRows),   // LDB
+            info);          // INFO
     }
     else static if (aStorage == Storage.Triangular)
     {
@@ -203,15 +204,15 @@ private void solveImpl(Real, Storage aStorage, Triangle aTriangle)
                                 // is unit triangular.
 
         tptrs(
-            aTriangle,          // UPLO
-            trans,              // TRANS
-            diag,               // DIAG
-            cast(int) aRows,    // N
-            cast(int) bCols,    // NRHS
-            aMatrix.ptr,        // AP
-            bxMatrix.ptr,       // B
-            cast(int) bRows,    // LDB
-            info);              // INFO
+            aTriangle,      // UPLO
+            trans,          // TRANS
+            diag,           // DIAG
+            toInt(aRows),   // N
+            toInt(bCols),   // NRHS
+            aMatrix.ptr,    // AP
+            bxMatrix.ptr,   // B
+            toInt(bRows),   // LDB
+            info);          // INFO
 
     }
     else static assert (false, "solve: Unsupported matrix storage.");
@@ -326,7 +327,7 @@ body
     static if (m.storage == Storage.General)
     {
         auto ipiv = newStack!int(m.rows);
-        getrf(cast(int) m.rows, cast(int) m.cols, m.array.ptr, cast(int) m.rows, ipiv.ptr, info);
+        getrf(toInt(m.rows), toInt(m.cols), m.array.ptr, toInt(m.rows), ipiv.ptr, info);
         assert (info >= 0, "invalid input to getrf");
         
         // If matrix is singular, determinant is zero.
@@ -349,7 +350,7 @@ body
     else static if (m.storage == Storage.Symmetric)
     {
         auto ipiv = newStack!int(m.rows);
-        sptrf(m.triangle, cast(int) m.rows, m.array.ptr, ipiv.ptr, info);
+        sptrf(m.triangle, toInt(m.rows), m.array.ptr, ipiv.ptr, info);
         assert (info >= 0, "invalid input to sptrf");
         
         // If matrix is singular, determinant is zero.
@@ -543,7 +544,7 @@ body
 {
     mixin (newFrame);
 
-    immutable int n = cast(int) m.rows;
+    immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
@@ -571,7 +572,7 @@ body
         wr.ptr, wi.ptr,         // Eigenvalues.
         null, 1,                // Left eigenvectors, not calculated.
         null, 1,                // Right eigenvectors, not calculated.
-        work.ptr, cast(int) work.length,  // Workspace.
+        work.ptr, toInt(work.length),  // Workspace.
         info);
 
     if (info == 0)          // Success!
@@ -617,7 +618,7 @@ body
     else static if (is(typeof(T.re) == double)) alias cdouble cT;
     else static assert(0);
 
-    immutable int n = cast(int) m.rows;
+    immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
@@ -638,13 +639,13 @@ body
     auto work = newStack!T(to!int(optimal.re));
 
     // Call LAPACK routine GEEV to calculate eigenvalues.
-    geev('N', 'N',                  // Don't compute eigenvectors.
-        n, cast(cT*) m.array.ptr, n,                // Input matrix.
-        cast(cT*) buffer.ptr,                       // Eigenvalues.
+    geev('N', 'N',                              // Don't compute eigenvectors.
+        n, cast(cT*) m.array.ptr, n,            // Input matrix.
+        cast(cT*) buffer.ptr,                   // Eigenvalues.
         null, 1,                    // Left eigenvectors, not calculated.
         null, 1,                    // Right eigenvectors, not calculated.
-        cast(cT*) work.ptr, cast(int) work.length,  // Workspace 1.
-        rwork.ptr,                                  // Workspace 2.
+        cast(cT*) work.ptr, toInt(work.length), // Workspace 1.
+        rwork.ptr,                              // Workspace 2.
         info);
 
     if (info == 0)          // Success!
@@ -706,7 +707,7 @@ T[] eigenvalues (T, Storage stor, Triangle tri)
     (MatrixView!(T, stor, tri) m, T[] buffer=null)
     if (stor == Storage.Triangular)
 {
-    immutable int n = cast(int) m.rows;
+    immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
@@ -751,7 +752,7 @@ T[] eigenvalues_ (T, Storage stor, Triangle tri)
     static assert (isFortranType!T,
         "eigenvalues: Not a FORTRAN-compatible type: "~T.stringof);
 
-    immutable int n = cast(int) m.rows;
+    immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
@@ -761,7 +762,7 @@ T[] eigenvalues_ (T, Storage stor, Triangle tri)
     // Call LAPACK routine SPEV.
     int info;
     spev('N',                               // Don't compute eigenvectors
-        m.triangle, cast(int) m.rows, m.array.ptr,    // Input matrix.
+        m.triangle, toInt(m.rows), m.array.ptr,    // Input matrix.
         buffer.ptr,                         // Eigenvalue array.
         null, 1,                            // Eigenvectors, not calculated.
         workspace,                          // Workspace.
@@ -832,8 +833,8 @@ body
     int info;
     T optimal;
     getri(
-        cast(int) m.rows, null, cast(int) m.leading,    // Info about M
-        null, &optimal, -1,                             // Do workspace query
+        toInt(m.rows), null, toInt(m.leading),  // Info about M
+        null, &optimal, -1,                     // Do workspace query
         info);
 
     // Allocate workspace memory.
@@ -842,13 +843,13 @@ body
 
     // Calculate LU factorisation.
     getrf(
-        cast(int) m.rows, cast(int) m.cols, m.array.ptr, cast(int) m.leading,
+        toInt(m.rows), toInt(m.cols), m.array.ptr, toInt(m.leading),
         ipiv, info);
 
     // Invert matrix.
     getri(
-        cast(int) m.rows, m.array.ptr, cast(int) m.leading, // Matrix
-        ipiv, work.ptr, cast(int) work.length,              // Workspace
+        toInt(m.rows), m.array.ptr, toInt(m.leading),   // Matrix
+        ipiv, work.ptr, toInt(work.length),             // Workspace
         info);
 
     assert (info >= 0);

@@ -10,6 +10,7 @@ module scid.bindings.lapack.dlapack;
 
 public  import scid.bindings.blas.types;
 import scid.bindings.lapack.lapack;
+import scid.core.fortran;
 
 
 
@@ -3191,10 +3192,10 @@ void ilaenvset(f_int ispec, char *name, char *opts, f_int n1, f_int n2, f_int n3
 
 ///
 f_float slamch(char[]cmach) {
-    return slamch_(cmach.ptr, cast(int) cmach.length);
+    return slamch_(cmach.ptr, toInt(cmach.length));
 }
 f_double dlamch(char[]cmach) {
-    return dlamch_(cmach.ptr, cast(int) cmach.length);
+    return dlamch_(cmach.ptr, toInt(cmach.length));
 }
 
 ///
