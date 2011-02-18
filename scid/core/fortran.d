@@ -237,3 +237,30 @@ unittest
     check (ib[2,2] == ia[4]);
     check (!__traits(compiles, { ib[2,2] = 5; }));
 }
+
+
+
+
+/** Convert an unsigned integer to a signed 32-bit integer.
+
+    FORTRAN code typically uses 32-bit signed ints for things
+    like array lengths.  D array lengths, on the other hand,
+    are uints in 32-bit mode, and ulongs in 64-bit mode.
+    Use of this function is safer than inserting casts everywhere,
+    because it checks that the given uint/ulong fits in an int.
+    For efficiency, this check is disabled in release mode
+    (which is a good reason to use this function over
+    std.conv.to!int).
+*/
+int toInt(size_t u) @safe pure nothrow
+{
+    assert (u <= int.max, "Number doesn't fit in a 32-bit integer");
+    return cast(int) u;
+}
+
+
+unittest
+{
+    check(toInt(10uL) == 10);
+    check(toInt(10u) == 10);
+}
