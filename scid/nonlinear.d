@@ -19,10 +19,7 @@ import scid.core.fortran;
 import scid.core.memory;
 import scid.core.traits;
 import scid.ports.minpack.hybrd;
-import scid.ports.napack.quasi;
-import scid.calculus;
 import scid.exception;
-//import scid.types;
 import scid.util;
 
 version (unittest) { import scid.core.testing; }
@@ -77,8 +74,14 @@ version (unittest) { import scid.core.testing; }
     ---
 */
 Real[] findRoot (Real, Func)
-    (scope Func f, Real[] guess, Real epsRel, int maxFuncEvals = 0,
-    Real[] buffer=null)
+    (
+        scope Func f,
+        Real[] guess,
+        Real epsRel,
+        int maxFuncEvals = 0,
+        Real[] buffer=null
+    )
+    if (isFloatingPoint!Real && isVectorField!(Func, Real))
 in
 {
     assert (guess.length > 0, "findRoot: empty guess vector given");
@@ -86,12 +89,6 @@ in
 body
 {
     mixin (newFrame);
-
-    static assert (isFloatingPoint!Real,
-        "findRoot: Not a floating-point type: "~T.stringof);
-    static assert (isVectorField!(Func, Real),
-        "findRoot: Invalid function type ("~Func.stringof~"), or "
-       ~"function type doesn't match parameter type ("~Real.stringof~")");
 
     // Wrap the user-supplied function.
     void fcn(size_t m, Real* x, Real* fvec, ref int iflag)
