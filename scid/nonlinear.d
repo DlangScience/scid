@@ -121,7 +121,7 @@ body
     // There are a lot of parameters to the hybrd function, and we set them
     // in the "correct" order and use the "correct" names.
     Real* x = buffer.ptr;
-    Real* fvec = cast(Real*) TempAlloc.malloc(wslen);
+    Real* fvec = cast(Real*) TempAlloc.malloc(wslen*Real.sizeof);
     alias epsRel xtol;
     alias maxFuncEvals maxfev;
     size_t ml_mu = n-1;
