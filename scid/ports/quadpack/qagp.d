@@ -7,6 +7,7 @@ module scid.ports.quadpack.qagp;
 
 import std.conv;
 
+import scid.core.fortran;
 import scid.core.testing;
 import scid.ports.quadpack.qagpe;
 
@@ -276,7 +277,7 @@ unittest
     int[leniw] iwork;
     double[lenw] work;
 
-    qagp(&f, a, b, points.length, points.ptr, epsabs, epsrel,
+    qagp(&f, a, b, toInt(points.length), points.ptr, epsabs, epsrel,
         result, abserr, neval, ier, leniw, lenw, last, iwork.ptr, work.ptr);
 
     double ans = 61*log(2.0) + 77*log(7.0)/4 - 27;

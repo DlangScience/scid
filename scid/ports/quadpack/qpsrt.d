@@ -143,51 +143,9 @@ void qpsrt(Real)(int limit, int last, ref int maxerr, ref Real ermax,
       return;
 }
 
-void qpsrt2(Real)(int limit, int last, ref int maxerr, ref Real ermax,
-    Real* elist_, int* iord_, ref int nrmax)
-{
-    auto elist = elist_[0 .. last];
-    auto iord = iord_[0 .. last];
-    
-    Real[int] elist2;
-    foreach (i, e; elist) elist2[i] = e;
-
-    foreach (i; 0 .. last)
-    {
-        // Locate largest element
-        Real emax = 0.0;
-        foreach (j, e; elist2)
-        {
-            if (e > emax) { emax = e; iord[i] = j+1; }
-        }
-        assert (emax > 0.0);
-        elist2.remove(iord[i]-1);
-    }
-    assert (elist2.length == 0);
-
-    maxerr = iord[nrmax-1];
-    ermax = elist[maxerr-1];
-}
-
 unittest
 {
     alias qpsrt!float fqpsrt;
     alias qpsrt!double dqpsrt;
     alias qpsrt!real rqpsrt;
 }
-
-unittest
-{
-    enum limit = 10;
-    int last = 5;
-    double ermax;
-    double[limit] elist;
-    elist[0 .. last] = [ 1e-5, 1e-2, 1e-10, 1e-11, 1e-6 ];
-    int[limit] iord;
-    iord[0 .. last] = [2, 1, 5, 3, 4];
-    int nrmax = 2;
-    int maxerr = iord[nrmax-1];
-
-    qpsrt2(limit, last, maxerr, ermax, elist.ptr, iord.ptr, nrmax);
-}
-

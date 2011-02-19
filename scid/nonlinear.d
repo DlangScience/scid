@@ -15,6 +15,7 @@ import std.range;
 import std.traits;
 import std.typecons;
 
+import scid.core.fortran;
 import scid.core.memory;
 import scid.core.traits;
 import scid.ports.minpack.hybrd;
@@ -110,7 +111,7 @@ body
             ~"equations must be equal to the number of variables");
     };
 
-    immutable int n = guess.length;
+    immutable int n = toInt(guess.length);
     immutable int wslen = (n*(3*n + 15))/2;
     if (maxFuncEvals < 1) maxFuncEvals = 200*(n+1);
 

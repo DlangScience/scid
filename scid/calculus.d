@@ -103,6 +103,7 @@ import std.algorithm;
 import std.math;
 import std.traits;
 
+import scid.core.fortran;
 import scid.core.memory;
 import scid.core.traits;
 import scid.internal.calculus.integrate_qng;
@@ -457,7 +458,7 @@ Result!Real integrateQAGP(Func, Real)(scope Func f, Real a, Real b,
 
     // The array passed to qagp must have two unused slots.
     // Unfortunately, this will sometimes cause an allocation.
-    int npts2 = trouble.length + 2;
+    int npts2 = toInt(trouble.length) + 2;
     trouble.length = npts2;
     auto pts = newStack!Real(npts2);
     auto ndin = newStack!int(npts2);
@@ -1007,7 +1008,7 @@ MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
 
     // Do we have to evaluate the function once just to determine how
     // long the f-vector is? (That would be stupid.)
-    if (m < 0)  m = f(x).length;
+    if (m < 0)  m = toInt(f(x).length);
 
     immutable size_t n = x.length;
     
