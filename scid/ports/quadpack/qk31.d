@@ -8,7 +8,7 @@ module scid.ports.quadpack.qk31;
 import std.algorithm: max, min;
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 
@@ -215,7 +215,7 @@ void qk31(Real, Func)(Func f, Real a, Real b, out Real result,
       return;
 }
 
-version(unittest) import scid.core.testing;
+version(unittest) import scid.common.testing;
 unittest
 {
     alias qk31!(float, float delegate(float)) fqk31;

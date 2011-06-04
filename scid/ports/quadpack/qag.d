@@ -11,7 +11,7 @@ import scid.ports.quadpack.qage;
 version(unittest)
 {
     import std.math;
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 

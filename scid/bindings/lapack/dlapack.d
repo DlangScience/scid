@@ -10,7 +10,7 @@ module scid.bindings.lapack.dlapack;
 
 public  import scid.bindings.blas.types;
 import scid.bindings.lapack.lapack;
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

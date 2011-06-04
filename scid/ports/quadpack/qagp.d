@@ -7,14 +7,14 @@ module scid.ports.quadpack.qagp;
 
 import std.conv;
 
-import scid.core.fortran;
-import scid.core.testing;
+import scid.common.fortran;
+import scid.common.testing;
 import scid.ports.quadpack.qagpe;
 
 version(unittest)
 {
     import std.math;
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 

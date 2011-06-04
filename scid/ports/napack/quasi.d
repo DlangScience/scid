@@ -5,7 +5,7 @@
 module scid.ports.napack.quasi;
 
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 import scid.ports.napack.addchg;
 import scid.ports.napack.stopit;
@@ -136,7 +136,7 @@ unittest
 version(unittest)
 {
     import std.math;
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 unittest

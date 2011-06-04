@@ -16,7 +16,7 @@ import scid.ports.quadpack.qk51;
 import scid.ports.quadpack.qk61;
 import scid.ports.quadpack.qpsrt;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

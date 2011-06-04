@@ -1,0 +1,284 @@
+<DProject>
+ <ProjectGuid>{61CB1D4B-3C7B-425C-A261-FF54C8651E06}</ProjectGuid>
+ <Config name="Debug">
+  <obj>0</obj>
+  <link>0</link>
+  <lib>0</lib>
+  <multiobj>0</multiobj>
+  <singleFileCompilation>0</singleFileCompilation>
+  <oneobj>0</oneobj>
+  <trace>0</trace>
+  <quiet>0</quiet>
+  <verbose>0</verbose>
+  <vtls>0</vtls>
+  <symdebug>1</symdebug>
+  <optimize>0</optimize>
+  <cpu>0</cpu>
+  <isX86_64>0</isX86_64>
+  <isLinux>0</isLinux>
+  <isOSX>0</isOSX>
+  <isWindows>0</isWindows>
+  <isFreeBSD>0</isFreeBSD>
+  <isSolaris>0</isSolaris>
+  <scheduler>0</scheduler>
+  <useDeprecated>0</useDeprecated>
+  <useAssert>0</useAssert>
+  <useInvariants>0</useInvariants>
+  <useIn>0</useIn>
+  <useOut>0</useOut>
+  <useArrayBounds>0</useArrayBounds>
+  <noboundscheck>0</noboundscheck>
+  <useSwitchError>0</useSwitchError>
+  <useUnitTests>0</useUnitTests>
+  <useInline>0</useInline>
+  <release>0</release>
+  <preservePaths>0</preservePaths>
+  <warnings>0</warnings>
+  <infowarnings>0</infowarnings>
+  <pic>0</pic>
+  <cov>0</cov>
+  <nofloat>0</nofloat>
+  <Dversion>2</Dversion>
+  <ignoreUnsupportedPragmas>0</ignoreUnsupportedPragmas>
+  <otherDMD>0</otherDMD>
+  <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
+  <imppath />
+  <fileImppath />
+  <outdir>$(ConfigurationName)</outdir>
+  <objdir>$(OutDir)</objdir>
+  <objname />
+  <libname />
+  <doDocComments>0</doDocComments>
+  <docdir />
+  <docname />
+  <modules_ddoc />
+  <ddocfiles />
+  <doHdrGeneration>0</doHdrGeneration>
+  <hdrdir />
+  <hdrname />
+  <doXGeneration>1</doXGeneration>
+  <xfilename>$(IntDir)\$(TargetName).json</xfilename>
+  <debuglevel>0</debuglevel>
+  <debugids />
+  <versionlevel>0</versionlevel>
+  <versionids />
+  <dump_source>0</dump_source>
+  <mapverbosity>0</mapverbosity>
+  <createImplib>0</createImplib>
+  <defaultlibname />
+  <debuglibname />
+  <moduleDepsFile />
+  <run>0</run>
+  <runargs />
+  <runCv2pdb>1</runCv2pdb>
+  <pathCv2pdb>$(VisualDInstallDir)cv2pdb\cv2pdb.exe</pathCv2pdb>
+  <objfiles />
+  <linkswitches />
+  <libfiles>$(SolutionDir)\deps\blaslapackdll.lib</libfiles>
+  <libpaths>$(SolutionDir)\deps</libpaths>
+  <deffile />
+  <resfile />
+  <exefile>$(OutDir)\$(ProjectName).exe</exefile>
+  <additionalOptions />
+  <preBuildCommand />
+  <postBuildCommand />
+  <debugtarget>$(TARGETPATH)</debugtarget>
+  <debugarguments />
+  <debugworkingdir />
+  <debugattach>0</debugattach>
+  <debugremote />
+  <debugEngine>0</debugEngine>
+  <filesToClean>*.obj;*.cmd;*.build;*.json;*.dep</filesToClean>
+ </Config>
+ <Config name="Release">
+  <obj>0</obj>
+  <link>0</link>
+  <lib>0</lib>
+  <multiobj>0</multiobj>
+  <singleFileCompilation>0</singleFileCompilation>
+  <oneobj>0</oneobj>
+  <trace>0</trace>
+  <quiet>0</quiet>
+  <verbose>0</verbose>
+  <vtls>0</vtls>
+  <symdebug>0</symdebug>
+  <optimize>0</optimize>
+  <cpu>0</cpu>
+  <isX86_64>0</isX86_64>
+  <isLinux>0</isLinux>
+  <isOSX>0</isOSX>
+  <isWindows>0</isWindows>
+  <isFreeBSD>0</isFreeBSD>
+  <isSolaris>0</isSolaris>
+  <scheduler>0</scheduler>
+  <useDeprecated>0</useDeprecated>
+  <useAssert>0</useAssert>
+  <useInvariants>0</useInvariants>
+  <useIn>0</useIn>
+  <useOut>0</useOut>
+  <useArrayBounds>0</useArrayBounds>
+  <noboundscheck>0</noboundscheck>
+  <useSwitchError>0</useSwitchError>
+  <useUnitTests>0</useUnitTests>
+  <useInline>0</useInline>
+  <release>1</release>
+  <preservePaths>0</preservePaths>
+  <warnings>0</warnings>
+  <infowarnings>0</infowarnings>
+  <pic>0</pic>
+  <cov>0</cov>
+  <nofloat>0</nofloat>
+  <Dversion>2</Dversion>
+  <ignoreUnsupportedPragmas>0</ignoreUnsupportedPragmas>
+  <otherDMD>0</otherDMD>
+  <program>$(DMDInstallDir)windows\bin\dmd.exe</program>
+  <imppath />
+  <fileImppath />
+  <outdir>$(ConfigurationName)</outdir>
+  <objdir>$(OutDir)</objdir>
+  <objname />
+  <libname />
+  <doDocComments>0</doDocComments>
+  <docdir />
+  <docname />
+  <modules_ddoc />
+  <ddocfiles />
+  <doHdrGeneration>0</doHdrGeneration>
+  <hdrdir />
+  <hdrname />
+  <doXGeneration>1</doXGeneration>
+  <xfilename>$(IntDir)\$(TargetName).json</xfilename>
+  <debuglevel>0</debuglevel>
+  <debugids />
+  <versionlevel>0</versionlevel>
+  <versionids />
+  <dump_source>0</dump_source>
+  <mapverbosity>0</mapverbosity>
+  <createImplib>0</createImplib>
+  <defaultlibname />
+  <debuglibname />
+  <moduleDepsFile />
+  <run>0</run>
+  <runargs />
+  <runCv2pdb>0</runCv2pdb>
+  <pathCv2pdb>$(VisualDInstallDir)cv2pdb\cv2pdb.exe</pathCv2pdb>
+  <objfiles />
+  <linkswitches />
+  <libfiles />
+  <libpaths />
+  <deffile />
+  <resfile />
+  <exefile>$(OutDir)\$(ProjectName).exe</exefile>
+  <additionalOptions />
+  <preBuildCommand />
+  <postBuildCommand />
+  <debugtarget>$(TARGETPATH)</debugtarget>
+  <debugarguments />
+  <debugworkingdir />
+  <debugattach>0</debugattach>
+  <debugremote />
+  <debugEngine>0</debugEngine>
+  <filesToClean>*.obj;*.cmd;*.build;*.json;*.dep</filesToClean>
+ </Config>
+ <Folder name="scid">
+  <Folder name="bindings">
+   <Folder name="blas">
+    <File path="bindings\blas\blas.d" />
+    <File path="bindings\blas\dblas.d" />
+    <File path="bindings\blas\types.d" />
+   </Folder>
+   <Folder name="lapack">
+    <File path="bindings\lapack\dlapack.d" />
+    <File path="bindings\lapack\lapack.d" />
+   </Folder>
+  </Folder>
+  <Folder name="common">
+   <File path="common\fortran.d" />
+   <File path="common\memory.d" />
+   <File path="common\meta.d" />
+   <File path="common\testing.d" />
+   <File path="common\traits.d" />
+  </Folder>
+  <Folder name="internal">
+   <Folder name="calculus">
+    <File path="internal\calculus\integrate_qk.d" />
+    <File path="internal\calculus\integrate_qng.d" />
+   </Folder>
+  </Folder>
+  <Folder name="ports">
+   <Folder name="intde">
+    <File path="ports\intde\intde1.d" />
+    <File path="ports\intde\intde2.d" />
+   </Folder>
+   <Folder name="linpack">
+    <File path="ports\linpack\gtsl.d" />
+   </Folder>
+   <Folder name="minpack">
+    <File path="ports\minpack\dogleg.d" />
+    <File path="ports\minpack\enorm.d" />
+    <File path="ports\minpack\fdjac1.d" />
+    <File path="ports\minpack\hybrd.d" />
+    <File path="ports\minpack\qform.d" />
+    <File path="ports\minpack\qrfac.d" />
+    <File path="ports\minpack\r1mpyq.d" />
+    <File path="ports\minpack\r1updt.d" />
+   </Folder>
+   <Folder name="napack">
+    <File path="ports\napack\addchg.d" />
+    <File path="ports\napack\quasi.d" />
+    <File path="ports\napack\stopit.d" />
+   </Folder>
+   <Folder name="quadpack">
+    <File path="ports\quadpack\qag.d" />
+    <File path="ports\quadpack\qage.d" />
+    <File path="ports\quadpack\qagi.d" />
+    <File path="ports\quadpack\qagie.d" />
+    <File path="ports\quadpack\qagp.d" />
+    <File path="ports\quadpack\qagpe.d" />
+    <File path="ports\quadpack\qags.d" />
+    <File path="ports\quadpack\qagse.d" />
+    <File path="ports\quadpack\qawc.d" />
+    <File path="ports\quadpack\qawce.d" />
+    <File path="ports\quadpack\qawf.d" />
+    <File path="ports\quadpack\qawfe.d" />
+    <File path="ports\quadpack\qawo.d" />
+    <File path="ports\quadpack\qawoe.d" />
+    <File path="ports\quadpack\qaws.d" />
+    <File path="ports\quadpack\qawse.d" />
+    <File path="ports\quadpack\qc25c.d" />
+    <File path="ports\quadpack\qc25f.d" />
+    <File path="ports\quadpack\qc25s.d" />
+    <File path="ports\quadpack\qcheb.d" />
+    <File path="ports\quadpack\qelg.d" />
+    <File path="ports\quadpack\qk15.d" />
+    <File path="ports\quadpack\qk15i.d" />
+    <File path="ports\quadpack\qk15w.d" />
+    <File path="ports\quadpack\qk21.d" />
+    <File path="ports\quadpack\qk31.d" />
+    <File path="ports\quadpack\qk41.d" />
+    <File path="ports\quadpack\qk51.d" />
+    <File path="ports\quadpack\qk61.d" />
+    <File path="ports\quadpack\qmomo.d" />
+    <File path="ports\quadpack\qng.d" />
+    <File path="ports\quadpack\qpsrt.d" />
+    <File path="ports\quadpack\qwgtc.d" />
+    <File path="ports\quadpack\qwgtf.d" />
+    <File path="ports\quadpack\qwgts.d" />
+   </Folder>
+  </Folder>
+  <File path="main.d" />
+  <File path="calculus.d" />
+  <File path="constants.d" />
+  <File path="exception.d" />
+  <File path="functions.d" />
+  <File path="linalg.d" />
+  <File path="matrix.d" />
+  <File path="nonlinear.d" />
+  <File path="types.d" />
+  <File path="util.d" />
+  <File path="matclosure.d" />
+  <File path="expressions.d" />
+  <File path="vecclosure.d" />
+  <File path="scalclosure.d" />
+ </Folder>
+</DProject>

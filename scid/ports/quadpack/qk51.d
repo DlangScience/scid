@@ -8,7 +8,7 @@ module scid.ports.quadpack.qk51;
 import std.algorithm: max, min;
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 
@@ -244,7 +244,7 @@ void qk51(Real, Func)(Func f, Real a, Real b, out Real result, out Real abserr,
       return;
 }
 
-version(unittest) import scid.core.testing;
+version(unittest) import scid.common.testing;
 unittest
 {
     alias qk51!(float, float delegate(float)) fqk51;

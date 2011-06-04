@@ -13,7 +13,7 @@ import std.math;
 import std.string: format;
 import std.traits;
 
-import scid.core.testing;
+import scid.common.testing;
 
 
 

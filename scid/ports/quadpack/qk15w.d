@@ -8,7 +8,7 @@ module scid.ports.quadpack.qk15w;
 import std.algorithm: min, max;
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

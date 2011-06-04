@@ -7,13 +7,13 @@ module scid.ports.quadpack.qc25f;
 
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.ports.linpack.gtsl;
 import scid.ports.quadpack.qk15w;
 import scid.ports.quadpack.qwgtf;
 import scid.ports.quadpack.qcheb;
 
-version(unittest) import scid.core.testing;
+version(unittest) import scid.common.testing;
 
 
 

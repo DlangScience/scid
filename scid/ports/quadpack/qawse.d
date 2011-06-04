@@ -8,7 +8,7 @@ module scid.ports.quadpack.qawse;
 import std.algorithm: max;
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.ports.quadpack.qc25s;
 import scid.ports.quadpack.qmomo;
 import scid.ports.quadpack.qpsrt;

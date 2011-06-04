@@ -14,7 +14,7 @@ import scid.types;
 
 version(unittest)
 {
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 

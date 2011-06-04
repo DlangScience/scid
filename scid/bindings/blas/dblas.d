@@ -10,7 +10,7 @@ module scid.bindings.blas.dblas;
 
 import scid.bindings.blas.blas;
 public import scid.bindings.blas.types;
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

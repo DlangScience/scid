@@ -15,9 +15,9 @@ import std.range;
 import std.traits;
 import std.typecons;
 
-import scid.core.fortran;
-import scid.core.memory;
-import scid.core.traits;
+import scid.common.fortran;
+import scid.common.memory;
+import scid.common.traits;
 import scid.ports.minpack.hybrd;
 import scid.ports.napack.quasi;
 import scid.calculus;
@@ -25,7 +25,7 @@ import scid.exception;
 //import scid.types;
 import scid.util;
 
-version (unittest) { import scid.core.testing; }
+version (unittest) { import scid.common.testing; }
 
 
 
@@ -481,7 +481,7 @@ struct RootBracket(X, Y)
 T[] findRoots(T, Func)(scope Func f, T a, T b, uint nIntervals,
     T[] buffer=null)
 {
-    mixin(scid.core.memory.newFrame);
+    mixin(scid.common.memory.newFrame);
 
     // Find bracketing subintervals.
     auto bracketBuffer =

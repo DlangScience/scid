@@ -103,9 +103,9 @@ import std.algorithm;
 import std.math;
 import std.traits;
 
-import scid.core.fortran;
-import scid.core.memory;
-import scid.core.traits;
+import scid.common.fortran;
+import scid.common.memory;
+import scid.common.traits;
 import scid.internal.calculus.integrate_qng;
 import scid.ports.intde.intde1;
 import scid.ports.quadpack.qage;
@@ -121,7 +121,7 @@ import scid.util;
 version(unittest)
 {
     import std.range;
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 

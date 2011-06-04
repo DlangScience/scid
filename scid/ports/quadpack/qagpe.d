@@ -12,7 +12,7 @@ import scid.ports.quadpack.qelg;
 import scid.ports.quadpack.qk21;
 import scid.ports.quadpack.qpsrt;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

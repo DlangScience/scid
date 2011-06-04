@@ -6,7 +6,7 @@ module scid.ports.quadpack.qmomo;
 
 
 import std.math;
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

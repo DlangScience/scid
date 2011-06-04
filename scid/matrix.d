@@ -12,11 +12,14 @@ module scid.matrix;
 import std.string: format, repeat;
 import std.traits;
 
-import scid.core.meta;
-import scid.core.traits;
+import scid.common.meta;
+import scid.common.traits;
+
+import expressions;
+import matclosure;
 
 version(unittest) {
-    import scid.core.testing; 
+    import scid.common.testing; 
     import std.math;
 }
 
@@ -224,6 +227,9 @@ private:
 
 
 public:
+	/** To allow the matrix to be used with expression templates */
+	mixin LiteralExpression!( ExpressionKind.MatrixLiteral, matrixClosure );
+
     /** The array that is wrapped by this MatrixView. */
     T[] array;
 

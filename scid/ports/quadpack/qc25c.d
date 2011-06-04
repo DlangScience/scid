@@ -7,7 +7,7 @@ module scid.ports.quadpack.qc25c;
 
 import std.math: fabs, log;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.ports.quadpack.qcheb;
 import scid.ports.quadpack.qk15w;
 import scid.ports.quadpack.qwgtc;

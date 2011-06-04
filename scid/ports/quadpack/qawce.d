@@ -8,7 +8,7 @@ module scid.ports.quadpack.qawce;
 import std.algorithm: min, max;
 import std.math: fabs;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.ports.quadpack.qc25c;
 import scid.ports.quadpack.qpsrt;
 

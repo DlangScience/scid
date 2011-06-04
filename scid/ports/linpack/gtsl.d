@@ -7,7 +7,7 @@ module scid.ports.linpack.gtsl;
 
 import std.math: fabs;
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

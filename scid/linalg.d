@@ -40,11 +40,11 @@ import std.math;
 import std.traits;
 
 import scid.bindings.lapack.dlapack;
-import scid.core.fortran;
-import scid.core.memory;
-import scid.core.meta;
-import scid.core.testing;
-import scid.core.traits;
+import scid.common.fortran;
+import scid.common.memory;
+import scid.common.meta;
+import scid.common.testing;
+import scid.common.traits;
 import scid.exception;
 import scid.matrix;
 import scid.util;

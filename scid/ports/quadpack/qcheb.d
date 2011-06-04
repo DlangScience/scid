@@ -5,7 +5,7 @@
 module scid.ports.quadpack.qcheb;
 
 
-import scid.core.fortran;
+import scid.common.fortran;
 
 
 

@@ -15,12 +15,12 @@ import std.conv;
 import std.math;
 import std.traits;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.types;
 
 version(unittest)
 {
-    import scid.core.testing;
+    import scid.common.testing;
 }
 
 

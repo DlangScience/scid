@@ -8,7 +8,7 @@
 module scid.exception;
 
 
-import scid.core.testing;
+import scid.common.testing;
 
 
 

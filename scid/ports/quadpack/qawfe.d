@@ -9,7 +9,7 @@ import std.algorithm: max;
 import std.conv;
 import std.math;
 
-import scid.core.fortran;
+import scid.common.fortran;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qawoe;
 import scid.ports.quadpack.qelg;
