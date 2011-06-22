@@ -1,76 +1,90 @@
-module vector;
+module scid.vector;
 
-import expressions;
-import vecclosure;
+import scid.internal.arraystorage;
+import scid.internal.arrayviewstorage;
 
-
-VectorView!( T ) vector( T )( size_t size ) pure {
-	return typeof( return )( new T[ size ] );
+struct BaseVector( Storage_ ) {
+	alias Storage_                  Storage;
+	alias Storage.ElementType       ElementType;
+	alias BaseVector!(Storage.View) View;
+	
+	@property
+	Storage storage() { return stor_; }
+	
+	this( A... )( A args ) {
+		stor_ = Storage( args );
+	}
+	
+	this( this ) {
+		Storage oldStor_ = stor_;
+		stor_ = Storage();
+		stor_.assign( oldStor_ );
+	}
+	
+	ref BaseVector opAssign( ref BaseVector rhs ) {
+		stor_.assign( rhs.stor_ );
+		return this;
+	}
+	
+	ref BaseVector opAssign( ref BaseVector!(Storage.View) rhs ) {
+		stor_.assign( rhs.stor_ );
+		return this;
+	}
+	
+	ElementType opIndex( size_t i ) {
+		return stor_.at( i );
+	}
+	
+	void opIndexAssign( T )( T rhs, size_t i ) {
+		stor_.set( rhs, i );
+	}
+	
+	void opIndexOpAssign( string op, T )( T rhs, size_t i ) {
+		stor_.set( mixin("stor_.at(i)" ~ op ~ "rhs"), i );
+	}
+	
+	View opSlice() {
+		return View( stor_.slice( 0, stor_.length ) );
+	}
+	
+	View opSlice( size_t i, size_t j ) {
+		return View( stor_.slice( i, j ) );
+	}
+	
+	void opSliceAssign( T )( T rhs, size_t i, size_t j ) {
+		stor_.sliceAssign( rhs, i, j );
+	}
+	
+	void opSliceAssign( T )( T rhs ){
+		stor_.sliceAssign( rhs, 0, stor_.length );
+	}
+	
+	@property
+	size_t length() { return stor_.length; }
+	
+	string toString() {
+		return stor_.toString();
+	}
+	
+	/** InputRange method. Return the first element in the array. */
+	@property ElementType front() const { return stor_.front; }
+	
+	/** InputRange method. Return the last element in the array. */
+	@property ElementType back() const  { return stor_.back; }
+	
+	/** InputRange method. Return whether the array is empty. */
+	@property bool        empty() const { return stor_.empty; }
+	
+	/** InputRange method. Remove the first element. */
+	void                  popFront()    { stor_.popFront(); }
+	
+	/** InputRange method. Remove the last element. */
+	void                  popBack()     { stor_.popBack(); }
+	
+	
+	private Storage stor_;
+	
 }
 
-VectorView!( T ) vector( T )( size_t size, T init ) pure {
-	auto arr = new T[ size ];
-	arr[] = init;
-	return typeof( return )( arr );
-}
-
-unittest {
-	auto v = vector!int( 8 );
-	auto w = vector!int( 16 );
-	
-	assert( v.size() == 8 );
-	assert( w.size() == 16 );
-	
-	v[0] = 1;
-	assert( v[1] == 1 );
-
-
-struct VectorView( T, int stride_ = 1 ) {
-	/** Ensure positive, non-zero stride. */
-	static assert( stride_ > 0 );
-	
-	enum stride = stride_;
-	
-	/** To allow the vector to be used with expression templates */
-	mixin LiteralExpression!( ExpressionKind.VectorLiteral, vectorClosure );
-	
-	/** Wrap a VectorView around the given array */
-	this( T[] a ) pure nothrow
-	in {
-		static assert( a.length % stride_ == 0 );
-	} body {
-		array = a;
-	}
-	
-	/** Number of elements in vector */
-	size_t size() pure nothrow {
-		return a.length / stride_;
-	}
-	
-	/** Return the element at position i */
-	T opIndex( size_t i ) pure nothrow
-	in {
-		assert( i * stride < array.length );
-	} body {
-		return a[ i * stride ];
-	}
-	
-	/** Assign a value to the element at position i */
-	T opIndexAssign( T value, size_t i ) pure nothrow
-	in {
-		assert( i * stride < array.length );
-	} body {
-		a[ i * stride ] = value;
-	}
-	
-	/** Perform an assignment operation on the element at position i */
-	T opIndexOpAssign( string op )( T value, size_t i ) pure nothrow
-	in {
-		assert( i * stride < array.length );
-	} body {
-		mixin("a[ i * stride ]" ~ op ~ "value");
-	}
-	
-	/** The enclosed array */
-	T[] array;
-}
+template Vector( T )     { alias BaseVector!( ArrayStorage!T )     Vector;     }
+template VectorView( T ) { alias BaseVector!( ArrayViewStorage!T ) VectorView; }

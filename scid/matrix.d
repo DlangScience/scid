@@ -15,9 +15,6 @@ import std.traits;
 import scid.common.meta;
 import scid.common.traits;
 
-import expressions;
-import matclosure;
-
 version(unittest) {
     import scid.common.testing; 
     import std.math;
@@ -228,7 +225,7 @@ private:
 
 public:
 	/** To allow the matrix to be used with expression templates */
-	mixin LiteralExpression!( ExpressionKind.MatrixLiteral, matrixClosure );
+	// mixin LiteralExpression!( ExpressionKind.MatrixLiteral, matrixClosure );
 
     /** The array that is wrapped by this MatrixView. */
     T[] array;

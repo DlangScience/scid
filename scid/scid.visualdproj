@@ -204,6 +204,10 @@
     <File path="internal\calculus\integrate_qk.d" />
     <File path="internal\calculus\integrate_qng.d" />
    </Folder>
+   <File path="internal\arraydata.d" />
+   <File path="internal\arraystorage.d" />
+   <File path="internal\cowarray.d" />
+   <File path="internal\arrayviewstorage.d" />
   </Folder>
   <Folder name="ports">
    <Folder name="intde">
@@ -276,9 +280,6 @@
   <File path="nonlinear.d" />
   <File path="types.d" />
   <File path="util.d" />
-  <File path="matclosure.d" />
-  <File path="expressions.d" />
-  <File path="vecclosure.d" />
-  <File path="scalclosure.d" />
+  <File path="vector.d" />
  </Folder>
 </DProject>
