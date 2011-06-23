@@ -9,6 +9,7 @@ module scid.nonlinear;
 
 
 import std.algorithm;
+import std.exception;
 import std.functional;
 import std.math;
 import std.range;
@@ -19,7 +20,6 @@ import scid.core.fortran;
 import scid.core.memory;
 import scid.core.traits;
 import scid.ports.minpack.hybrd;
-import scid.exception;
 import scid.util;
 
 version (unittest) { import scid.core.testing; }
@@ -45,7 +45,6 @@ version (unittest) { import scid.core.testing; }
         maxFuncEvals = (optional) The maximum number of function evaluations.
             If maxFuncEvals<1, it is set to 200*(N+1).
         buffer = (optional) A buffer of length at least N, for the return value.
-            
 
     Example:
     The Rosenbrock function is a commonly used test problem for
@@ -139,7 +138,7 @@ body
     Real* wa2 = wa1 + n;
     Real* wa3 = wa2 + n;
     Real* wa4 = wa3 + n;
-    
+
     // Phew! Call hybrd() now.
     hybrd!(Real, typeof(&fcn))(&fcn, n, x, fvec, xtol, maxfev, ml_mu, ml_mu,
         epsfcn, diag, mode, factor, nprint, info, nfev, fjac, ldfjac, r, lr,
@@ -149,18 +148,18 @@ body
     {
         case 1: // Success!
             return x[0 .. n];
-        
         case 0:
-            throw new NumericsException(NE.InvalidInput);
+            throw new Exception("Invalid input parameters");
         case 2:
-            throw new NumericsException(NE.Limit);
+            throw new Exception(
+                "The function has been called the maximum number of times");
         case 3:
-            throw new NumericsException(NE.Accuracy);
+            throw new Exception("Cannot reach the requested accuracy");
         case 4:
         case 5:
-            throw new NumericsException(NE.Convergence);
+            throw new Exception("Algorithm failed to converge");
         default:
-            throw new NumericsException;
+            assert(0);
     }
 }
 
@@ -355,8 +354,8 @@ body
         for (;;)
         {
             if (fxMin * fx <= 0) return B(xMin, x, fxMin, fx);
-            enforceNE(x != xMax, "Unable to bracket root");
-            
+            enforce(x != xMax, "Unable to bracket root");
+
             dx *= expandFactor;
             x = min(x + dx, xMax);
             fx = f(x);
@@ -372,8 +371,8 @@ body
         for (;;)
         {
             if (fxMax * fx <= 0) return B(x, xMax, fx, fxMax);
-            enforceNE(x != xMin, "Unable to bracket root");
-            
+            enforce(x != xMin, "Unable to bracket root");
+
             dx *= expandFactor;
             x = max(x - dx, xMin);
             fx = f(x);
@@ -399,7 +398,7 @@ body
         return downwards(x, f(x), abs(scale));
     }
 
-    
+
     // Both x1 and x2 fall inside [xMin, xMax], so we use bidirectional search
     if (x1 > x2) swap(x1, x2);
     real fx1 = f(x1);
@@ -569,7 +568,7 @@ RootBracket!(T, ReturnType!Func)[] bracketRoots(T, Func)
         buffer[numBrackets] = br;
         ++numBrackets;
     }
-    
+
     buffer.length = numBrackets;
     return buffer;
 }
@@ -693,11 +692,10 @@ body
         }
     }
 
-    enforceNE(false, NE.Limit);
-    assert(0);
+    throw new Exception("The maximum number of iterations was reached");
 }
 
- 
+
 unittest
 {
     auto r = bisect(
