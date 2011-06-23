@@ -113,6 +113,7 @@ import scid.ports.quadpack.qage;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagpe;
 import scid.ports.quadpack.qagse;
+import scid.ports.quadpack.qawoe;
 import scid.ports.quadpack.qawce;
 import scid.matrix;
 import scid.types;
@@ -413,7 +414,7 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval (a,p),
+/** Calculate the integral of f over the finite interval (a,b),
     taking into account known points of special difficulty
     inside the interval.
 
@@ -527,6 +528,75 @@ unittest
 
 
 
+/** Calculate the integral of an oscillatory function over the
+    finite interval (a, b).
+
+    Use this to calculate the integral of
+    ---
+    f(x) * cos(omega*x)
+    f(x) * sin(omega*x)
+    ---
+    where f(x) is the (possibly singular) user-specified function
+    and omega is a known constant.  The weight function is specified
+    by setting weight to Oscillation.cos or Oscillation.sin.
+
+    The rule evaluation component is based on the modified Clenshaw-Curtis
+    technique.  An adaptive subdivision scheme is used in connection with
+    an extrapolation procedure, which is a modification of that in
+    QAGS and allows the algorithm to deal with singularities in f(x).
+
+    Example:
+    ---
+    // Integrate exp(20*(x-1))*sin(256*x) over the interval (0,1)
+    real f(real x) { return exp(20*(x-1)); }
+    auto i = integrateQAWO(&f, 0.0L, 1.0L, 256.0L, Oscillation.sin, 1e-15L);
+    ---
+*/
+Result!Real integrateQAWO(Func, Real)(scope Func f, Real a, Real b, Real omega,
+    Oscillation weight, Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+in
+{
+    assert (epsAbs >= 0 && epsRel >= 0, "Requested accuracy is negative.");
+    assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+        "Requested accuracy is too small.");
+}
+body
+{
+    Real result, abserr;
+    int neval, ier, last, momcom;
+
+    enum limit = 500;
+    enum icall = 1;
+    enum maxp1 = 21;
+    Real[limit] alist, blist, rlist, elist;
+    int[limit] iord, nnlog;
+    Real[maxp1*25] chebmo;
+
+    qawoe!(Real, Func)(f, a, b, omega, weight, epsAbs, epsRel, limit,
+        icall, maxp1, result, abserr, neval, ier, last,
+        alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr, nnlog.ptr,
+        momcom, chebmo.ptr);
+    checkQuadpackStatus(ier, result, abserr);
+
+    return typeof(return)(result, abserr);
+}
+
+
+enum Oscillation { cos = 1, sin = 2 }
+
+
+unittest
+{
+    enum eps = 1e-15L;
+    real f(real x) { return exp(20*(x-1)); }
+    auto i = integrateQAWO(&f, 0.0L, 1.0L, 256.0L, Oscillation.sin, eps);
+    real expect = (20*sin(256) - 256*cos(256) + 256*exp(-20.0L))/(400+65536);
+    check(isAccurate(i, expect, eps));
+}
+
+
+
+
 /** Calculate a Cauchy principal value integral.
 
     Use this to calculate the integral of f(x)/(x-c) over the finite
@@ -574,7 +644,7 @@ body
 unittest
 {
     // This is just a simple test of basic functionality.
-    // More thorough unittests are in the scid.ports.quadpack.qawce module.
+    // More thorough unittests are in the scid.ports.quadpack.qawc module.
     enum eps = 1e-15L;
     enum expect = 0.085576905873896861036L;
     static real f(real x) { return cos(x-1); }
