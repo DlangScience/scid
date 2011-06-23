@@ -16,7 +16,6 @@ import std.typetuple: allSatisfy;
 
 import scid.core.testing;
 import scid.core.traits;
-import scid.exception;
 
 
 
