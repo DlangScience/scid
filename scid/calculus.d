@@ -100,6 +100,7 @@ module scid.calculus;
 
 
 import std.algorithm;
+import std.conv;
 import std.math;
 import std.traits;
 
@@ -113,7 +114,6 @@ import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagpe;
 import scid.ports.quadpack.qagse;
 import scid.ports.quadpack.qawce;
-import scid.exception;
 import scid.matrix;
 import scid.types;
 import scid.util;
@@ -345,17 +345,9 @@ Result!Real integrateQAG(Func, Real)
     qage(f, a, b, epsAbs, epsRel, rule, limit, result, abserr,
         neval, ier, alist.ptr, blist.ptr, rlist.ptr, elist.ptr,
         iord.ptr, last);
+    checkQuadpackStatus(ier, result, abserr);
 
-    switch (ier)
-    {
-    case 0:     return typeof(return)(result, abserr);
-
-    case 1:     enforceNE(false, NE.Limit);
-    case 2:     enforceNE(false, NE.Roundoff);
-    case 3:     enforceNE(false, NE.Behaviour);
-    case 6:     enforceNE(false, NE.InvalidInput);
-    default:    assert(0);
-    }
+    return typeof(return)(result, abserr);
 }
 
 
@@ -404,19 +396,9 @@ Result!Real integrateQAGS(Func, Real)(scope Func f, Real a, Real b,
 
     qagse(f, a, b, epsAbs, epsRel, limit, result, abserr, neval, ier,
         alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr, last);
+    checkQuadpackStatus(ier, result, abserr);
 
-    switch (ier)
-    {
-    case 0:     return typeof(return)(result, abserr);
-
-    case 1:     enforceNE(false, NE.Limit);
-    case 2:     enforceNE(false, NE.Roundoff);
-    case 3:     enforceNE(false, NE.Behaviour);
-    case 4:     enforceNE(false, NE.Accuracy);
-    case 5:     enforceNE(false, NE.Convergence);
-    case 6:     enforceNE(false, NE.InvalidInput);
-    default:    assert(0);
-    }
+    return typeof(return)(result, abserr);
 }
 
 
@@ -467,19 +449,9 @@ Result!Real integrateQAGP(Func, Real)(scope Func f, Real a, Real b,
         result, abserr, neval, ier,
         alist.ptr, blist.ptr, rlist.ptr, elist.ptr, pts.ptr,
         iord.ptr, level.ptr, ndin.ptr, last);
+    checkQuadpackStatus(ier, result, abserr);
 
-    switch (ier)
-    {
-    case 0:     return typeof(return)(result, abserr);
-
-    case 1:     enforceNE(false, NE.Limit);
-    case 2:     enforceNE(false, NE.Roundoff);
-    case 3:     enforceNE(false, NE.Behaviour);
-    case 4:     enforceNE(false, NE.Roundoff);
-    case 5:     enforceNE(false, NE.Convergence);
-    case 6:     enforceNE(false, NE.InvalidInput);
-    default:    assert(0);
-    }
+    return typeof(return)(result, abserr);
 }
 
 
@@ -538,21 +510,9 @@ Result!Real integrateQAGI(Func, Real)(scope Func f, Real a, Infinite inf,
 
     qagie(f, a, inf, epsAbs, epsRel, limit, result, abserr, neval, ier,
         alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr, last);
+    checkQuadpackStatus(ier, result, abserr);
 
-    NE errCode;
-    switch (ier)
-    {
-        case 0: return Result!(Real)(result, abserr);
-        case 1: errCode = NE.Limit; break;
-        case 2: errCode = NE.Roundoff; break;
-        case 3: errCode = NE.Behaviour; break;
-        case 4: errCode = NE.Accuracy; break;
-        case 5: errCode = NE.Convergence; break;
-        case 6: errCode = NE.InvalidInput; break;
-        default: assert(0);
-    }
-    enforceNE(false, errCode);
-    assert(0);
+    return typeof(return)(result, abserr);
 }
 
 
@@ -605,19 +565,9 @@ body
     qawce!(Real, Func)(f, a, b, c, epsAbs, epsRel, limit, result, abserr,
         neval, ier, alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr,
         last);
+    checkQuadpackStatus(ier, result, abserr);
 
-    NE errCode;
-    switch (ier)
-    {
-        case 0: return typeof(return)(result, abserr);
-        case 1: errCode = NE.Limit; break;
-        case 2: errCode = NE.Roundoff; break;
-        case 3: errCode = NE.Behaviour; break;
-        case 6: errCode = NE.InvalidInput; break;
-        default: assert(0);
-    }
-    enforceNE(false, errCode);
-    assert(0);
+    return typeof(return)(result, abserr);
 }
 
 
@@ -649,7 +599,12 @@ Result!Real integrateDE(Func, Real)(scope Func f, Real a, Real b,
 {
     Real result, error;
     intde(f, a, b, epsRel, &result, &error);
-    enforceNE(error >= 0, NE.Convergence);
+    if (error < 0) throw new IntegrationException(
+        "Integration failed",
+        "The integrand may have discontinuities, singularities or "
+        ~"oscillatory behaviour in the integration interval.",
+        result,
+        real.nan);
     return typeof(return)(result, error);
 }
 
@@ -678,7 +633,12 @@ Result!Real integrateDEI(Func, Real)(scope Func f, Real a,
 {
     Real result, error;
     intdei(f, a, epsRel, &result, &error);
-    enforceNE(error >= 0, NE.Convergence);
+    if (error < 0) throw new IntegrationException(
+        "Integration failed",
+        "The integrand may have discontinuities, singularities or "
+        ~"oscillatory behaviour in the integration interval.",
+        result,
+        real.nan);
     return typeof(return)(result, error);
 }
 
@@ -689,6 +649,104 @@ unittest
     auto result = integrateDEI(&f, 0.0);
     double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
     check(matchDigits(result.value, expected, 6));
+}
+
+
+
+
+/** Exception thrown when an integration routine fails. */
+class IntegrationException : Exception
+{
+    /** The current estimates of the integration result and
+        absolute error.
+
+        Depending on the type of error, these may or may not be
+        close to the correct values.  They are, however, very often
+        useful for figuring out what has gone wrong.
+    */
+    immutable real resultEstimate;
+    immutable real errorEstimate;       /// ditto
+
+
+    /** This value will sometimes contain more detailed information
+        about the error.
+    */
+    immutable string extra;
+
+
+    this(string msg, real resultEstimate, real errorEstimate,
+        string file = __FILE__, size_t line = __LINE__)
+    {
+        this(msg, null, resultEstimate, errorEstimate, file, line);
+    }
+
+
+    this(string msg, string extra, real resultEstimate, real errorEstimate,
+        string file = __FILE__, size_t line = __LINE__)
+    {
+        super (msg, file, line);
+
+        this.extra = extra;
+        this.resultEstimate = resultEstimate;
+        this.errorEstimate = errorEstimate;
+    }
+
+
+    override string toString() const
+    {
+        return super.toString()
+            ~ (extra.length > 0 ? "\n"~extra : "")
+            ~ text("\nCurrent estimate: ", resultEstimate, " ± ", errorEstimate);
+    }
+}
+
+
+/*  Verify the value of 'ier' returned by QUADPACK routines, and
+    throw an appropriate exception if it is not zero.
+*/
+void checkQuadpackStatus(Real)(int ier, Real result, Real abserr,
+    string file = __FILE__, size_t line = __LINE__)
+{
+    string msg, extra;
+    switch(ier)
+    {
+        case 0: return;
+        case 1:
+            msg = "Reached the maximum number of iterations or subdivisions";
+            extra = "If possible, try using a more special-purpose integrator.";
+            break;
+        case 2:
+            msg = "Roundoff error detected";
+            extra = "The occurrence of roundoff error is detected, which "
+                ~ "prevents the requested tolerance from being achieved.  "
+                ~ "The error may be under-estimated.";
+            break;
+        case 3:
+            msg = "Bad integrand behaviour";
+            extra = "Extremely bad integrand behaviour occurs at at some "
+                ~ "points of the integration interval.";
+            break;
+        case 4:
+            msg = "Roundoff error detected.";
+            extra = "The algorithm does not converge.  Roundoff error is "
+                ~ "detected in the extrapolation table.  It is assumed that "
+                ~ "the requested tolerance cannot be achieved, and that the "
+                ~ "returned result is the best that can be obtained.";
+            break;
+        case 5:
+            msg = "Integral is divergent or converges too slowly";
+            break;
+        case 6:
+            msg = "Invalid input";
+            extra = "If you get this error message, it is a bug in SciD.  "
+                ~ "Please report.";
+            break;
+        default:
+            msg = "Invalid QUADPACK error code";
+            extra = "If you get this error message, it is a bug in SciD.  "
+                ~ "Please report.";
+    }
+    throw new IntegrationException(msg, extra, result, abserr, file, line);
 }
 
 
