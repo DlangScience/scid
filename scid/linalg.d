@@ -36,6 +36,7 @@ module scid.linalg;
 import std.algorithm;
 import std.complex;
 import std.conv;
+import std.exception;
 import std.math;
 import std.traits;
 
@@ -45,7 +46,6 @@ import scid.core.memory;
 import scid.core.meta;
 import scid.core.testing;
 import scid.core.traits;
-import scid.exception;
 import scid.matrix;
 import scid.util;
 
@@ -218,7 +218,7 @@ private void solveImpl(Real, Storage aStorage, Triangle aTriangle)
     else static assert (false, "solve: Unsupported matrix storage.");
 
     assert (info >= 0);
-    enforceNE(info == 0, NE.NoSolution, "solve: matrix is singular");
+    enforce(info == 0, "solve: matrix is singular");
     return;
 }
 
@@ -774,7 +774,9 @@ T[] eigenvalues_ (T, Storage stor, Triangle tri)
     }
     else if (info > 0)
     {
-        throw new NumericsException(NE.Convergence);
+        throw new Exception(text("The algorithm failed to converge. ",
+            info, " off-diagonal elements of an intermediate tridiagonal form "
+            ~ "did not converge to zero."));
     }
 
     assert(0);
@@ -853,7 +855,7 @@ body
         info);
 
     assert (info >= 0);
-    enforceNE(info == 0, NE.NoSolution, "invert: matrix is singular");
+    enforce(info == 0, "invert: matrix is singular");
     return;
 }
 
