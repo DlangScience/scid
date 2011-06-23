@@ -3,7 +3,7 @@
     It is recommended to read the following before using any of the
     functions in this module, as it discusses issues that are common
     to several of them.
-    
+
     Integration:
 
     This module contains several different integration methods, suitable
@@ -219,7 +219,7 @@ unittest
     auto logsqrtResult = integrate(&logsqrt, 0.0L, 1.0L, 0.0L, 1e-10L);
     check (approxEqual(logsqrtResult.value, -4.0L, 0.0L, logsqrtResult.error));
     check (logsqrtResult.error < abs(logsqrtResult.value*1e-10L));
-        
+
 
     // Tests for when both limits are infinite.
     real gauss(real x)
@@ -248,7 +248,7 @@ unittest
     // Tests for when one limit is infinite.
     real u(real x)  { return log( x)/(1 + 100*x*x); }
     real l(real x)  { return log(-x)/(1 + 100*x*x); }
-    
+
     real ulExact = -PI * log(10.0)/20.0;
     auto uResult = integrate(&u, 0.0L, real.infinity, 0.001L);
     auto muResult = integrate(&u, real.infinity, 0.0L, 0.001L);
@@ -835,7 +835,7 @@ body
     // approximation. Ridders uses FAC=2.0 in his paper, but
     // the NR book uses FAC=1.4.
     // TODO: Experiment and see which value is best.
-    enum real FAC = 2.0;        
+    enum real FAC = 2.0;
     enum real FACSQ = FAC*FAC;
     enum real INVFAC = 1.0/FAC;
 
@@ -899,7 +899,7 @@ unittest
 
 /** Calculate the derivative of a function using a two-point
     formula, i.e. a forward- or backward-difference formula.
-    
+
     This method only evaluates the function once (in addition
     to the function value provided by the user), and is therefore
     the fastest way to compute a derivative.  However, it is also
@@ -990,12 +990,12 @@ unittest
 /** Calculate the Jacobian matrix associated with a set of m functions
     in n variables using a central-difference approximation to the
     Jacobian.
-    
+
     This method requires 2n function evaluations, but is more
     accurate than the faster jacobian2() function. The relative
     accuracy in the result is, at best, on the order of
     (real.epsilon)^(2/3).  Note that this is
-    
+
     Params:
         f = The set of functions. This is typically a function or delegate
             which takes a vector as input and returns a vector. If the
@@ -1069,7 +1069,7 @@ MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     if (m < 0)  m = toInt(f(x).length);
 
     immutable size_t n = x.length;
-    
+
     buffer.length = m*n;
     auto jaco = MatrixView!Real(buffer, m, n);
 
@@ -1135,7 +1135,7 @@ unittest
     double[4] buffer;
     auto j1 = jacobian(&f, x);
     auto j2 = jacobian(&f, x, 1.0, 2, buffer);
-    
+
     double e = 1e-6;
     check (approxEqual(j1[0,0], 2.0, e) && approxEqual(j1[0,1],  1.0, e)
       &&  approxEqual(j1[1,0], 1.0, e) && approxEqual(j1[1,1], -1.0, e));
@@ -1149,7 +1149,7 @@ unittest
 
 /** Calculate the Jacobian using forward-/backward-difference
     methods, also known as 2-point formulas.
-    
+
     This is less accurate than the central-difference method
     used in the jacobian() function, but requires only half
     as many function evaluations. The relative accuracy is,
@@ -1196,7 +1196,7 @@ MatrixView!Real jacobian2 (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     // Determine dimensions.
     immutable size_t m = fx.length;
     immutable size_t n = x.length;
-    
+
     buffer.length = m*n;
     auto jaco = MatrixView!Real(buffer, m, n);
 
@@ -1277,8 +1277,7 @@ unittest
     // Backward difference
     j = jacobian2(&f, p, -1.0, f(p), buffer);
     check (approxEqual(j.array, answer, e, e));
-
-} 
+}
 
 
 
@@ -1483,10 +1482,10 @@ MatrixView!(Real, Storage.Symmetric) hessian(Real, Func)
        ~"function type doesn't match parameter type ("~Real.stringof~")");
 
     immutable size_t n = x.length;
-    
+
     buffer.length = (n*n + n)/2;
     auto hess = MatrixView!(Real, Storage.Symmetric)(buffer, n, n);
-    
+
     // Determine step length.
     enum real SQRT_EPSILON = sqrt(real.epsilon);
     enum real QDRT_EPSILON = sqrt(SQRT_EPSILON);
@@ -1552,14 +1551,14 @@ MatrixView!(Real, Storage.Symmetric) hessian(Real, Func)
             sum += f(x);
 
             x[j] = save - hDiag;
-            sum += f(x); 
+            sum += f(x);
 
             // Reset x and calculate diagonal element.
             x[j] = save;
             hess[j, j] = sum/(h*h);
         }
     }
-    
+
     return hess;
 }
 
@@ -1578,7 +1577,7 @@ unittest
 
     real[] x = [ 10., 100.0 ];
     real[3] buffer;
-    
+
     auto h = hessian(&f, x, PI*0.25, buffer);
 
     check (approxEqual(h[0,0], fxx(x), 1e-6L));
