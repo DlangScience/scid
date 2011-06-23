@@ -6,11 +6,12 @@ module scid.internal.calculus.integrate_qng;
 
 
 import std.conv;
+import std.exception;
 import std.math;
 import std.numeric;
 import std.traits;
 
-import scid.exception;
+import scid.calculus: IntegrationException;
 import scid.types;
 import scid.util;
 
@@ -25,9 +26,8 @@ Result!Real qng(Func, Real = ReturnType!Func)
     alias FPTemporary!Real T;
 
     enum epsRelMin = 50*T.epsilon;
-    enforceNE(
+    enforce(
         epsAbs > 0 || epsRel > epsRelMin,
-        NE.InvalidInput,
         text("Invalid accuracy request (must have epsAbs > 0 or epsRel > ",
             epsRelMin, ")"));
 
@@ -304,17 +304,19 @@ Result!Real qng(Func, Real = ReturnType!Func)
         immutable x = halfLength * x4[k];
         result87 += w87b[k] * (f(center+x) + f(center-x));
     }
-    
+
     // Test for convergence
     {
         immutable result = result87 * halfLength;
         immutable error = errorCalc(abs((result87-result43)*halfLength),
             resultAbs, variance);
 
-        enforceNE(
-            error <= fmax(epsAbs, epsRel * abs(result)),
-            NE.Convergence,
-            "Integral didn't converge to the requested accuracy");
+        if (error > fmax(epsAbs, epsRel * abs(result)))
+            throw new IntegrationException(
+                "The maximum number of steps has been executed",
+                "The integral is probably too difficult to be calculated "
+                ~"by the QNG algorithm.",
+                result, error);
 
         return typeof(return)(result, error);
     }
