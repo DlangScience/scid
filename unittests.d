@@ -68,7 +68,6 @@ import scid.internal.calculus.integrate_qng;
 
 import scid.calculus;
 import scid.constants;
-import scid.exception;
 import scid.functions;
 import scid.linalg;
 import scid.matrix;
