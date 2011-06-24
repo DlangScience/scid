@@ -1,8 +1,10 @@
-/** Various fundamental constants.
+/** Various fundamental constants.  Physical constants are given in SI units.
 
     Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
+    Macros:
+        SUB = <sub>$0</sub>
 */
 module scid.constants;
 
@@ -11,17 +13,14 @@ module scid.constants;
 
 // ==================== PHYSICAL CONSTANTS ====================
 
+/// Boltzmann constant, $(I k$(SUB B))  [J/K]
+enum real boltzmannConstant = 1.38064_88e-23L;
+
 /// Planck constant, &#x210E; [J s]
 enum real planckConstant = 6.62606_896e-34L;
 
-/// Planck constant, &#x210E; [eV s]
-enum real planckConstant_eVs = 4.13566_733e-15L;
-
 /// Reduced Planck constant, &#x210F; &#x2261; &#x210E;/2&#x03C0;  [J s]
 enum real hBar = 1.05457_1628e-34L;
-
-/// Reduced Planck constant, &#x210F; &#x2261; &#x210E;/2&#x03C0;  [eV s]
-enum real hBar_eVs = 6.58211_899e-16L;
 
 
 
