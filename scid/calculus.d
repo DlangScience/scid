@@ -97,6 +97,7 @@
     License:    Boost License 1.0
     Macros:
         D = <code>$0</code>
+        INFTY = &infin;
 */
 module scid.calculus;
 
@@ -904,6 +905,48 @@ unittest
     auto result = integrateDEI(&f, 0.0);
     double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
     check(matchDigits(result.value, expected, 6));
+}
+
+
+
+
+/** Calculate the integral of an oscillating function $(D f(x))
+    over the infinite interval ($(D a),$(INFTY)) using double exponential
+    integration.
+
+    $(D f(x)) is assumed to take the form
+    ---
+    f(x) = g(x) * sin(omega * x + theta)
+    ---
+    as $(D x) goes to infinity ($(D theta) is not specified).
+
+    Example:
+    ---
+    real f(real x) { return x <= 0 ? 0 : cos(x) * exp(-x/64) / sqrt(x); }
+    auto i = integrateDEO(&f, 0.0L, 1.0L, 1e-18L);
+    ---
+*/
+Result!Real integrateDEO(Func, Real)(scope Func f, Real a,
+    Real omega, Real epsRel = cast(Real) 1e-6)
+{
+    Real result, error;
+    intdeo(f, a, omega, epsRel, &result, &error);
+    if (error < 0) throw new IntegrationException(
+        "Integration failed",
+        "The integrand may have discontinuities, singularities or "
+        ~"oscillatory behaviour in the integration interval.",
+        result,
+        real.nan);
+    return typeof(return)(result, error);
+}
+
+
+unittest
+{
+    real f(real x) { return x <= 0 ? 0 : cos(x) * exp(-x/64) / sqrt(x); }
+    auto i = integrateDEO(&f, 0.0L, 1.0L, 1e-18L);
+    real expect = sqrt(PI) * (1 + 1.0L/4096)^^(-0.25L) * cos(atan(64.0L)/2);
+    check(matchDigits(i.value, expect, 18));
 }
 
 
