@@ -288,6 +288,12 @@ unittest
 */
 Result!Real integrateQNG(Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     return scid.internal.calculus.integrate_qng.qng(f, a, b, epsRel, epsAbs);
 }
@@ -340,6 +346,12 @@ enum GaussKronrod { rule15 = 1, rule21, rule31, rule41, rule51, rule61 }
 Result!Real integrateQAG(Func, Real)
     (scope Func f, Real a, Real b, GaussKronrod rule = GaussKronrod.rule31,
      Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier, last;
@@ -391,6 +403,12 @@ unittest
 */
 Result!Real integrateQAGS(Func, Real)(scope Func f, Real a, Real b,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier;
@@ -431,6 +449,12 @@ unittest
 Result!Real integrateQAGP(Func, Real)(scope Func f, Real a, Real b,
     Real[] trouble, Real epsRel = cast(Real) 1e-6,
     Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     if (trouble.length == 0)  return integrateQAGS(f, a, b, epsRel, epsAbs);
 
@@ -506,6 +530,12 @@ Result!Real integrateQAGI(Func, Real)
 /// ditto
 Result!Real integrateQAGI(Func, Real)(scope Func f, Real a, Infinite inf,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier, last;
@@ -562,13 +592,12 @@ unittest
 */
 Result!Real integrateQAWO(Func, Real)(scope Func f, Real a, Real b, Real omega,
     Oscillation weight, Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
-in
-{
-    assert (epsAbs >= 0 && epsRel >= 0, "Requested accuracy is negative.");
-    assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
-        "Requested accuracy is too small.");
-}
-body
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier, last, momcom;
@@ -746,6 +775,12 @@ enum Weight { unity = 1, logxa = 2, logbx = 3, logab = 4 }
 Result!Real integrateQAWS(Func, Real)(scope Func f, Real a, Real b,
     Real alpha, Real beta, Weight weight,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier, last;
