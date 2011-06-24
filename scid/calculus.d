@@ -627,7 +627,7 @@ unittest
     // Calculate the integral of cos(x)*exp(-x/64)/sqrt(x) over
     // the interval (0, infinity).
     real f(real x) { return x <= 0 ? 0 : exp(-x/64) / sqrt(x); }
-    auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, eps);
+    auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, 1e-15L);
     ---
 */
 Result!Real integrateQAWF(Func, Real)(scope Func f, Real a, Real omega,
