@@ -95,6 +95,8 @@
     Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
+    Macros:
+        D = <code>$0</code>
 */
 module scid.calculus;
 
@@ -113,8 +115,9 @@ import scid.ports.quadpack.qage;
 import scid.ports.quadpack.qagie;
 import scid.ports.quadpack.qagpe;
 import scid.ports.quadpack.qagse;
-import scid.ports.quadpack.qawoe;
 import scid.ports.quadpack.qawce;
+import scid.ports.quadpack.qawfe;
+import scid.ports.quadpack.qawoe;
 import scid.matrix;
 import scid.types;
 import scid.util;
@@ -545,6 +548,9 @@ unittest
     an extrapolation procedure, which is a modification of that in
     QAGS and allows the algorithm to deal with singularities in f(x).
 
+    See_Also:
+    integrateQAWF(), for similar integrals over an infinite interval.
+
     Example:
     ---
     // Integrate exp(20*(x-1))*sin(256*x) over the interval (0,1)
@@ -592,6 +598,108 @@ unittest
     auto i = integrateQAWO(&f, 0.0L, 1.0L, 256.0L, Oscillation.sin, eps);
     real expect = (20*sin(256) - 256*cos(256) + 256*exp(-20.0L))/(400+65536);
     check(isAccurate(i, expect, eps));
+}
+
+
+
+
+/** Calculates a Fourier transform integral.
+
+    Use this to calculate the integral of $(D f(x)*cos(omega*x))
+    or $(D f(x)*sin(omega*x))
+    on the interval (a, infinity).  The weight function is specified
+    by setting $(D weight) to $(D Oscillation.cos) or $(D Oscillation.sin).
+
+    The procedure of $(D integrateQAWO()) is applied on successive finite
+    intervals, and convergence acceleration by means of the Epsilon
+    algorithm is applied to the series of integral approximations.
+
+    Note:
+    This function is unique among the QUADPACK integrators in that
+    you must specify an absolute accuracy, not a relative one.
+
+    See_Also:
+    $(D integrateQAWO()), for similar integrals over a finite interval.
+
+    Example:
+    ---
+    // Calculate the integral of cos(x)*exp(-x/64)/sqrt(x) over
+    // the interval (0, infinity).
+    real f(real x) { return x <= 0 ? 0 : exp(-x/64) / sqrt(x); }
+    auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, eps);
+    ---
+*/
+Result!Real integrateQAWF(Func, Real)(scope Func f, Real a, Real omega,
+    Oscillation weight, Real epsAbs)
+in
+{
+    assert (epsAbs > 0, "Requested accuracy is too small.");
+}
+body
+{
+    Real result, abserr;
+    int neval, ier, lst;
+
+    enum limit = 500;
+    enum limlst = 50;
+    enum maxp1 = 21;
+    Real[limit] alist, blist, rlist, elist;
+    Real[limlst] rslst, erlst;
+    int[limit] iord, nnlog;
+    int[limlst] ierlst;
+    Real[maxp1*25] chebmo;
+
+    qawfe!(Real, Func)(f, a, omega, weight, epsAbs, limlst, limit,
+        maxp1, result, abserr, neval, ier, rslst.ptr, erlst.ptr, ierlst.ptr,
+        lst, alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr, nnlog.ptr,
+        chebmo.ptr);
+
+    // QAWF has slightly different error codes, so we can't
+    // use checkQuadpackStatus()
+    string msg, extra;
+    switch(ier)
+    {
+        case 0:
+            return typeof(return)(result, abserr);
+        case 1:
+            msg = "The maximum number of cycles allowed has been reached";
+            break;
+        case 4:
+            msg = "Convergence acceleration algorithm failed to reach the "
+                ~"desired accuracy";
+            break;
+        case 6:
+            msg = "Invalid input";
+            extra = "If you get this error message, it is a bug in SciD.  "
+                ~ "Please report.";
+            break;
+        case 7:
+            msg = "Bad integrand behaviour within one or more of the cycles.";
+            break;
+        default:
+            msg = "Invalid QUADPACK error code";
+            extra = "If you get this error message, it is a bug in SciD.  "
+                ~ "Please report.";
+    }
+    if (extra.length == 0)
+    {
+        extra = "There may be local integration difficulties "
+            ~"(singularities, discontinuities, etc.).  If the position "
+            ~"of such a difficulty can be determined, try to split "
+            ~"up the interval at this point and call the appropriate "
+            ~"integrators on the subintervals.";
+    }
+    throw new IntegrationException(msg, extra, result, abserr);
+}
+
+
+unittest
+{
+    enum eps = 1e-14L;
+    real f(real x) { return x <= 0 ? 0 : exp(-x/64) / sqrt(x); }
+    auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, eps);
+    real expect = sqrt(PI) * (1 + 1.0L/4096)^^(-0.25L) * cos(atan(64.0L)/2);
+    check(isAccurate(i, expect, 0.0L, eps));
 }
 
 
