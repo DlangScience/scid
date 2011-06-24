@@ -17,13 +17,13 @@
     integral it is suitable for.
 
     When you just want to "get things done" without any fuss,
-    use the general-purpose integrate() function.  It tries to select
+    use the general-purpose $(D integrate()) function.  It tries to select
     the method which is most likely to succeed for the given interval.
 
     All the integration functions have a set of input parameters in common:
     The function to integrate, the limits of the integral, and some accuracy
     requirements.  All of these are described in the documentation for
-    integrate().
+    $(D integrate()).
 
     Most of the quadrature routines in SciD are ported from from
     $(LINK2 http://www.netlib.org/quadpack,QUADPACK)
@@ -33,19 +33,13 @@
     Gaussian quadrature is
     $(LINK2 http://mathworld.wolfram.com/NumericalIntegration.html,considered)
     to be the most accurate method available for numerical integration of
-    smooth functions.  The QUADPACK integrators are named integrateQ*() below.
+    smooth functions.  The QUADPACK integrators are named $(D integrateQ*()) below.
 
     In addition, SciD has support for
     $(LINK2 http://mathworld.wolfram.com/DoubleExponentialIntegration.html,double exponential integration).
     The DE algorithms are ported from Takuya Ooura's
     $(LINK2 http://www.kurims.kyoto-u.ac.jp/~ooura/intde.html,DE-Quadrature package),
-    and are available in this module through the integrateDE*() functions.
-
-    Note that SciD contains complete ports of QUADPACK and DE-Quadrature,
-    but not all the methods are available through this module yet.  This
-    will happen, but until then they can be accessed directly from the
-    scid.ports.quadpack and scid.ports.intde packages, albeit with rather
-    ugly C/FORTRAN-style interfaces.
+    and are available in this module through the $(D integrateDE*()) functions.
 
     Differentiation:
 
@@ -75,29 +69,30 @@
     importance when one needs to evaluate several derivatives, as is the
     case with e.g. gradients and Jacobians.
 
-    Some functions in this module, like diff(), use another method by Ridders,
+    Some functions in this module, like $(D diff()), use another method by Ridders,
     which extrapolates the results of finite-difference formulas like the
     above to make the approximation more accurate – usually a lot more so.
     This requires several function evaluations and is therefore also a lot
     slower than simple finite differences.
 
     All the differentiation methods in this module take an optional
-    scale parameter. This is a "characteristic scale" for the function,
+    $(D scale) parameter. This is a "characteristic scale" for the function,
     i.e. a scale over which the function changes significantly. It is
     worth experimenting a bit with this parameter, as it can have a
     drastic impact on accuracy. (For an extreme example, see the "Example"
-    section for the diff() function below.) For practical reasons, 1.0 is
+    section for the $(D diff()) function below.) For practical reasons, $(D 1.0) is
     chosen as the default scale in this module. Another, probably more
-    common, choice that sometimes works well is to set scale=x, where x
-    is the point at which the derivative is taken.
+    common, choice that sometimes works well is to set $(D scale = x), where
+    $(D x) is the point at which the derivative is taken.
 
 
     Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
     Macros:
-        D = <code>$0</code>
+        D = <b><code>$0</code></b>
         INFTY = &infin;
+        SUP = <sup>$0</sup>
 */
 module scid.calculus;
 
@@ -133,29 +128,29 @@ version(unittest)
 
 
 
-/** Integrate a function from a to b.
+/** Integrate a function from $(D a) to $(D b).
 
     This module contains a lot of different integration routines, and
-    integrate() aims to be a simple interface to several of
-    these. Currently, it only calls the integrateQAGS() and
-    integrateQAGI() routines, but this will change in the future.
+    $(D _integrate()) aims to be a simple interface to some of
+    these. Currently, it only calls the $(D integrateQAGS()) and
+    $(D integrateQAGI()) routines, but this may change in the future.
     In particular, it should take into account whether a function
     is oscillatory, if it has discontinuities and singularities in
     the integration interval, and so on.
 
     Params:
-        f       = The function to integrate.  This can be given as a
+        f       = The function to _integrate.  This can be given as a
                     function pointer, a delegate, or a struct/class
-                    which defines opCall().
+                    which defines $(D opCall()).
         a       = The lower limit of integration.
         b       = The upper limit of integration.
         epsRel  = (optional) The requested relative accuracy.
         epsAbs  = (optional) The requested absolute accuracy.
 
     Note:
-    This function is different from the other integrateXXX() routines
-    in this module in that it allows a and b to take on the special
-    values Real.infinity and -Real.infinity, where Real is the
+    This function is different from the other $(D integrateXXX()) routines
+    in this module in that it allows $(D a) and $(D b) to take on the special
+    values $(D Real.infinity) and $(D -Real.infinity), where $(D Real) is the
     floating-point type being used.
 
     Example:
@@ -270,7 +265,8 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval (a,b) using a simple
+/** Calculate the integral of $(D f(x)) over the finite interval ($(D a),$(D b))
+    using a simple
     non-adaptive automatic integrator, based on a sequence of rules with
     increasing degree of algebraic precision.
 
@@ -315,11 +311,11 @@ enum GaussKronrod { rule15 = 1, rule21, rule31, rule41, rule51, rule61 }
 
 
 
-/** Calculate the integral of f over the finite interval (a,b) using
-    a simple globally adaptive integrator.
+/** Calculate the integral of $(D f(x)) over the finite interval
+    ($(D a),$(D b)) using a simple globally adaptive integrator.
 
     This method is suitable for functions without singularities
-    or discontinuities, which are too difficult for integrateQNG(),
+    or discontinuities, which are too difficult for $(D integrateQNG()),
     and, in particular for functions with oscillating behaviour of a
     non-specific type.
 
@@ -379,10 +375,10 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval (a,b) using a
-    general-purpose integration algorithm.
+/** Calculate the integral of $(D f(x)) over the finite interval
+    ($(D a),$(D b)) using a general-purpose integration algorithm.
 
-    integrateQAGS() is an integrator based on globally adaptive interval
+    $(D _integrateQAGS()) is an integrator based on globally adaptive interval
     subdivision in connection with extrapolation by the Epsilon
     algorithm, which eliminates the effects of integrand singularities
     of several types.
@@ -437,11 +433,11 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval (a,b),
+/** Calculate the integral of f over the finite interval ($(D a),$(D b)),
     taking into account known points of special difficulty
     inside the interval.
 
-    This routine uses the same integration method as QAGS,
+    This routine uses the same integration method as $(D integrateQAGS()),
     but allows you to specify an array of points where the
     integrand has internal singularities, discontinuities or
     other types of bad behaviour.
@@ -502,15 +498,15 @@ enum Infinite { upper = 1, lower = -1 }
 
 
 
-/** Calculate the integral of f over an infinite interval.
+/** Calculate the integral of $(D f(x)) over an infinite interval.
 
     The infinite range is mapped onto a finite interval and subsequently
-    the same strategy as in integrateQAGS() is applied.
+    the same strategy as in $(D integrateQAGS()) is applied.
 
-    To integrate f over the interval (-infinity,infinity), use the
-    first form.  To integrate f over the interval (-infinity,a) or
-    (a,infinity) use the second form with inf=Infinite.lower or
-    inf=Infinite.upper, respectively.
+    To integrate $(D f(x)) over the interval (-$(INFTY),$(INFTY)), use the
+    first form.  To integrate $(D f(x)) over the interval (-$(INFTY),$(D a)) or
+    ($(D a),$(INFTY)) use the second form with $(D inf=Infinite.lower) or
+    $(D inf=Infinite.upper), respectively.
 
     Example:
     ---
@@ -564,24 +560,25 @@ unittest
 
 
 /** Calculate the integral of an oscillatory function over the
-    finite interval (a, b).
+    finite interval ($(D a),$(D b)).
 
     Use this to calculate the integral of
     ---
     f(x) * cos(omega*x)
     f(x) * sin(omega*x)
     ---
-    where f(x) is the (possibly singular) user-specified function
-    and omega is a known constant.  The weight function is specified
-    by setting weight to Oscillation.cos or Oscillation.sin.
+    where $(D f(x)) is the (possibly singular) user-specified function
+    and $(D omega) is a known constant.  The weight function is specified
+    by setting $(D weight) to $(D Oscillation.cos) or $(D Oscillation.sin).
 
     The rule evaluation component is based on the modified Clenshaw-Curtis
     technique.  An adaptive subdivision scheme is used in connection with
     an extrapolation procedure, which is a modification of that in
-    QAGS and allows the algorithm to deal with singularities in f(x).
+    $(D integrateQAGS()) and allows the algorithm to deal with
+    singularities in $(D f(x)).
 
     See_Also:
-    integrateQAWF(), for similar integrals over an infinite interval.
+    $(D integrateQAWF()), for similar integrals over an infinite interval.
 
     Example:
     ---
@@ -638,7 +635,7 @@ unittest
 
     Use this to calculate the integral of $(D f(x)*cos(omega*x))
     or $(D f(x)*sin(omega*x))
-    on the interval (a, infinity).  The weight function is specified
+    on the interval ($(D a),$(INFTY)).  The weight function is specified
     by setting $(D weight) to $(D Oscillation.cos) or $(D Oscillation.sin).
 
     The procedure of $(D integrateQAWO()) is applied on successive finite
@@ -820,13 +817,13 @@ unittest
 
 /** Calculate a Cauchy principal value integral.
 
-    Use this to calculate the integral of f(x)/(x-c) over the finite
-    interval (a,b), where f(x) is smooth on the entire interval and
-    c is not one of the endpoints.
+    Use this to calculate the integral of $(D f(x)/(x-c)) over the finite
+    interval ($(D a),$(D b)), where $(D f(x)) is smooth on the entire
+    interval and $(D c) is not one of the endpoints.
 
     The strategy is globally adaptive.  Modified Clenshaw-Curtis
     integration is used on those intervals containing the point
-    x = c.
+    $(D x = c).
 
     Example:
     ---
@@ -837,14 +834,13 @@ unittest
 */
 Result!Real integrateQAWC(Func, Real)(scope Func f, Real a, Real b, Real c,
     Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
-in
-{
-    assert (epsAbs >= 0 && epsRel >= 0, "Requested accuracy is negative.");
-    assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
-        "Requested accuracy is too small.");
-    assert (c != a && c != b, "Singularity at interval endpoint.");
-}
-body
+    in
+    {
+        assert (epsAbs > 0 || epsRel >= 50*Real.epsilon,
+            "Requested accuracy is too small.");
+        assert (c != a && c != b, "Singularity at interval endpoint.");
+    }
+    body
 {
     Real result, abserr;
     int neval, ier, last;
@@ -876,8 +872,8 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval (a,b) using
-    double exponential integration.
+/** Calculate the integral of $(D f(x)) over the finite interval
+    ($(D a),$(D b)) using double exponential integration.
 
     Example:
     ---
@@ -910,8 +906,8 @@ unittest
 
 
 
-/** Calculate the integral of f over the infinite interval (a,&infin;) using
-    double exponential integration.
+/** Calculate the integral of $(D f(x)) over the infinite interval
+    ($(D a),$(INFTY)) using double exponential integration.
 
     Example:
     ---
@@ -1095,7 +1091,7 @@ void checkQuadpackStatus(Real)(int ier, Real result, Real abserr,
     This method gives a much higher degree of accuracy in the answer
     compared to a single finite difference calculation, but requires
     more function evaluations; typically 6 to 12. The maximum number
-    of function evaluations is 2*tableauSize.
+    of function evaluations is $(D 2*tableauSize).
 
     Params:
         f = The function of which to take the derivative.
@@ -1103,7 +1099,7 @@ void checkQuadpackStatus(Real)(int ier, Real result, Real abserr,
         scale = A "characteristic scale" over which the function
             changes. (optional)
         tableauSize = The values of the consecutive approximations
-            are stored in a tableauSize-by-tableauSize triangular
+            are stored in a $(D tableauSize)-by-$(D tableauSize) triangular
             matrix. Sometimes this number can be reduced to limit
             the possible number of function evaluations (see above)
             and thus greater speed, and sometimes it can be increased
@@ -1238,21 +1234,21 @@ unittest
     the fastest way to compute a derivative.  However, it is also
     the least accurate method, and should only be used if the
     function is very expensive to compute $(I and) you have
-    already calculated f(x).
+    already calculated $(D f(x)).
 
     Params:
         f = The function to differentiate.
         x = The point at which to take the derivative.
-        fx = The function value at x, i.e. f(x)
-        scale = A characteristic scale for f.  When this
+        fx = The function value at $(D x), i.e. $(D f(x))
+        scale = A characteristic scale for $(D f).  When this
             is positive, the forward-difference formula
             is used, and when it is negative, the
             backward-difference formula is used.
 
     Returns:
-        An approximation to the derivative of f at the point
-        x.  The relative error in the result is $(I at best)
-        on the order of sqrt(real.epsilon).
+        An approximation to the derivative of $(D f) at the point
+        $(D x).  The relative error in the result is $(I at best)
+        on the order of $(D sqrt(real.epsilon)).
         Usually it is much higher.
 */
 real diff2(Func)(scope Func f, real x, real fx, real scale = 1.0)
@@ -1283,18 +1279,18 @@ unittest
     formula, a.k.a. a central difference formula.
 
     The function is evaluated twice, at points just below and
-    just above x.
+    just above $(D x).
 
     Params:
         f = The function to differentiate.
         x = The point at which to take the derivative.
-        scale = A characteristic scale for f.
+        scale = A characteristic scale for $(D f).
 
     Returns:
-        An approximation to the derivative of f at the point
-        x.  The relative error in the result is at best
-        on the order of (real.epsilon)^(2/3), roughly three
-        orders of magnitude more accurate than diff2().
+        An approximation to the derivative of $(D f) at the point
+        $(D x).  The relative error in the result is at best
+        on the order of $(D (real.epsilon)^(2/3)), roughly three
+        orders of magnitude more accurate than $(D diff2()).
 */
 real diff3(Func)(scope Func f, real x, real scale = 1.0)
 in { assert (scale != 0); }
@@ -1320,14 +1316,14 @@ unittest
 
 
 
-/** Calculate the Jacobian matrix associated with a set of m functions
-    in n variables using a central-difference approximation to the
+/** Calculate the Jacobian matrix associated with a set of $(I m) functions
+    in $(I n) variables using a central-difference approximation to the
     Jacobian.
 
-    This method requires 2n function evaluations, but is more
-    accurate than the faster jacobian2() function. The relative
+    This method requires 2$(I n) function evaluations, but is more
+    accurate than the faster $(D jacobian2()) function. The relative
     accuracy in the result is, at best, on the order of
-    (real.epsilon)^(2/3).  Note that this is
+    $(D (real.epsilon)^(2/3)).
 
     Params:
         f = The set of functions. This is typically a function or delegate
@@ -1340,13 +1336,13 @@ unittest
         scale = A "characteristic scale" over which the function changes.
             (optional)
 
-        m = The number of functions in f. If this is negative, as it
+        m = The number of functions in $(D f). If this is negative, as it
             is by default, the function will be called once just to
             determine the length of the returned vector. Providing this
             number is therefore a simple way of speeding up this routine.
             (optional)
 
-        buffer = A buffer of length at least m*n, for storing the calculated
+        buffer = A buffer of length at least $(I m)*$(I n), for storing the calculated
             Jacobian matrix. (optional)
 
     Examples:
@@ -1484,23 +1480,23 @@ unittest
     methods, also known as 2-point formulas.
 
     This is less accurate than the central-difference method
-    used in the jacobian() function, but requires only half
+    used in the $(D jacobian()) function, but requires only half
     as many function evaluations. The relative accuracy is,
-    at best, on the order of sqrt(real.epsilon).
+    at best, on the order of $(D sqrt(real.epsilon)).
 
-    This function is used more or less like jacobian(). The
+    This function is used more or less like $(D jacobian()). The
     differences lie in the parameters described below, which
     are all optional.
 
     Params:
-        scale = abs(scale) is the characteristic scale of the
+        scale = $(D abs(scale)) is the characteristic scale of the
             function, and the sign of scale determines which
-            differentiation method is used. If scale is
+            differentiation method is used. If $(D scale) is
             negative, the backward difference method is used, and
-            if scale is positive, forward differences are used.
+            if it is positive, forward differences are used.
             (optional)
 
-        fx = The result of evaluating the function at the point x.
+        fx = The result of evaluating the function at the point $(D x).
             Providing this saves one function evaluation if you
             for some reason have already calculated the value. (optional)
 
@@ -1615,20 +1611,20 @@ unittest
 
 
 
-/** Calculate the gradient of a function of several variables.
+/** Calculate the _gradient of a function of several variables.
 
     This function calculates a central-difference approximation to
-    the gradient of a function f. The error in the result is, at best,
-    on the order of sqrt(real.epsilon). The function f is evaluated 2n
-    times, where n is the length of the vector x.
+    the _gradient of a function $(D f). The error in the result is, at best,
+    on the order of $(D sqrt(real.epsilon)). The function $(D f) is evaluated
+    2$(I n) times, where $(I n) is the length of the vector $(D x).
 
     Params:
-        f = The function of which to find the gradient.
-        x = The point at which to find the gradient.
+        f = The function of which to find the _gradient.
+        x = The point at which to find the _gradient.
         scale = A "characteristic scale" over which the function
             changes significantly. (optional)
-        buffer = A buffer of the same length as x, for the returned
-            gradient vector. (optional)
+        buffer = A buffer of the same length as $(D x), for the returned
+            _gradient vector. (optional)
 
     Example:
     ---
@@ -1706,13 +1702,13 @@ unittest
 /** Calculate the gradient of a function of several variables
     using Ridders' method.
 
-    This function uses diff() to calculate the derivative
+    This function uses $(D diff()) to calculate the derivative
     in each direction. It is therefore more accurate, but slower, than
-    the gradient() function. The function f is typically evaluated
-    between 6n and 12n times, where n is the length of x.
-    See the documentation for diff() for more information on this method.
+    the $(D gradient()) function. The function $(D f) is typically evaluated
+    between 6$(I n) and 12$(I n) times, where $(I n) is the length of $(D x).
+    See the documentation for $(D diff()) for more information on this method.
 
-    This function is used in the same way as gradient().
+    This function is used in the same way as $(D gradient()).
 */
 Real[] gradientR (Real, Func)
     (scope Func f, Real[] x, real scale=1.0, Real[] buffer=null)
@@ -1781,16 +1777,16 @@ unittest
 /** Calculate the Hessian matrix of a function of several variables
     using a central-difference approximation.
 
-    This function stores its results in an n-by-n symmetric matrix,
-    where n is the number of variables (i.e. the length of x).
-    The function f is evaluated 1+2n^2 times.
+    This function stores its results in an $(I n)-by-$(I n) symmetric matrix,
+    where $(I n) is the number of variables (i.e. the length of $(D x)).
+    The function $(D f) is evaluated 1+2$(I n)$(SUP 2) times.
 
     Params:
         f = The function of which to calculate the Hessian.
         x = The point at which to calculate the Hessian.
         scale = A "characteristic scale" over which the function
             changes significantly. (optional)
-        buffer = A buffer of size at least n(n+1)/2, for storing
+        buffer = A buffer of size at least $(I n)($(I n)+1)/2, for storing
             the Hessian matrix. (optional)
 
     Example:
