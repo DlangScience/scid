@@ -118,6 +118,7 @@ import scid.ports.quadpack.qagse;
 import scid.ports.quadpack.qawce;
 import scid.ports.quadpack.qawfe;
 import scid.ports.quadpack.qawoe;
+import scid.ports.quadpack.qawse;
 import scid.matrix;
 import scid.types;
 import scid.util;
@@ -700,6 +701,82 @@ unittest
     auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, eps);
     real expect = sqrt(PI) * (1 + 1.0L/4096)^^(-0.25L) * cos(atan(64.0L)/2);
     check(isAccurate(i, expect, 0.0L, eps));
+}
+
+
+
+
+// Weight functions for integrateQAWS()
+enum Weight { unity = 1, logxa = 2, logbx = 3, logab = 4 }
+
+
+/** Calculate an integral over the finite interval ($(D a),$(D b)),
+    where the integrand has algebraic and/or logarithmic endpoint
+    singularities of a known type.
+
+    The integrand is taken to be on the form
+    ---
+                alpha        beta
+    f(x) (x - a)      (b - x)     w(x)
+    ---
+    where $(D f(x)) is the given function and $(D w(x)) is
+    specified by setting the $(D weight) parameter to one of the following:
+    ---
+    Weight.unity:  w(x) = 1
+    Weight.logxa:  w(x) = log(x-a)
+    Weight.logbx:  w(x) = log(b-x)
+    Weight.logab:  w(x) = log(x-a) log(b-x)
+    ---
+
+    A globally adaptive subdivision strategy is applied,
+    with modified Clenshaw-Curtis integration on those subintervals
+    which contain $(D a) or $(D b).
+
+    Example:
+    ---
+    // Calculate the integral of 1/(sqrt(1-x^^2) * (x+1.5)).
+    // Another way to write this integrand is
+    //     (x-(-1))^^(-0.5) * (1-x)^^0.5 / (x+1.5),
+    // so we set alpha = beta = -0.5.
+    real f(real x) { return 1/(x + 1.5L); }
+    auto i = integrateQAWS(&f, -1.0L, 1.0L, -0.5L, -0.5L, Weight.unity, 1e-15L);
+    ---
+*/
+Result!Real integrateQAWS(Func, Real)(scope Func f, Real a, Real b,
+    Real alpha, Real beta, Weight weight,
+    Real epsRel = cast(Real) 1e-6, Real epsAbs = cast(Real) 0)
+{
+    Real result, abserr;
+    int neval, ier, last;
+
+    enum int limit = 500;
+    Real[limit] alist, blist, rlist, elist;
+    int[limit] iord;
+
+    int sign = 1;
+    if (b <= a)
+    {
+        if (b == a) return typeof(return)(0, 0);
+        swap(a, b);
+        sign = -1;
+    }
+
+    qawse(f, a, b, alpha, beta, weight, epsAbs, epsRel, limit,
+        result, abserr, neval, ier,
+        alist.ptr, blist.ptr, rlist.ptr, elist.ptr, iord.ptr, last);
+    checkQuadpackStatus(ier, result, abserr);
+
+    return typeof(return)(sign*result, abserr);
+}
+
+
+unittest
+{
+    enum eps = 1e-15L;
+    real f(real x) { return 1/(x + 1.5L); }
+    auto i = integrateQAWS(&f, 1.0L, -1.0L, -0.5L, -0.5L, Weight.unity, eps);
+    auto expected = -PI / sqrt(1.5L^^2 - 1);
+    check (isAccurate(i, expected, eps));
 }
 
 
