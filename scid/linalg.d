@@ -108,7 +108,7 @@ Real[] solve_ (MatrixViewA, Real)
         "solve: a and b have different element types");
 
     solveImpl!(Real, a.storage, a.triangle)
-        (a.array, a.rows, b.array, b.length, 1);
+        (a.array, a.rows, b, b.length, 1);
     return b;
 }
 
@@ -239,6 +239,31 @@ unittest
     alias solve!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
     alias solve!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
 
+    alias solve!(MatrixView!double, double) solve_vec;
+}
+
+unittest
+{
+    alias solve_!(MatrixView!float, MatrixView!float) solve_f;
+    alias solve_!(MatrixView!double, MatrixView!double) solve_d;
+    alias solve_!(MatrixView!cfloat, MatrixView!cfloat) solve_cf;
+    alias solve_!(MatrixView!cdouble, MatrixView!cdouble) solve_cd;
+
+    alias solve_!(MatrixView!(float, Storage.Symmetric), MatrixView!float) solve_f_s;
+    alias solve_!(MatrixView!(double, Storage.Symmetric), MatrixView!double) solve_d_s;
+    alias solve_!(MatrixView!(cfloat, Storage.Symmetric), MatrixView!cfloat) solve_cf_s;
+    alias solve_!(MatrixView!(cdouble, Storage.Symmetric), MatrixView!cdouble) solve_cd_s;
+
+    alias solve_!(MatrixView!(float, Storage.Triangular), MatrixView!float) solve_f_t;
+    alias solve_!(MatrixView!(double, Storage.Triangular), MatrixView!double) solve_d_t;
+    alias solve_!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
+    alias solve_!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
+
+    alias solve_!(MatrixView!double, double) solve_vec;
+}
+
+unittest
+{
     // A is dense.
     double[] daa = [ 1.0, 2, -1, -1, 2, 5, 1, -4, 0 ];
     double[] dba = [ 2.0, -6, 9, 0, -6, 1 ];
