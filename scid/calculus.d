@@ -1,8 +1,8 @@
 /** Functions for numerical integration (quadrature) and differentiation.
 
-    It is recommended to read the following before using any of the
-    functions in this module, as it discusses issues that are common
-    to several of them.
+    It is recommended to read the following introduction before using
+    any of the functions in this module, as it discusses features and
+    issues that are common to several of them.
 
     Integration:
 
@@ -64,7 +64,7 @@
                   2 h
     ---
     Of these three, the latter is the most accurate, but in the cases where
-    f(x) is already known it requires one more function evaluation compared
+    $(D f(x)) is already known it requires one more function evaluation compared
     to the forward-/backward-difference formulas. This is of particular
     importance when one needs to evaluate several derivatives, as is the
     case with e.g. gradients and Jacobians.
@@ -315,19 +315,19 @@ enum GaussKronrod { rule15 = 1, rule21, rule31, rule41, rule51, rule61 }
     ($(D a),$(D b)) using a simple globally adaptive integrator.
 
     This method is suitable for functions without singularities
-    or discontinuities, which are too difficult for $(D integrateQNG()),
-    and, in particular for functions with oscillating behaviour of a
+    or discontinuities which are too difficult for $(D integrateQNG()),
+    and, in particular, for functions with oscillating behaviour of a
     non-specific type.
 
     It is possible to choose between 6 pairs of
-    $(LINK2 http://en.wikipedia.org/wiki/Gauss-Kronrod_quadrature_formula,
-    Gauss-Kronrod quadrature formulae)
+    $(LINK2 http://en.wikipedia.org/wiki/Gauss–Kronrod_quadrature_formula,
+    Gauss–Kronrod quadrature formulae)
     for the rule evaluation component.  The pairs of high
     degree of precision are suitable for handling integration
     difficulties due to a strongly oscillating integrand, whereas
     the lower-order rules are more efficient for well-behaved integrands.
-    The rule parameter may take on the following values, corresponding to
-    15-, 21-, 31-, 41-, 51-, and 61-point Gauss-Kronrod rules:
+    The $(D rule) parameter may take on the following values, corresponding to
+    15-, 21-, 31-, 41-, 51-, and 61-point Gauss–Kronrod rules:
     ---
     enum GaussKronrod { rule15, rule21, rule31, rule41, rule51, rule61 }
     ---
@@ -433,7 +433,7 @@ unittest
 
 
 
-/** Calculate the integral of f over the finite interval ($(D a),$(D b)),
+/** Calculate the integral of $(D f(x)) over the finite interval ($(D a),$(D b)),
     taking into account known points of special difficulty
     inside the interval.
 
@@ -562,17 +562,16 @@ unittest
 /** Calculate the integral of an oscillatory function over the
     finite interval ($(D a),$(D b)).
 
-    Use this to calculate the integral of
-    ---
-    f(x) * cos(omega*x)
-    f(x) * sin(omega*x)
-    ---
+    Use this to calculate the integral of $(D f(x)*cos(omega*x))
+    or $(D f(x)*sin(omega*x))
     where $(D f(x)) is the (possibly singular) user-specified function
     and $(D omega) is a known constant.  The weight function is specified
     by setting $(D weight) to $(D Oscillation.cos) or $(D Oscillation.sin).
 
-    The rule evaluation component is based on the modified Clenshaw-Curtis
-    technique.  An adaptive subdivision scheme is used in connection with
+    The rule evaluation component is based on the modified
+    $(LINK2 http://en.wikipedia.org/wiki/Clenshaw%E2%80%93Curtis_quadrature,
+    Clenshaw–Curtis technique).
+    An adaptive subdivision scheme is used in connection with
     an extrapolation procedure, which is a modification of that in
     $(D integrateQAGS()) and allows the algorithm to deal with
     singularities in $(D f(x)).
@@ -756,7 +755,9 @@ enum Weight { unity = 1, logxa = 2, logbx = 3, logab = 4 }
     ---
 
     A globally adaptive subdivision strategy is applied,
-    with modified Clenshaw-Curtis integration on those subintervals
+    with modified
+    $(LINK2 http://en.wikipedia.org/wiki/Clenshaw%E2%80%93Curtis_quadrature,
+    Clenshaw–Curtis integration) on those subintervals
     which contain $(D a) or $(D b).
 
     Example:
@@ -821,8 +822,9 @@ unittest
     interval ($(D a),$(D b)), where $(D f(x)) is smooth on the entire
     interval and $(D c) is not one of the endpoints.
 
-    The strategy is globally adaptive.  Modified Clenshaw-Curtis
-    integration is used on those intervals containing the point
+    The strategy is globally adaptive.  Modified
+    $(LINK2 http://en.wikipedia.org/wiki/Clenshaw%E2%80%93Curtis_quadrature,
+    Clenshaw–Curtis integration) is used on those intervals containing the point
     $(D x = c).
 
     Example:
