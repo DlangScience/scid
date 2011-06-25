@@ -270,46 +270,40 @@ unittest
     }
     ---
 */
-Steps!(CommonType!(T, U)) steps(T, U)(T a, U b, int n)
+auto steps(T, U)(T a, U b, int n)
     if (isFloatingPoint!T && isFloatingPoint!U)
 {
-    return typeof(return)(a, b, n);
-}
+    alias CommonType!(T, U) V;
 
-
-struct Steps(T) if (isFloatingPoint!T)
-{
-private:
-    int _i, _resolution;
-    T _delta, _start, _stop;
-
-public:
-    this(T start, T stop, int resolution)
-    in { assert (resolution >= 0); }
-    body {
-        _start = start;
-        _stop = stop;
-        if (resolution > 1) _delta = (stop - start) / (resolution - 1);
-        _i = resolution - 1;
-        _resolution = resolution;
-    }
-
-
-    bool empty() { return _i < 0; }
-
-
-    T front()
+    struct Steps
     {
-        assert (!empty);
-        if (_i == _resolution - 1) return _start;
-        return _stop - _i*_delta;
+    private:
+        int _i, _resolution;
+        V _delta, _start, _stop;
+
+    public:
+        @property bool empty() { return _i < 0; }
+
+        @property V front()
+        {
+            assert (!empty);
+            if (_i == _resolution - 1) return _start;
+            return _stop - _i*_delta;
+        }
+
+        void popFront() {
+            assert (!empty);
+            --_i;
+        }
     }
 
-
-    void popFront() {
-        assert (!empty);
-        --_i;
-    }
+    Steps s;
+    s._start = a;
+    s._stop = b;
+    if (n > 1) s._delta = (b - a) / (n - 1);
+    s._i = n - 1;
+    s._resolution = n;
+    return s;
 }
 
 
