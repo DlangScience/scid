@@ -86,12 +86,12 @@ void buildLib()
     ensureDir(libDir);
     auto sources = getSources();
 
-    version (Posix)     immutable libFile = "lib"~libName~".a";
-    version (Windows)   immutable libFile = libName~".lib";
+    version (Posix)     immutable libFile = libName;
+    version (Windows)   immutable libFile = libName~".exe";
 
     immutable buildCmd = "dmd "
         ~std.string.join(sources, " ")
-        ~" -lib -od"~libDir~" -of"~libFile;
+        ~" -od"~libDir~" -of"~libFile;
     writeln(buildCmd);
     enforce(system(buildCmd) == 0, "Error building library");
 }

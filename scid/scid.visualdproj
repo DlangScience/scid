@@ -205,9 +205,8 @@
     <File path="internal\calculus\integrate_qng.d" />
    </Folder>
    <File path="internal\arraydata.d" />
-   <File path="internal\arraystorage.d" />
    <File path="internal\cowarray.d" />
-   <File path="internal\arrayviewstorage.d" />
+   <File path="internal\vecadapters.d" />
   </Folder>
   <Folder name="ports">
    <Folder name="intde">
@@ -270,7 +269,6 @@
     <File path="ports\quadpack\qwgts.d" />
    </Folder>
   </Folder>
-  <File path="main.d" />
   <File path="calculus.d" />
   <File path="constants.d" />
   <File path="exception.d" />
@@ -281,5 +279,9 @@
   <File path="types.d" />
   <File path="util.d" />
   <File path="vector.d" />
+  <File path="symmatrix.d" />
+  <File path="trimatrix.d" />
+  <File path="main.d" />
+  <File path="vectorview.d" />
  </Folder>
 </DProject>
