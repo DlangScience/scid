@@ -12,6 +12,13 @@ import std.stdio;
 
 enum StorageOrder { RowMajor, ColumnMajor }
 
+template otherStorageOrder( StorageOrder order ) {
+	static if( order == StorageOrder.RowMajor ) 
+		enum otherStorageOrder = StorageOrder.ColumnMajor;
+	else
+		enum otherStorageOrder = StorageOrder.RowMajor;
+}
+
 /** General matrix implementation with value semantics. Storage order (row-major / column-major)
   * can be customized, along with the Array used for storage.
   *
@@ -22,7 +29,13 @@ enum StorageOrder { RowMajor, ColumnMajor }
   * through slicing eg. M[0..2][0], M[][2], M[2] etc. The views returned are VectorView-s so
   * they can be used directly with BLAS.
   */
-struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray ) {
+
+Matrix!( T, order, arrayTemplate ) matrixNoInit( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray )( size_t numRows, size_t numColumns ) {
+	return typeof( return ).clearNoInit( numRows, numColumns );
+}
+
+struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray ) {	
+	
 	/** The type of elements in the vector. */
 	alias T                ElementType;
 	
@@ -35,19 +48,35 @@ struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias A
 	/** Is the matrix stored in row-major order? */
 	enum isRowMajor = StorageOrder.RowMajor == storageOrder_;
 	
-	/** Create a new matrix of a given size (MxN). */
-	this( size_t sizeRows, size_t sizeColumns ) {
-		reset( sizeRows, sizeColumns );
+	/** Create a new matrix of a given size (MxN). Initializes the data.  */
+	this( size_t sizeRows, size_t sizeColumns, T initializeWith = T.init ) {
+		setSliceParams_( sizeRows, sizeColumns );
+		array_.RefCounted.initialize( sizeRows * sizeColumns, initializeWith );
+	}
+	
+	/** Create a new matrix of a given size (MxN). Do not initialize the data.  */
+	this( size_t sizeRows, size_t sizeColumns, void* ) {
+		setSliceParams_( sizeRows, sizeColumns );
+		array_.RefCounted.initialize( sizeRows * sizeColumns, null );
 	}
 
-	/** Construct from a built-in array of rows. */
+	/** Construct a matrix from a built-in array of rows. */
 	this( T[][] matrix ) {
 		this = matrix;
 	}
+	
+	/** Construct a matrix from a given array, size and leading dimension. */
+	this( Array arr, size_t numRows, size_t numCols, size_t leadingDim = 0 ) {
+		setSliceParams_( numRows, numCols, leadingDim );
+		array_.RefCounted.initialize( *&arr.refCountedPayload() );
+	}
+	
+	
 
 	/** Postblit calls opAssign on the wrapped array. */
 	this( this ) {
-		array_.RefCounted.initialize( *&array_.refCountedPayload() );
+		if( array_.RefCounted.isInitialized() )
+			array_.RefCounted.initialize( *&array_.refCountedPayload() );
 	}
 	
 	/// Create a matrix slice of another matrix. Used by SlicedProxy and op*Slice*().
@@ -62,11 +91,20 @@ struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias A
 	}
 	
 	/** Reset the matrix with new dimensions. */
-	void reset( size_t newRows, size_t newCols ) {
+	void reset( size_t newRows, size_t newCols, T initializeWith = T.init ) {
+		reset( newRows, newCols, null );
+		array_.refCountedPayload()[] = initializeWith;
+	}
+	
+	/** Reset the matrix with new dimensions, do not initialize the data. */
+	void reset( size_t newRows, size_t newCols, void* ) {
 		setSliceParams_( newRows, newCols );
 		
-		if( newRows * newCols != array.length )	
-			array_.RefCounted.initialize( rows_ * cols_ );
+		if( !array_.RefCounted.isInitialized() )
+				array_.RefCounted.initialize();
+		
+		if( newRows * newCols != array.length )
+			array_.RefCounted.initialize( newRows * newCols, null );
 	}
 	
 	/** Return the wrapped memory block. Writable. */
@@ -186,25 +224,41 @@ struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias A
 		array_.refCountedPayload()[] = rhs;	
 	}
 	
-	/** Returned by opSlice, allows for slicing the 2nd dimension. */
-	struct SlicerProxy {
-		Matrix *m;
-		size_t rowStart, rowEnd;
+	/** Matrix transpose. */
+	@property auto t() {
+		return Matrix!(T, otherStorageOrder!storageOrder_, ArrayTemplate)( array_, cols_, rows_, leading_ );
+	}
+	
+	/** Returned by opSlice, allows for slicing the 2nd dimension and range functionality. */
+	static private struct SlicerProxy {
+		// TODO: Use MatrixView -> elegant solution.
+		private Matrix  m;
+		private size_t start, end;
+		
+		this( Matrix *mat, size_t start, size_t end ) {
+			this.start = start;
+			this.end   = end;
+			
+			// Dirty hack: share same array with the other matrix. Basically a matrix view.
+			m.array_ = mat.array_; 
+			m.setSliceParams_( mat.rows_, mat.cols_, mat.leading_ );
+		}
 		
 		/** Slicing operators. */
 		Matrix opSlice() {
-			return Matrix( *m, rowStart, rowEnd, 0, m.columns );
+			return Matrix( m, start, end, 0, m.columns );
 		}
 		
 		/// ditto
 		Matrix opSlice( size_t colStart, size_t colEnd ) {
-			return Matrix( *m, rowStart, rowEnd, colStart, colEnd );
+
+			return Matrix( m, start, end, colStart, colEnd );
 		}
 		
 		/** Return a view to a slice of a given column. */
 		auto opIndex( size_t j ) {
-			auto begin  = m.map_( rowStart, j );
-			auto end    = m.map_( rowEnd,   j );
+			auto begin  = m.map_( start, j );
+			auto end    = m.map_( end,   j );
 			static if( isRowMajor )
 				return VectorView!Wrapped( m.array_, begin, end, m.leading_ );
 			else
@@ -215,7 +269,22 @@ struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias A
 		void opIndexAssign( S )( S rhs, size_t i ) {
 			opIndex( i )[] = rhs;
 		}
+
+		
+		/** Range of ranges interface. */
+		void popFront() { ++start; }
+		@property bool empty() {
+			static if( isRowMajor ) return start == m.rows_;
+			else                    return start == m.cols_;
+		}
+		
+		@property VectorView!Wrapped front() {
+			auto a = start * m.leading_;
+			return typeof(return)( m.array_, a, a + (isRowMajor?m.cols_:m.rows_), 1 );	
+		}
 	}
+	
+	@property VectorView!Wrapped front() { assert(false); }
 	
 	// Provides toString().
 	mixin MatrixToString;
@@ -240,6 +309,9 @@ struct Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias A
 	private Array array_;
 }
 
+
+
+
 unittest {
 	void testMat(Mat)() {
 		auto A = Mat(3, 3);
@@ -252,8 +324,10 @@ unittest {
 
 		int k = 0;
 		foreach( i ; 0..3 )
-			foreach( j ; 0..3 )
+			foreach( j ; 0..3 ) {
+				assert( A[i,j] == 0, "Matrix initialization failed." );
 				A[i,j] = k++;
+			}
 
 		assert( A[ 0, 0 ] == 0 && A[ 0, 1 ] == 1 && A[ 0, 2 ] == 2 &&
 				A[ 1, 0 ] == 3 && A[ 1, 1 ] == 4 && A[ 1, 2 ] == 5 &&
@@ -300,7 +374,7 @@ mixin template MatrixToString() {
 		auto app = appender!string();
 		app.put("[ ");
 		
-		auto putRow = ( size_t r ) {
+		void putRow( size_t r ) {
 			app.put( to!string( this[r, 0] ) );
 			for( int i = 1; i < columns ; ++ i ) {
 				app.put( '\t' );

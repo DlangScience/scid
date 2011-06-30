@@ -41,9 +41,20 @@ struct Vector( T, VectorType vtype = VectorType.Column, alias ArrayTemplate = Co
 	enum bool isRowVector = vtype == VectorType.Row;
 	
 	/** Allocates a new vector of a given size. */
-	this( size_t len ) {
-		array_.RefCounted.initialize( len );
+	this( size_t len, T initializeWith = T.init ) {
+		array_.RefCounted.initialize( len, initializeWith );
 	}
+	
+	/** Allocates a new vector of a given size. Do not initialize. */
+	this( size_t len, void* ) {
+		array_.RefCounted.initialize( len, null );
+	}
+	
+	/** Allocates a new vector of a given size. Do not initialize the data. */
+	//this( size_t len, void ) {
+		//array_.RefCounted.initialize( len, [] );
+	//}
+	
 	
 	/** Allocates a new vector with elements equal to those of a given array. */
 	this( T[] arr ) {
@@ -52,7 +63,8 @@ struct Vector( T, VectorType vtype = VectorType.Column, alias ArrayTemplate = Co
 	
 	/** Postblit needs calls opAssign on the wrapped array. */
 	this( this ) {
-		array_.RefCounted.initialize( array_.refCountedPayload() );
+		if( array_.RefCounted.isInitialized() )
+			array_.RefCounted.initialize( *&array_.refCountedPayload() );
 	}
 	
 	// Creates a Vector that's a slice of another vector. Called by op*Slice*().

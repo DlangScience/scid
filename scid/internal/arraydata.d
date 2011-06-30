@@ -5,6 +5,7 @@ module scid.internal.arraydata;
 import std.algorithm;
 import std.conv;
 import core.stdc.stdlib;
+import std.stdio;
 
 debug( ArrayData ) {
 	import std.stdio;
@@ -153,11 +154,11 @@ struct ArrayData( T ) {
 	// This is the data that ArrayData points to. Uses struct hack to
 	// allocate everything in place.
 	private struct ArrayData_ {
-		size_t refCount;
-		size_t length;
-		byte   ptrOffset;
+		size_t refCount      = void;
+		size_t length        = void ;
+		byte   ptrOffset     = void;
 		
-		private T array_[1];
+		private T array_[1]  = void;
 		
 		@property T[] array() {
 			return array_.ptr[ 0 .. this.length ];

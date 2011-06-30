@@ -18,7 +18,13 @@ struct CowArray( T ) {
 	alias T ElementType;
 		
 	/** Allocate a new array of a given size. */
-	this( size_t length ) {
+	this( size_t length, T initializeWith = T.init ) {
+		this( length, null );
+		this[] = initializeWith;
+	}
+	
+	/** Allocate a new array of a given size. Do not initialize.*/
+	this( size_t length, void* ) {
 		data_.reset( length );
 		firstIndex_ = 0;
 		length_     = length;

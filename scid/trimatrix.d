@@ -20,7 +20,7 @@ enum MatrixTriangle {
   * To use with BLAS functions (and other functions taking a builtin array), use the data() and cdata()
   * Whenever possible, use cdata() as data() might cause unnecessary memory duplication.
   */
-struct TriangularMatrix( T, MatrixTriangle triangle_, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray ) {
+struct TriangularMatrix( T, MatrixTriangle triangle_ = MatrixTriangle.Upper, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray ) {
 	/** The type of elements in the vector. */
 	alias T                ElementType;
 	
@@ -37,8 +37,14 @@ struct TriangularMatrix( T, MatrixTriangle triangle_, StorageOrder storageOrder_
 	enum isUpper    = MatrixTriangle.Upper  == triangle_;
 	
 	/** Create a new matrix of a given size (NxN). */
-	this( size_t size ) {
-		array_.RefCounted.initialize(  size * ( size + 1 ) / 2  );
+	this( size_t size, T initializeWith = T.init ) {
+		array_.RefCounted.initialize( size * ( size + 1 ) / 2, initializeWith );
+		size_ = size;
+	}
+	
+	/** Create a new matrix of a given size (NxN). Do not initialize. */
+	this( size_t size, void* ) {
+		array_.RefCounted.initialize( size * ( size + 1 ) / 2, null );
 		size_ = size;
 	}
 
@@ -52,7 +58,8 @@ struct TriangularMatrix( T, MatrixTriangle triangle_, StorageOrder storageOrder_
 	//** Postblit ctor calls opAssign on the wrapped array. */
 	this( this ) {
 		// Workaround for bug 6199.
-		array_.RefCounted.initialize( *&array_.refCountedPayload() );
+		if( array_.RefCounted.isInitialized() )
+			array_.RefCounted.initialize( *&array_.refCountedPayload() );
 	}
 	
 	/** Return the wrapped memory block. Writable. */
