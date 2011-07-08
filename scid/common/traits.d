@@ -9,8 +9,7 @@ module scid.common.traits;
 
 import std.complex;
 import std.traits;
-
-
+import std.typecons;
 
 
 /** Detect whether T is a complex floating-point type. */
@@ -416,9 +415,13 @@ template BaseElementType(T)
     {
         alias BaseElementType!E BaseElementType;
     }
-    else static if ( __traits(compiles,T.ElementType.init) )
+    else static if (is ( T.ElementType ) )
 	{
 		alias T.ElementType BaseElementType;	
+	}
+	else static if (is( T U : RefCounted!( U , x), int x ) )
+	{
+		alias BaseElementType!U BaseElementType;
 	}
 	else
     {
@@ -454,6 +457,8 @@ unittest
     static assert (is(BaseElementType!(VectorS) == int));
     static assert (is(BaseElementType!(MatrixS) == int));
 	static assert (is(BaseElementType!(IntExpr) == int));
+	
+	static assert (is(BaseElementType!(RefCounted!(IntExpr,RefCountedAutoInitialize.no)) == int));
 }
 
 /** Tests if two types A and B have the same base element type. */

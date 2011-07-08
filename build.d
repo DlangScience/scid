@@ -89,7 +89,7 @@ void buildLib()
     version (Posix)     immutable libFile = libName;
     version (Windows)   immutable libFile = libName~".exe";
 
-    immutable buildCmd = "dmd "
+    immutable buildCmd = "dmd -g -debug -unittest deps\\blaslapackdll.lib "
         ~std.string.join(sources, " ")
         ~" -od"~libDir~" -of"~libFile;
     writeln(buildCmd);

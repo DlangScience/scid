@@ -46,10 +46,10 @@ import scid.common.meta;
 import scid.common.testing;
 import scid.common.traits;
 import scid.exception;
-import scid.matrix;
+// import scid.matrix;
 import scid.util;
 
-pragma(lib, "blaslapackdll");
+
 
 
 

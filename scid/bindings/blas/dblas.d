@@ -152,31 +152,31 @@ void scal(f_int n, f_double alpha, f_cdouble *x, f_int incx) {
 }
 
 /// y := x
-void copy(f_int n, f_float *x, f_int incx, f_float *y, f_int incy) {
-    scopy_(&n, x, &incx, y, &incy);
+void copy(f_int n, const f_float *x, f_int incx, f_float *y, f_int incy) {
+    scopy_(&n, cast(f_float*) x, &incx, y, &incy);
 }
-void copy(f_int n, f_double *x, f_int incx, f_double *y, f_int incy) {
-    dcopy_(&n, x, &incx, y, &incy);
+void copy(f_int n, const f_double *x, f_int incx, f_double *y, f_int incy) {
+    dcopy_(&n, cast(f_double*) x, &incx, y, &incy);
 }
-void copy(f_int n, f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
-    ccopy_(&n, x, &incx, y, &incy);
+void copy(f_int n, const f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
+    ccopy_(&n, cast(f_cfloat*) x, &incx, y, &incy);
 }
-void copy(f_int n, f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
-    zcopy_(&n, x, &incx, y, &incy);
+void copy(f_int n, const f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
+    zcopy_(&n, cast(f_cdouble*) x, &incx, y, &incy);
 }
 
 /// y := alpha * x + y
-void axpy(f_int n, f_float alpha, f_float *x, f_int incx, f_float *y, f_int incy) {
-    saxpy_(&n, &alpha, x, &incx, y, &incy);
+void axpy(f_int n, f_float alpha, const f_float *x, f_int incx, f_float *y, f_int incy) {
+    saxpy_(&n, &alpha, cast(f_float*)x, &incx, y, &incy);
 }
-void axpy(f_int n, f_double alpha, f_double *x, f_int incx, f_double *y, f_int incy) {
-    daxpy_(&n, &alpha, x, &incx, y, &incy);
+void axpy(f_int n, f_double alpha, const f_double *x, f_int incx, f_double *y, f_int incy) {
+    daxpy_(&n, &alpha, cast(f_double*)x, &incx, y, &incy);
 }
-void axpy(f_int n, f_cfloat alpha, f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
-    caxpy_(&n, &alpha, x, &incx, y, &incy);
+void axpy(f_int n, f_cfloat alpha, const f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
+    caxpy_(&n, &alpha, cast(f_cfloat*)x, &incx, y, &incy);
 }
-void axpy(f_int n, f_cdouble alpha, f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
-    zaxpy_(&n, &alpha, x, &incx, y, &incy);
+void axpy(f_int n, f_cdouble alpha, const f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
+    zaxpy_(&n, &alpha, cast(f_cdouble*)x, &incx, y, &incy);
 }
 
 

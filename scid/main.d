@@ -2,64 +2,41 @@ module main;
 
 import scid.vector;
 import scid.matrix;
-import scid.symmatrix;
-import scid.trimatrix;
-import scid.vectorview;
-
-import std.conv;
-import std.stdio;
-import std.complex;
-
-void putMat( M )( string title, M m ) {
-	writeln( title,':' );
-	writeln( to!string(m) );
-	writeln();
-}
+import std.stdio, std.conv, std.complex;
 
 int main() {
-	// Vector/Matrix playground.
-	//    Vector( T, VectorType vtype = VectorType.Column, alias ArrayTemplate = CowArray )
-	//    Matrix( T, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray )
-	//    SymmetricMatrix( T, MatrixTriangle triangle_ = MatrixTriangle.Upper, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray )
-	//    TriangularMatrix( T, MatrixTriangle triangle_, StorageOrder storageOrder_ = StorageOrder.ColumnMajor, alias ArrayTemplate = CowArray )
 	
-	// uninitialized matrix
-	auto A = Matrix!double(5,7, null);
+	auto gen = Matrix!double(4, 4, null);
+	auto tri = TriangularMatrix!double( [1.0,2.0,3.0,4.0,5.0,6.0] );
+	auto sym = SymmetricMatrix!double( [1.0,2.0,3.0,4.0,5.0,6.0] );
+	auto her = SymmetricMatrix!cdouble( [1.0+6.0i, 2.0+5.0i, 3.0+4.0i, 4.0+3.0i, 5.0+2.0i, 6.0+1.0i] );
 	
-	putMat( "Uninitialized matrix", A );
-	
-	// initialized matrices
 	{
-		auto B = Matrix!double(2,2);
-		auto C = Matrix!double(2,2, 42.0);
-		
-		putMat( "Initialized matrix (default)", B );
-		putMat( "Initialized matrix (with 42)", C );
+		double k = 0.0;
+		foreach( i ; 0 .. gen.rows )
+			foreach( j ; 0 .. gen.columns )
+				gen[i, j] = ++ k;
 	}
-		
-	uint k = 0;
-	foreach( i ; 0..5 )
-		foreach( j ; 0..7 )
-			A[ i, j ] = ++k;
 	
-	putMat( "Numbered matrix", A );
-	putMat( "Transposed", A.t );
+	writeln( "General matrix: " );
+	writeln( gen.pretty );
+	writeln( "Column-major data: ", gen.cdata );
 	
-	writeln( "Foreach - by column: " );
-	foreach( column ; A ) {
-		foreach( value ; column )
-			write( value, ' ' );
-		writeln();
-	}
 	writeln();
-	writeln( "Transposed foreach - by row: " );
-	foreach( column ; A.t ) {
-		foreach( value ; column )
-			write( value, ' ' );
-		writeln();
-	}
+	writeln( "Triangular matrix: " );
+	writeln( tri.pretty );
+	writeln( "Column Major data: ", tri.cdata );
 	
-	readln();
+	writeln();
+	writeln( "Symmetric matrix: " );
+	writeln( sym.pretty );
+	writeln( "Column-major data: ", sym.cdata );
+	
+	writeln();
+	writeln( "Hermitian matrix: " );
+	writeln( her.pretty );
+	writeln( "Column-major data: ", her.cdata );
+	
 	return 0;
 }
 	

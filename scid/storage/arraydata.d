@@ -1,11 +1,7 @@
-module scid.internal.arraydata;
+module scid.storage.arraydata;
 
-// debug = ArrayData;
-
-import std.algorithm;
-import std.conv;
 import core.stdc.stdlib;
-import std.stdio;
+import std.algorithm, std.conv;
 
 debug( ArrayData ) {
 	import std.stdio;
@@ -48,9 +44,25 @@ struct ArrayData( T ) {
 	
 	/** Allocate a new array whose elements are a copy of a given builtin array. */
 	void reset( T[] array ) {
-		realloc_( array.length );
-		if( data_ )
-			data_.array[] = array[];
+		if( array.length == 0 ) {
+			reset();
+			return;
+		}
+		
+		// If the given array overlaps with the current one and this is the only
+		// reference to it, then we need to duplicate the given array.
+		if( data_ && data_.refCount == 1 ) {
+			if( array.ptr < data_.ptr + data_.length && data_.ptr < array.ptr + array.length ) {
+				debug( ArrayData )
+					writeln("ArrayData: Duplicated array in reset() because of overlap.");
+				array = array.dup;
+			}
+		}
+				
+		if( !isInitialized() || array.length != data_.length || data_.refCount > 1  )
+			realloc_( array.length );
+		
+		data_.array[] = array[];
 	}
 	
 	/** Just clears the reference - makes this reference an empty array. Does not affect other
@@ -100,7 +112,7 @@ struct ArrayData( T ) {
 		if( !data_ || data_.refCount == 1 )
 			return;
 		
-		ArrayData_ *oldData = data_;
+		Data_ *oldData = data_;
 		realloc_( data_.length );
 		
 		data_.array[] = oldData.array[];
@@ -114,28 +126,28 @@ struct ArrayData( T ) {
 	/** Indexing operators. */
 	T opIndex( size_t i ) const
 	in {
-		assert( data_ );
+		assert( isInitialized() );
 		assert( i < data_.length, "Out of bounds " ~ to!string(i) ~ " >= " ~ to!string(data_.length) );
 	} body {
-		return *(data_.array_.ptr+i);
+		return *(data_.ptr+i);
 	}
 	
 	/// ditto
 	void opIndexAssign( T rhs, size_t i )
 	in {
-		assert( data_ );
+		assert( isInitialized() );
 		assert( i < data_.length, "Out of bounds " ~ to!string(i) ~ " >= " ~ to!string(data_.length) );
 	} body {
-		*(data_.array_.ptr+i) = rhs;
+		*(data_.ptr+i) = rhs;
 	}
 	
 	/// ditto
 	void opIndexOpAssign( string op )( T rhs, size_t i )
 	in {
-		assert( data_ );
+		assert( isInitialized() );
 		assert( i < data_.length, "Out of bounds " ~ to!string(i) ~ " >= " ~ to!string(data_.length) );
 	} body {
-		mixin( "*(data_.array_.ptr+i)" ~ op ~ "= rhs;" );
+		mixin( "*(data_.ptr+i)" ~ op ~ "= rhs;" );
 	}
 	
 	/** Equality of pointers, not of data. Not using == to avoid confusion */
@@ -145,7 +157,7 @@ struct ArrayData( T ) {
 	
 	/** String representation of the underlying array. */
 	string toString() const {
-		if( !data_ )
+		if( !isInitialized() )
 			return "[]";
 		else
 			return to!string( data_.array );
@@ -153,12 +165,12 @@ struct ArrayData( T ) {
 	
 	// This is the data that ArrayData points to. Uses struct hack to
 	// allocate everything in place.
-	private struct ArrayData_ {
+	private struct Data_ {
 		size_t refCount      = void;
 		size_t length        = void ;
 		byte   ptrOffset     = void;
 		
-		private T array_[1]  = void;
+		T array_[1]  = void;
 		
 		@property T[] array() {
 			return array_.ptr[ 0 .. this.length ];
@@ -167,6 +179,9 @@ struct ArrayData( T ) {
 		@property const(T)[] array() const {
 			return array_.ptr[ 0 .. this.length ];
 		}
+		
+		@property T*        ptr()       { return array_.ptr; }
+		@property const(T)* ptr() const { return array_.ptr; }
 	}
 	
 	// Derferences the data, decrementing the ref count and freeing
@@ -196,15 +211,14 @@ struct ArrayData( T ) {
 			return;
 		
 		// alignment fix shouldn't be required, I think
-		const sz = sizeOfData_( length ) + ArrayData_.alignof;
+		const sz = sizeOfData_( length ) + Data_.alignof;
 		auto p = malloc( sz )[ 0 .. sz ];
-		auto offset = cast(size_t)(p.ptr) % ArrayData_.alignof;
+		auto offset = cast(size_t)(p.ptr) % Data_.alignof;
 		if( offset )
-			offset =  ArrayData_.alignof - offset;
+			offset =  Data_.alignof - offset;
 		
 		// ASK: addRange()
-		emplace!ArrayData_(  p[offset .. sz] );
-		data_ = cast( typeof( data_ ) ) (p.ptr + offset);
+		data_ = emplace!Data_(  p[offset .. sz] );
 		data_.ptrOffset = cast(byte) offset;
 		data_.refCount  = 1;
 		data_.length    = length;
@@ -220,29 +234,29 @@ struct ArrayData( T ) {
 	}
 	
 	// A pointer to the referenced data.
-	private ArrayData_ *data_;
+	private Data_ *data_;
 }
 
 
-unittest {
-	alias ArrayData!int Test;
-
-	auto x = Test(10);
-	
-	assert( x.refCount() == 1 );
-	
-	auto y = x;
-	assert( y.refCount() == 2 );
-	assert( x.isSharingDataWith( y ) );
-	
-	Test z;
-	assert( !z.isInitialized() );
-	
-	z = y;
-	assert( z.refCount() == 3 );
-	
-	z.reset();
-	y.reset();
-	assert( x.refCount() == 1 );
-	x.reset();
-}
+//unittest {
+//    alias ArrayData!int Test;
+//
+//    auto x = Test(10);
+//    
+//    assert( x.refCount() == 1 );
+//    
+//    auto y = x;
+//    assert( y.refCount() == 2 );
+//    assert( x.isSharingDataWith( y ) );
+//    
+//    Test z;
+//    assert( !z.isInitialized() );
+//    
+//    z = y;
+//    assert( z.refCount() == 3 );
+//    
+//    z.reset();
+//    y.reset();
+//    assert( x.refCount() == 1 );
+//    x.reset();
+//}

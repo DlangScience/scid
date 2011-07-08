@@ -36,7 +36,7 @@ struct Result(V, E=V)
 
 
 
-    Result opUnary(string op)() const pure nothrow
+    Result opUnary(string op)() const nothrow
         if (op == "-" || op == "+")
     {
         mixin ("return Result("~op~"value, error);");
@@ -58,7 +58,7 @@ struct Result(V, E=V)
         in addition to these.
 
     */
-    Result opBinary(string op)(Result rhs) pure nothrow
+    Result opBinary(string op)(Result rhs) nothrow
         if (op == "+" || op == "-")
     {
         auto lhs = this;
@@ -66,7 +66,7 @@ struct Result(V, E=V)
     }
 
     /// ditto
-    Result opOpAssign(string op)(Result rhs) pure nothrow
+    Result opOpAssign(string op)(Result rhs) nothrow
         if (op == "+" || op == "-")
     {
         mixin ("value "~op~"= rhs.value;");
@@ -78,7 +78,7 @@ struct Result(V, E=V)
     static if (is (V==E))
     {
         /// ditto
-        Result opBinary(string op)(Result rhs) pure nothrow
+        Result opBinary(string op)(Result rhs) nothrow
             if (op == "*" || op == "/")
         {
             auto lhs = this;
@@ -86,7 +86,7 @@ struct Result(V, E=V)
         }
 
         /// ditto
-        Result opOpAssign(string op)(Result rhs) pure nothrow
+        Result opOpAssign(string op)(Result rhs) nothrow
             if (op == "*")
         {
             value *= rhs.value;
@@ -95,7 +95,7 @@ struct Result(V, E=V)
         }
 
         /// ditto
-        Result opOpAssign(string op)(Result rhs) pure nothrow
+        Result opOpAssign(string op)(Result rhs) nothrow
             if (op == "/")
         {
             V inv = 1/rhs.value;
@@ -190,7 +190,7 @@ struct Interval(T) if (isSigned!T)
     T b;        ///ditto
 
 
-pure: // TODO: Mark as nothrow as soon as DMD bug 5191 is fixed (DMD 2.051)
+ // TODO: Mark as nothrow as soon as DMD bug 5191 is fixed (DMD 2.051)
 
 
     /** The length of the interval, defined as b-a. */
