@@ -67,14 +67,14 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		else               matrix_.indexAssign!op( rhs, i + start_, fixed_ );
 	}
 	
-	void copyLeft( S )( S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void copyFrom( S )( S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( rhs.length == length, sliceAssignMsg_( 0, length, rhs.length ) );
 	} body {
-		slicedCopyLeft( rhs, 0, length_ );
+		slicedCopyFrom( rhs, 0, length_ );
 	}
 	
-	void slicedCopyLeft( S )( ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void slicedCopyFrom( S )( ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
@@ -88,14 +88,14 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		}
 	}
 	
-	void axpyLeft( S )( ref S rhs, ElementType alpha ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void axpyFrom( S )( ref S rhs, ElementType alpha ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( rhs.length <= length, fmt( msgPrefix_ ~ "axpy length mismatch %d vs %d", length, rhs.length ) ); 
 	} body {
-		slicedAxpyLeft( rhs, alpha, 0, length_ );
+		slicedAxpyFrom( rhs, alpha, 0, length_ );
 	}
 	
-	void slicedAxpyLeft( S )( ref S rhs, ElementType alpha, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void slicedAxpyFrom( S )( ref S rhs, ElementType alpha, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 		assert( end-start >= rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
@@ -109,11 +109,11 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		}
 	}
 	
-	void scalLeft( ElementType rhs ) {
-		slicedScalLeft( rhs, 0, length_ );
+	void scalFrom( ElementType rhs ) {
+		slicedScalFrom( rhs, 0, length_ );
 	}
 	
-	void slicedScalLeft( ElementType rhs, size_t start, size_t end )
+	void slicedScalFrom( ElementType rhs, size_t start, size_t end )
 	in {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 	} body {
@@ -138,9 +138,9 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 	}
 	
 	@property {
-		ElementType[]        data()         { return matrix_.data; }
-		const(ElementType[]) cdata()  const { return matrix_.cdata; }
-		MatrixRef_           matrix()       { return matrix_; }
+		ref MatrixRef        matrix()       { return matrix_; }
+		size_t               start()  const { return start_; }
+		size_t               fixed()  const { return fixed_; }
 		size_t               length() const { return length_; }
 		bool                 empty()  const { return length_ == 0; }
 		

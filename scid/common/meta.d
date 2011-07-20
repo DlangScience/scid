@@ -54,6 +54,24 @@ template One(T)
         ~T.stringof);
 }
 
+
+/** Evaluates to minus the unit value for a given type.
+    ---
+    assert (One!creal = 1.0+0.0i);
+    ---
+*/
+template MinusOne(T)
+{
+    static if (isFloatingPoint!T)
+        enum T MinusOne = -1.0;
+    else static if (isComplex!T)
+        enum T MinusOne = -1.0 + 0.0i;
+    else static if (isIntegral!T)
+        enum T MinusOne = -1;
+    else static assert (false, "One: Type has no obvious unit element: "
+        ~T.stringof);
+}
+
 version(unittest)
 {
     static assert (One!creal == 1.0+0.0i);

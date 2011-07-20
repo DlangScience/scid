@@ -6,7 +6,9 @@ import scid.storage.generalmatview;
 import scid.common.traits;
 import scid.matrix;
 import scid.vector;
+import scid.internal.hlblas;
 import std.algorithm;
+
 
 template GeneralMatrixStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
 		if( isFortranType!(BaseElementType!ElementOrMatrix) ) {
@@ -23,8 +25,10 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 	alias GeneralMatrixViewStorage!MatrixRef_ View;
 	alias matrix_                             this;
 	
-	this( size_t newRows, size_t newCols, ElementType initWith = ElementType.init ) {
-		matrix_ = MatrixRef( newRows, newCols, initWith );
+	enum storageType = MatrixStorageType.General;
+	
+	this( size_t newRows, size_t newCols ) {
+		matrix_ = MatrixRef( newRows, newCols );
 	}	
 	
 	this( size_t newRows, size_t newCols, void* ) {
@@ -39,6 +43,37 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 		matrix_ = MatrixRef( matrix_.ptr );
 	}
 	
+	void resizeOrClear( size_t rows, size_t columns, void* ) {
+		if( matrix_.RefCounted.isInitialized() ) 
+			matrix_.resizeOrClear( rows, columns, null );
+		else
+			matrix_ = MatrixRef( rows, columns, null );
+	}
+	
+	void resizeOrClear( size_t rows, size_t columns ) {
+		if( matrix_.RefCounted.isInitialized() ) 
+			matrix_.resizeOrClear( rows, columns );
+		else
+			matrix_ = MatrixRef( rows, columns );
+	}
+	
+	void copy( Transpose tr, Source )( auto ref Source source ) {
+		enum srcOrder = transposeStorageOrder!( Source.storageOrder, tr ) ;
+		static if( srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!MatrixRef ) ) {
+			matrix_ = MatrixRef( source.matrix.ptr, source.firstIndex, source.rows, source.columns );
+		} else static if( srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
+			matrix_ = MatrixRef( source.matrix_.ptr );
+		} else {
+			resizeOrClear( source.rows, source.columns, null );
+			hlGeCopy!( srcOrder, storageOrder )(
+				rows, columns,
+				source.cdata, source.leading,
+				this.data,
+				leading
+			);
+		}
+	}
+	
 	void forceRefAssign( ref typeof( this ) rhs ) {
 		matrix_ = rhs.matrix;
 	}
@@ -49,7 +84,7 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 	}
 	
 	typeof( this ) slice( size_t rowStart, size_t rowEnd, size_t colStart, size_t colEnd ) {
-		return typeof( return )( MatrixRef( matrix_.ptr, rowStart, rowEnd, colStart, colEnd ) );
+		return typeof( return )( MatrixRef( matrix_.ptr, rowStart, rowEnd - rowStart, colStart, colEnd - colStart ) );
 	}
 	
 	RowView row( size_t i )
@@ -115,12 +150,13 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 		}
 		
 		MajorView back() {
-			return typeof(return)( matrix_, matrix_.length - minor, minor );
+			return typeof(return)( matrix_, (matrix_.major - 1) * matrix_.minor, minor );
 		}
 	}
 	
 	MatrixRef matrix_;
-
+	
+	mixin GeneralMatrixAxpyScal;
 private:
 	mixin SliceIndex2dMessages;
 

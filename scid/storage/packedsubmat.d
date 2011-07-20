@@ -23,6 +23,7 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	
 	enum isView     = type_ == SubMatrixType.View;
 	enum isRowMajor = (storageOrder == StorageOrder.RowMajor );
+	enum storageType = MatrixStorageType.Virtual;
 	
 	this( ref MatrixRef matrixRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols ) {
 		assignMatrix_( matrixRef );
@@ -132,12 +133,10 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	}
 	
 	@property {
-		MatrixRef            matrix()        { return matrix_; }
-		ElementType[]        data()          { return matrix_.data; }
-		const(ElementType[]) cdata()   const { return matrix_.cdata; }
-		size_t               rows()    const { return rows_; }
-		size_t               columns() const { return cols_; }
-		bool                 empty()   const { return major_ != 0; }
+		MatrixRef           matrix()        { return matrix_; }
+		size_t              rows()    const { return rows_; }
+		size_t              columns() const { return cols_; }
+		bool                empty()   const { return major_ != 0; }
 		
 		auto front() {
 			static if( isRowMajor ) return row(0);

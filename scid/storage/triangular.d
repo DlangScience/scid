@@ -22,6 +22,7 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 	
 	enum triangle     = tri_;
 	enum storageOrder = storageOrder_;
+	enum storageType  = MatrixStorageType.Triangular;
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
 	
@@ -40,9 +41,8 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 		
 		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
-		size_         = cast(size_t) tri;
-		array_        = ArrayRef( initializer.length, null );
-		array_.data[] = initializer[];
+		size_  = cast(size_t) tri;
+		array_ = ArrayRef( initializer );
 	}
 	
 	this( typeof(this) *other ) {
@@ -54,6 +54,11 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 		move( rhs.array_, array_ );
 		size_  = rhs.size_;
 		return this;
+	}
+	
+	void resize( size_t size ) {
+		array_ = ArrayRef( size*(size+1)/2, null );
+		size_  = size;
 	}
 	
 	ElementType index( size_t i, size_t j ) const
@@ -83,10 +88,10 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 	}
 	
 	@property {
-		typeof(this)*        ptr()         { return &this; }
-		ElementType[]        data()        { return array_.data; }
-		const(ElementType[]) cdata() const { return array_.cdata; }
-		size_t               size()  const { return size_; }
+		typeof(this)*       ptr()         { return &this; }
+		ElementType*        data()        { return array_.data; }
+		const(ElementType)* cdata() const { return array_.cdata; }
+		size_t              size()  const { return size_; }
 	}
 	
 	alias size rows;

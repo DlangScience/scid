@@ -2,6 +2,8 @@ module scid.storage.cowarray;
 
 import scid.internal.assertmessages;
 import scid.storage.arraydata;
+import scid.bindings.blas.dblas;
+import scid.common.meta;
 
 import std.typecons, std.algorithm, std.array;
 import std.conv;
@@ -16,33 +18,52 @@ struct CowArray( ElementType_ ) {
 	alias ElementType_          ElementType;
 	alias ArrayData!ElementType Data;
 	
-	this( size_t newLength, ElementType initWith = ElementType.init ) {
+	this( size_t newLength ) {
 		this( newLength, null );
-		slice_[] = initWith;
+		scal( newLength, Zero!ElementType, ptr_, 1 );
 	}
 	
 	this( size_t newLength, void* ) {
 		data_.reset( newLength );
-		slice_ = data_.array;
+		ptr_    = data_.ptr;
+		length_ = newLength;
 	}
 	
-	this( ref Data data, ElementType[] slice ) {
-		data_  = data;
-		slice_ = slice;
+	this( ref Data data, ElementType* ptr, size_t length ) {
+		data_   = data;
+		ptr_    = ptr;
+		length_ = length;
 	}
 	
 	this( ElementType[] initializer ) {
 		data_.reset( initializer );
-		slice_ = data_.array;
+		ptr_    = data_.ptr;
+		length_ = initializer.length;
 	}
 	
 	this( typeof(this)* other ) {
-		data_  = other.data_;
-		slice_ = data_.array;
+		data_   = other.data_;
+		ptr_    = other.ptr_;
+		length_ = other.length_;
+	}
+	
+	void resizeOrClear( size_t len ) {
+		resizeOrClear( len, null );
+		scal( len, Zero!ElementType, ptr_, 1 );
+	}
+	
+	void resizeOrClear( size_t len, void* ) {
+		if( len != length ) {
+			data_.reset( len );
+			ptr_ = data_.ptr;
+			length_ = len;
+		}
 	}
 	
 	ref typeof(this) opAssign( CowArray rhs ) {
 		move( rhs.data_, data_ );
+		ptr_    = rhs.ptr_;
+		length_ = rhs.length_;
 		return this;
 	}
 	
@@ -50,7 +71,7 @@ struct CowArray( ElementType_ ) {
 	in {
 		assert( i < length, boundsMsg_( i ) );
 	} body {
-		return slice_[ i ];
+		return ptr_[ i ];
 	}
 	
 	void indexAssign( string op = "" )( ElementType rhs, size_t i )
@@ -58,7 +79,7 @@ struct CowArray( ElementType_ ) {
 		assert( i < length, boundsMsg_( i ) );
 	} body {
 		unshareData_();
-		mixin( "slice_[ i ]" ~ op ~ "= rhs;" );
+		mixin( "ptr_[ i ]" ~ op ~ "= rhs;" );
 	}
 	
 	typeof( this ) slice( size_t start, size_t end )
@@ -66,9 +87,9 @@ struct CowArray( ElementType_ ) {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 	} body {
 		CowArray r;
-		r.data_  = data_;
-		r.slice_ = slice_[ start .. end ];
-		
+		r.data_ = data_;
+		r.length_ = end - start;
+		r.ptr_    = ptr_ + start;
 		return r;
 	}
 	
@@ -76,33 +97,30 @@ struct CowArray( ElementType_ ) {
 	in {
 		assert( !empty, msgPrefix_ ~ "popFront() on empty." );
 	} body {
-		slice_.popFront();	
+		++ ptr_;
+		-- length_;
 	}
 	
 	void popBack()
 	in {
 		assert( !empty, msgPrefix_ ~ "popBack() on empty." );
 	} body {
-		slice_.popFront();	
-	}
-	
-	string toString() const {
-		return to!string( cdata );
+		-- length_;
 	}
 	
 	@property {
-		ElementType[]         data()         { unshareData_(); return slice_; }
-		const(ElementType[])  cdata()  const { return slice_; }
-		size_t                length() const { return slice_.length; }
-		bool                  empty()  const { return slice_.empty; }
-		typeof(this)*         ptr()          { return &this; }
+		ElementType*         data()         { unshareData_(); return ptr_; }
+		const(ElementType)*  cdata()  const { return ptr_; }
+		size_t               length() const { return length_; }
+		bool                 empty()  const { return length_ == 0; }
+		typeof(this)*        ptr()          { return &this; }
 		
 		void front( ElementType newValue )
 		in {
 			assert( !empty, msgPrefix_ ~ "front assign on empty." );
 		} body {
 			unshareData_();
-			slice_.front = newValue;
+			*ptr_ = newValue;
 		}
 		
 		void back( ElementType newValue  )
@@ -110,21 +128,21 @@ struct CowArray( ElementType_ ) {
 			assert( !empty, msgPrefix_ ~ "back assign on empty." );
 		} body {
 			unshareData_();
-			slice_.back = newValue;
+			*(ptr_ + length_ - 1) = newValue;
 		}
 			
 		ElementType front() const
 		in {
 			assert( !empty, msgPrefix_ ~ "front get on empty." );
 		} body {
-			return slice_.front;
+			return *ptr_;
 		}
 		
 		ElementType back() const
 		in {
 			assert( !empty, msgPrefix_ ~ "back get on empty." );
 		} body {
-			return slice_.back;
+			return *(ptr_ + length_ - 1);
 		}
 	}
 	
@@ -135,20 +153,21 @@ private:
 		if( data_.refCount() == 1 )
 			return;
 		
-		if( slice_ == data_.array )
+		if( ptr_ == data_.ptr && length_ == data_.length )
 			data_.unshare();
 		else
-			data_.reset( slice_ );
+			data_.reset( ptr_[ 0 .. length_ ] );
 		
-		slice_ = data_.array;
+		ptr_ = data_.ptr;
 	}
 	
-	Data          data_;
-	ElementType[] slice_;
+	Data         data_;
+	ElementType* ptr_;
+	size_t       length_;
 }
 
 template CowArrayRef( T ) {
-	alias RefCounted!(CowArray!T, RefCountedAutoInitialize.yes )
+	alias RefCounted!(CowArray!T, RefCountedAutoInitialize.no )
 			CowArrayRef;
 }
 

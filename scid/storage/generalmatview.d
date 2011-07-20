@@ -2,9 +2,15 @@ module scid.storage.generalmatview;
 
 import scid.internal.assertmessages;
 import scid.storage.cowmatrix;
-import scid.common.traits;
+import scid.storage.generalmat;
+import scid.common.traits, scid.common.meta;
 import scid.matrix, scid.vector;
 import std.algorithm;
+import scid.internal.hlblas;
+
+static import scid.bindings.blas.dblas;
+alias scid.bindings.blas.dblas blas;
+
 
 template GeneralMatrixViewStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
 		if( isFortranType!(BaseElementType!ElementOrMatrix) ) {
@@ -103,6 +109,26 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	
 	alias slice view;
 	
+	void resizeOrClear( size_t rows, size_t columns, void* ) {
+		assert( rows == rows_ && cols_ == columns, "Matrix size mismatch in assignment to matrix view." );
+	}
+	
+	void resizeOrClear( size_t rows, size_t columns ) {
+		resizeOrClear( rows, columns, null );
+		hlGeneralMatrixScal!storageOrder( rows, columns, Zero!ElementType, this.data, leading );
+	}
+	
+	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
+		if( is( Source M : BasicGeneralMatrixStorage!M ) || is( Source M : BasicGeneralMatrixViewStorage!M ) ) {
+		
+		hlGeCopy!( transposeStorageOrder( Source.storageOrder, tr ), storageOrder )(
+			rows, columns,
+			source.cdata, source.leading,
+			this.data,
+			leading
+		);
+	}
+	
 	void popFront()
 	in {
 		assert( !empty, msgPrefix_ ~ "popFront on empty." );
@@ -119,16 +145,17 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	}
 	
 	@property {
-		MatrixRef            matrix()        { return matrix_; }
-		ElementType[]        data()          { return matrix_.data[ firstIndex_ .. $ ]; }
-		const(ElementType[]) cdata()   const { return matrix_.cdata[ firstIndex_ .. $ ]; }
-		bool                 empty()   const { return major_ == 0; }
-		size_t               length()  const { return major_; }
-		size_t               rows()    const { return rows_; }
-		size_t               columns() const { return cols_; }
-		size_t               major()   const { return major_; }
-		size_t               minor()   const { return minor_; }
-		size_t               leading() const { return leading_; }
+		ref MatrixRef        matrix()           { return matrix_; }
+		ElementType*         data()             { return matrix_.data + firstIndex_ ; }
+		const(ElementType)*  cdata()      const { return matrix_.cdata + firstIndex_; }
+		bool                 empty()      const { return major_ == 0; }
+		size_t               length()     const { return major_; }
+		size_t               rows()       const { return rows_; }
+		size_t               columns()    const { return cols_; }
+		size_t               major()      const { return major_; }
+		size_t               minor()      const { return minor_; }
+		size_t               leading()    const { return leading_; }
+		size_t               firstIndex() const { return firstIndex_; }
 		
 		MajorView front() {
 			return typeof( return )( matrix_, firstIndex_, minor_ );
@@ -138,6 +165,8 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 			return typeof( return )( matrix_, firstIndex_ + (major_ - 1) * leading_, minor_ );
 		}
 	}
+	
+	mixin GeneralMatrixAxpyScal;
 	
 private:
 	mixin SliceIndex2dMessages;

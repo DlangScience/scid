@@ -1,8 +1,10 @@
 module scid.storage.cowmatrix;
 
 import scid.internal.assertmessages;
+import scid.internal.hlblas;
+import scid.bindings.blas.dblas;
 import scid.storage.arraydata;
-import scid.matrix;
+import scid.matrix, scid.common.meta;
 
 import std.algorithm, std.array, std.typecons;
 
@@ -14,12 +16,12 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	
 	enum isRowMajor = (storageOrder == StorageOrder.RowMajor);
 	
-	this( size_t newRows, size_t newCols, ElementType initWith = ElementType.init )
+	this( size_t newRows, size_t newCols )
 	in {
 		assert( newRows != 0 && newCols != 0, zeroDimMsg_( newRows, newCols ) );
 	} body {
 		this( newRows, newCols, null );
-		slice_[] = initWith;
+		scal( newRows * newCols, Zero!ElementType, ptr_, 1 );
 	}
 	
 	this( size_t newRows, size_t newCols, void* )
@@ -27,7 +29,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		assert( newRows != 0 && newCols != 0, zeroDimMsg_( newRows, newCols ) );
 	} body {
 		data_.reset( newRows * newCols );
-		slice_   = data_.array;
+		ptr_     = data_.ptr;
 		rows_    = newRows;
 		cols_    = newCols;
 		leading_ = minor_;
@@ -38,7 +40,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		assert( newMajor != 0 && initializer.length % newMajor == 0, initMsg_( newMajor, initializer ) );
 	} body {
 		data_.reset( initializer );
-		slice_   = data_.array;
+		ptr_     = data_.ptr;
 		major_   = newMajor;
 		minor_   = initializer.length / major_;
 		leading_ = minor_;
@@ -46,27 +48,54 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	
 	this( typeof(this)* other ) {
 		data_    = other.data_;
-		slice_   = other.slice_;
+		ptr_     = other.ptr_;
 		rows_    = other.rows_;
 		cols_    = other.cols_;
 		leading_ = other.leading_;
 	}
 	
-	this( typeof(this)* other, size_t rowStart, size_t rowEnd, size_t colStart, size_t colEnd )
+	this( typeof(this)* other, size_t rowStart, size_t numRows, size_t colStart, size_t numCols )
 	in {
-		assert( rowStart < rowEnd && rowEnd <= other.rows_ && colStart < colEnd && colEnd <= other.cols_,
-			    sliceMsg_( rowStart, rowEnd, colStart, colEnd ) );
+		assert( rowStart + numRows <= other.rows_ && colStart + numCols <= other.cols_,
+			    sliceMsg_( rowStart, numRows, colStart, numCols ) );
 	} body {
 		data_    = other.data_;
-		rows_    = rowEnd - rowStart;
-		cols_    = colEnd - colStart;
+		rows_    = numRows;
+		cols_    = numCols;
 		leading_ = other.leading_;
-		slice_   = other.slice_[ mapIndex(rowStart, colStart) .. mapIndex(rowEnd-1, colEnd-1) + 1 ];
+		ptr_     = other.ptr_ + mapIndex(rowStart, colStart);
+	}
+	
+	this( typeof(this)* other, size_t firstIndex, size_t numRows, size_t numCols )
+	in {
+		
+	} body {
+		data_    = other.data_;
+		rows_    = numRows;
+		cols_    = numCols;
+		leading_ = other.leading_;
+		ptr_     = other.ptr_ + firstIndex;
+	}
+	
+	void resizeOrClear( size_t newRows, size_t newCols ) {
+		resizeOrClear( newRows, newCols, null );
+		hlGeneralMatrixScal!storageOrder( rows_, cols_, Zero!ElementType, ptr_, leading_ );
+	}
+	
+	void resizeOrClear( size_t newRows, size_t newCols, void* ) {
+		auto newLength = newRows * newCols;
+		if( newLength != data_.length ) {
+			data_.reset( newLength );
+			ptr_     = data_.ptr;
+			rows_    = newRows;
+			cols_    = newCols;
+			leading_ = minor_;
+		}
 	}
 	
 	ref typeof( this ) opAssign( CowMatrix rhs ) {
 		data_    = move( rhs.data_ );
-		slice_   = rhs.slice_;
+		ptr_     = rhs.ptr_;
 		rows_    = rhs.rows_;
 		cols_    = rhs.cols_;
 		leading_ = rhs.leading_;
@@ -78,7 +107,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	in {
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
-		return slice_[ mapIndex( i, j ) ];
+		return ptr_[ mapIndex( i, j ) ];
 	}
 	
 	void indexAssign( string op = "" )( ElementType rhs, size_t i, size_t j )
@@ -86,7 +115,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
 		unshareData_();
-		mixin( "slice_[ mapIndex( i, j ) ]" ~ op ~ "= rhs;" );
+		mixin( "ptr_[ mapIndex( i, j ) ]" ~ op ~ "= rhs;" );
 	}
 	
 	void popFront()
@@ -94,10 +123,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		assert( !empty, msgPrefix_ ~ "popFront on empty." );
 	} body {
 		-- major_;
-		if( leading_ >= slice_.length )
-			slice_ = null;
-		else
-			slice_ = slice_[ leading_ .. $ ];	
+		ptr_ += leading_;
 	}
 	
 	void popBack()
@@ -105,23 +131,18 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		assert( !empty, msgPrefix_ ~ "popBack on empty." );
 	} body {
 		-- major_;
-		if( leading_ >= slice_.length )
-			slice_ = null;
-		else
-			slice_ = slice_[ leading_ .. $ ];	
 	}
 	
 	@property {
-		ElementType[]        data()             { unshareData_(); return slice_; }
-		const(ElementType[]) cdata()      const { return slice_; }
-		size_t               length()     const { return slice_.length; }
-		size_t               leading()    const { return leading_; }
-		size_t               rows()       const { return rows_; }
-		size_t               columns()    const { return cols_; }
-		size_t               major()      const { return major_; }
-		size_t               minor()      const { return minor_; }
-		bool                 empty()      const { return slice_.empty; }
-		typeof(this)*        ptr()              { return &this; }
+		ElementType*        data()             { unshareData_(); return ptr_; }
+		const(ElementType*) cdata()      const { return ptr_; }
+		size_t              leading()    const { return leading_; }
+		size_t              rows()       const { return rows_; }
+		size_t              columns()    const { return cols_; }
+		size_t              major()      const { return major_; }
+		size_t              minor()      const { return minor_; }
+		bool                empty()      const { return major_ == 0; }
+		typeof(this)*       ptr()              { return &this; }
 	}
 	
 	size_t mapIndex( size_t i, size_t j ) const {
@@ -146,37 +167,34 @@ private:
 		if( data_.refCount() == 1 )
 			return;
 		
-		if( leading_ == major_ ) {
-			if( slice_ == data_.array )
+		if( leading_ == minor_ ) {
+			auto len = rows_ * cols_;
+			if( ptr_ == data_.ptr && len == data_.length )
 				data_.unshare();
 			else
-				data_.reset( slice_ );
+				data_.reset( ptr_[ 0 .. len ] );
 		} else {
-			auto oldData = slice_; // save the old array
+			auto oldp = ptr_; // save the old ptr
 			
-			// NOTE: oldData won't be invalidated, because we know data_ is shared.
+			// NOTE: oldp won't be invalidated, because we know data_ is shared.
 			data_.reset( rows_ * cols_ );
-			auto newData = data_.array;
+			auto newp = data_.ptr;
 			
-			while( true ) { // ends when oldData would be empty
-				newData[ 0 .. minor_ ] = oldData[ 0 .. minor_ ];
-				newData = newData[ minor_   .. $ ];
-				
-				if( leading_ >= oldData.length )
-					break;
-				else
-					oldData = oldData[ leading_ .. $ ];
-			}
+			hlGeneralMatrixCopy!( storageOrder, storageOrder )(
+				rows_, cols_,
+				oldp, leading_,
+				newp, minor_
+			);
 			
 			leading_ = minor_;
 		}
 		
-		slice_   = data_.array;
+		ptr_ = data_.ptr;
 	}
 	
 	size_t        leading_, rows_, cols_;
 	Data          data_;
-	ElementType[] slice_;
+	ElementType*  ptr_;
 }
 
 template CowMatrixRef( T, StorageOrder order_ = StorageOrder.ColumnMajor ) {

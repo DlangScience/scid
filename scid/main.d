@@ -1,42 +1,40 @@
-module main;
+module scid.main;
 
 import scid.vector;
 import scid.matrix;
-import std.stdio, std.conv, std.complex;
+import scid.common.traits;
+import scid.internal.expression, scid.internal.hlblas;
+import std.stdio, std.conv, std.complex, std.traits, std.range;
+import std.math, scid.util;
+
 
 int main() {
+	alias Vector!double                  dVec;
+	alias Matrix!double                  dMat;
+	alias Vector!cdouble                 cdVec;
+	alias Matrix!cdouble                 cdMat;
+
+	dVec v = [1.0,2.0,3.0];
+	dMat m = dMat( 3, [ 1.0, 4.0, 7.0,
+		                2.0, 5.0, 8.0,
+		                6.0, 6.0, 9.0] );
 	
-	auto gen = Matrix!double(4, 4, null);
-	auto tri = TriangularMatrix!double( [1.0,2.0,3.0,4.0,5.0,6.0] );
-	auto sym = SymmetricMatrix!double( [1.0,2.0,3.0,4.0,5.0,6.0] );
-	auto her = SymmetricMatrix!cdouble( [1.0+6.0i, 2.0+5.0i, 3.0+4.0i, 4.0+3.0i, 5.0+2.0i, 6.0+1.0i] );
+	auto x = eval( v.t * v );
+	static assert( is( typeof(x) : double ) );
 	
-	{
-		double k = 0.0;
-		foreach( i ; 0 .. gen.rows )
-			foreach( j ; 0 .. gen.columns )
-				gen[i, j] = ++ k;
-	}
+	assert( x == 14.0 );
 	
-	writeln( "General matrix: " );
-	writeln( gen.pretty );
-	writeln( "Column-major data: ", gen.cdata );
+	dVec u = m * v;
+	auto w = v.t * m;
 	
-	writeln();
-	writeln( "Triangular matrix: " );
-	writeln( tri.pretty );
-	writeln( "Column Major data: ", tri.cdata );
+	//assert( u == [14.0,32.0,50.0] );
+	//assert( w == [30.0,36.0,42.0] );
 	
-	writeln();
-	writeln( "Symmetric matrix: " );
-	writeln( sym.pretty );
-	writeln( "Column-major data: ", sym.cdata );
+	//x = eval(w * u);
+	//assert( x == 3672.0 );
+		
 	
-	writeln();
-	writeln( "Hermitian matrix: " );
-	writeln( her.pretty );
-	writeln( "Column-major data: ", her.cdata );
-	
+	readln();
 	return 0;
 }
 	

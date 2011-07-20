@@ -1,30 +1,32 @@
 module scid.storage.arrayview;
 
-import scid.bindings.blas.dblas;
+static import scid.bindings.blas.dblas;
+alias scid.bindings.blas.dblas blas;
 
 import scid.internal.assertmessages;
+import scid.internal.hlblas;
+import scid.storage.array;
 import scid.storage.cowarray;
-import scid.common.traits;
+import scid.common.traits, scid.common.meta;
+import scid.vector;
 import std.traits, std.range, std.algorithm;
 
-
-
-template ArrayViewStorage( ElementOrArray )
+template ArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Column )
 		if( isFortranType!(BaseElementType!ElementOrArray) ) {
 	
 	static if( isFortranType!ElementOrArray )
-		alias BasicArrayViewStorage!( CowArrayRef!ElementOrArray, ArrayViewType.Interval ) ArrayViewStorage;
+		alias BasicArrayViewStorage!( CowArrayRef!ElementOrArray, ArrayViewType.Interval, vectorType ) ArrayViewStorage;
 	else
-		alias BasicArrayViewStorage!( ElementOrArray, ArrayViewType.Interval )             ArrayViewStorage;
+		alias BasicArrayViewStorage!( ElementOrArray, ArrayViewType.Interval, vectorType )             ArrayViewStorage;
 }
 
-template StridedArrayViewStorage( ElementOrArray )
+template StridedArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Column )
 		if( isFortranType!(BaseElementType!ElementOrArray) ) {
 	
 	static if( isFortranType!ElementOrArray )
-		alias BasicArrayViewStorage!( CowArrayRef!ElementOrArray, ArrayViewType.Strided ) StridedArrayViewStorage;
+		alias BasicArrayViewStorage!( CowArrayRef!ElementOrArray, ArrayViewType.Strided, vectorType ) StridedArrayViewStorage;
 	else
-		alias BasicArrayViewStorage!( ElementOrArray, ArrayViewType.Strided )             StridedArrayViewStorage;
+		alias BasicArrayViewStorage!( ElementOrArray, ArrayViewType.Strided, vectorType )             StridedArrayViewStorage;
 }
 
 enum ArrayViewType {
@@ -32,11 +34,14 @@ enum ArrayViewType {
 	Strided
 }
 
-struct BasicArrayViewStorage( ArrayRef_, ArrayViewType strided_ ) {
-	alias ArrayRef_                                                 ArrayRef;
-	alias BaseElementType!ArrayRef                                  ElementType;	
-	alias typeof( this )                                            View;
-	alias BasicArrayViewStorage!( ArrayRef, ArrayViewType.Strided ) StridedView;
+struct BasicArrayViewStorage( ArrayRef_, ArrayViewType strided_, VectorType vectorType_ ) {
+	alias ArrayRef_                                                                                 ArrayRef;
+	alias BaseElementType!ArrayRef                                                                  ElementType;	
+	alias typeof( this )                                                                            View;
+	alias vectorType_                                                                               vectorType;
+	// alias BasicArrayStorage!( ArrayRef, vectorType )                                                Referenced;
+	alias BasicArrayViewStorage!( ArrayRef, ArrayViewType.Strided, vectorType )                     StridedView;
+	alias BasicArrayViewStorage!( ArrayRef, ArrayViewType.Strided, transposeVectorType!vectorType ) Transposed;
 	
 	enum isStrided = (strided_ == ArrayViewType.Strided );
 	
@@ -114,116 +119,20 @@ struct BasicArrayViewStorage( ArrayRef_, ArrayViewType strided_ ) {
 		return typeof( return )( array_, start, len, newStride );
 	}
 	
-	void copyLeft( S )( ref S rhs ) 
-	in {
-		static assert( hasLength!S );
-		assert( rhs.length == length, sliceAssignMsg_( 0, length, rhs.length ) );
-	} body {
-		static if( is( S == ElementType[] ) ) {
-			// assignment to built-in array
-			copy( length_, rhs.ptr, 1, array_.data.ptr + firstIndex_, stride );
-		} else static if( isConcreteStorageOf!(S, ElementType) ) {
-			// assignment to another view or ArrayStorage
-			static if( isStrided || (!is( S == ArrayStorage!ArrayRef ) && !is( S == View )) ) {
-				// view = view / view = storage
-				array_ = rhs.array_;
-				setParams(rhs.firstIndex, rhs.length);
-			} else {
-				copy( length_, rhs.cdata.ptr, rhs.stride, array_.data.ptr + firstIndex_, stride );
-			}
-		} else static if( isInputRange!S && hasLength!S ) {
-			// assignment to a range
-			T[] d = data;
-			foreach( x ; rhs ) {
-				d[ 0 ] = x;
-				d = d[ stride .. $ ];
-			}
-		} else
-			static assert( false, "Invalid type '" ~ typeof(rhs).stringof ~ "' for assignment to '" ~ typeof(this).stringof ~ "'." );
+	void resizeOrClear( size_t rlength ) {
+		resizeOrClear( rlength, null );
+		blas.scal( length_, Zero!ElementType, data, stride );
 	}
 	
-	void slicedCopyLeft( S )( ref S rhs, size_t start, size_t end )
-	in {
-		static assert( hasLength!S );
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
-	} body {
-		size_t n = end - start;
-		static if( is( S == ElementType[] ) ) {
-			// assignment to built-in array
-			copy( n, rhs.ptr, 1, array_.data.ptr + map_(start), stride );
-		} else static if( isConcreteStorageOf!(S, ElementType) ) {
-			// assignment to any concrete storage
-			copy( n, rhs.cdata.ptr, rhs.stride, array_.data.ptr + map_(start), stride );
-		} else static if( isInputRange!S && hasLength!S ) {
-			// assignment to a range
-			T[] d = array_.data[ map_(start) .. map_(end) ];
-			foreach( x ; rhs ) {
-				d[ 0 ] = x;
-				d = d[ stride .. $ ];
-			}
-		} else {
-			// invalid assignment
-			static assert( false, "Invalid type '" ~ typeof(rhs).stringof ~ "' for assignment to '" ~ typeof(this).stringof ~ "'." );
-		}
+	void resizeOrClear( size_t rlength, void* ) {
+		assert( length == rlength, "Length mismatch in vector operation." );
 	}
 	
-	void axpyLeft( S )( ref S rhs, ElementType alpha )
-	in {
-		static assert( hasLength!S );
-		assert( rhs.length == length, fmt( msgPrefix_ ~ "axpy length mismatch %d vs %d", length, rhs.length ) ); 
-	} body {
-		static if( is( S == ElementType[] ) ) {
-			// built-in array
-			axpy( length, alpha, rhs.ptr, 1, array_.data.ptr + firstIndex_, stride );
-		} else static if( isConcreteStorageOf!(S, ElementType) ) {
-			// any concrete storage
-			axpy( length, alpha, rhs.cdata.ptr, rhs.stride, array_.data.ptr + firstIndex_, stride );
-		} else static if( isInputRange!S && hasLength!S ) {
-			// input range
-			T[] d = data;
-			foreach( x ; rhs ) {
-				d[ 0 ] += x * alpha;
-				d = d[ stride .. $ ];
-			}
-		} else
-			static assert( false, "Invalid type '" ~ typeof(rhs).stringof ~ "' for axpy to '" ~ typeof(this).stringof ~ "'." );
+	void copy( Transpose tr, S )( ref S rhs ) if( isStridedStorage!(S, ElementType) ) {
+		hlStridedCopy( rhs, this );
 	}
 	
-	void slicedAxpyLeft( S )( ref S rhs, ElementType alpha, size_t start, size_t end )
-	in {
-		static assert( hasLength!S );
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
-	} body {
-		size_t n = end - start;
-		static if( is( S == ElementType[] ) ) {
-			// built-in array
-			axpy( n, alpha, rhs.ptr, 1, array_.data.ptr + map_(start), stride );
-		} else static if( isConcreteStorageOf!(S, ElementType) ) {
-			// any concrete storage
-			axpy( n, alpha, rhs.cdata.ptr, rhs.stride, array_.data.ptr + map_(start), stride );
-		} else static if( isInputRange!S && hasLength!S ) {
-			// input range
-			T[] d = array_.data[ map_(start) .. map_(end) ];
-			foreach( x ; rhs ) {
-				d[ 0 ] += x * alpha;
-				d = d[ stride .. $ ];
-			}
-		} else
-			static assert( false, "Invalid type '" ~ typeof(rhs).stringof ~ "' for axpy to '" ~ typeof(this).stringof ~ "'." );
-	}
-	
-	void scalLeft( ElementType rhs ) {
-		scal( length, rhs, array.data.ptr + firstIndex_, stride );	
-	}
-	
-	void slicedScalLeft( ElementType rhs, size_t start, size_t end )
-	in {
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-	} body {
-		scal( end-start, rhs, array.data.ptr + map_(start), stride );
-	}
+	mixin StridedAxpyScalDot;
 	
 	void popFront()
 	in {
@@ -245,12 +154,12 @@ struct BasicArrayViewStorage( ArrayRef_, ArrayViewType strided_ ) {
 	}
 	
 	@property {
-		ArrayRef              array()            { return array_; }
-		ElementType[]         data()             { return array_.data[ firstIndex_ .. map_(length_) ]; }
-		const(ElementType[])  cdata()      const { return array_.cdata[ firstIndex_ .. map_(length_) ]; }
-		size_t                length()     const { return length_; }
-		bool                  empty()      const { return length_ == 0; }
-		size_t                firstIndex() const { return firstIndex_; }
+		ref ArrayRef         array()            { return array_; }
+		ElementType*         data()             { return array_.data + firstIndex_; }
+		const(ElementType)*  cdata()      const { return array_.cdata + firstIndex_; }
+		size_t               length()     const { return length_; }
+		bool                 empty()      const { return length_ == 0; }
+		size_t               firstIndex() const { return firstIndex_; }
 		
 		void front( ElementType newValue )
 		in {
@@ -318,6 +227,8 @@ private:
 	size_t   firstIndex_, length_;
 	ArrayRef array_;
 }
+
+
 
 unittest {
 	// TODO: Write tests for ArrayViewStorage.

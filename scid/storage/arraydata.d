@@ -1,9 +1,17 @@
 module scid.storage.arraydata;
-
 import core.stdc.stdlib;
 import std.algorithm, std.conv;
 
+import scid.bindings.blas.dblas;
+alias scid.bindings.blas.dblas blas;
+
+debug = ArrayDataAllocs;
+
 debug( ArrayData ) {
+	debug = ArrayDataAllocs;
+}
+
+debug( ArrayDataAllocs ) {
 	import std.stdio;
 }
 
@@ -53,7 +61,7 @@ struct ArrayData( T ) {
 		// reference to it, then we need to duplicate the given array.
 		if( data_ && data_.refCount == 1 ) {
 			if( array.ptr < data_.ptr + data_.length && data_.ptr < array.ptr + array.length ) {
-				debug( ArrayData )
+				debug( ArrayDataAllocs )
 					writeln("ArrayData: Duplicated array in reset() because of overlap.");
 				array = array.dup;
 			}
@@ -62,7 +70,7 @@ struct ArrayData( T ) {
 		if( !isInitialized() || array.length != data_.length || data_.refCount > 1  )
 			realloc_( array.length );
 		
-		data_.array[] = array[];
+		blas.copy( data_.length, array.ptr, 1, data_.array_.ptr, 1 );
 	}
 	
 	/** Just clears the reference - makes this reference an empty array. Does not affect other
@@ -91,13 +99,13 @@ struct ArrayData( T ) {
 	}
 	
 	/** Returns the array. */
-	@property T[] array() {
-		return data_ is null ? null : data_.array;
+	@property T* ptr() {
+		return data_ is null ? null : data_.ptr;
 	}
 	
 	/** Returns the array. */
-	@property const(T)[] array() const {
-		return data_ is null ? null : data_.array;
+	@property const(T)* ptr() const {
+		return data_ is null ? null : data_.ptr;
 	}
 	
 	/** Returns true if there is any data referenced, false otherwise. */
@@ -115,7 +123,7 @@ struct ArrayData( T ) {
 		Data_ *oldData = data_;
 		realloc_( data_.length );
 		
-		data_.array[] = oldData.array[];
+		blas.copy( length, oldData.array.ptr, 1, data_.array.ptr, 1 );
 	}
 	
 	/** Assignment updates the ref count accordingly. */
@@ -191,7 +199,7 @@ struct ArrayData( T ) {
 		assert( data_.refCount > 0, "Zero refCount." );
 		--data_.refCount;
 		if( data_.refCount == 0 ) {
-			debug(ArrayData)
+			debug(ArrayDataAllocs)
 				writeln("Array ", data_, " freed.");
 			free( cast(void*)data_ - data_.ptrOffset );
 		} else {
@@ -223,7 +231,7 @@ struct ArrayData( T ) {
 		data_.refCount  = 1;
 		data_.length    = length;
 		
-		debug(ArrayData)
+		debug(ArrayDataAllocs)
 			writeln( "Allocated array ", data_, " of ", length, " elements." );
 	}
 	

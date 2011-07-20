@@ -1,6 +1,7 @@
 module scid.storage.symmetric;
 
 import scid.internal.assertmessages;
+import scid.bindings.blas.dblas;
 import scid.storage.cowarray;
 import scid.storage.packedmat;
 import scid.matrix, scid.vector;
@@ -26,6 +27,14 @@ struct SymmetricArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stora
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
 	
+	/** Is the matrix hermitian? */
+	enum isHermitian = isComplex!ElementType;
+	
+	static if( isHermitian )
+		enum storageType  = MatrixStorageType.Hermitian;
+	else
+		enum storageType  = MatrixStorageType.Symmetric;
+	
 	this( size_t newSize, ElementType initWith = ElementType.init ) {
 		size_  = newSize;
 		array_ = ArrayRef( newSize * (newSize + 1) / 2, initWith );
@@ -41,9 +50,8 @@ struct SymmetricArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stora
 		
 		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
-		size_         = cast(size_t) tri;
-		array_        = ArrayRef( initializer.length, null );
-		array_.data[] = initializer[];
+		size_  = cast(size_t) tri;
+		array_ = ArrayRef( initializer );
 	}
 	
 	this( typeof(this) *other ) {
@@ -51,14 +59,16 @@ struct SymmetricArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stora
 		size_  = other.size_;
 	}
 	
+	void resize( size_t size ) {
+		array_ = ArrayRef( size*(size+1)/2, null );
+		size_  = size;
+	}
+	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
 		move( rhs.array_, array_ );
 		size_  = rhs.size_;
 		return this;
 	}
-	
-	/** Is the matrix hermitian? */
-	enum isHermitian = isComplex!ElementType;
 
 	static if( isHermitian ) {
 		/** Generic conjugate - works on both cdouble & Complex!double. */
@@ -103,10 +113,10 @@ struct SymmetricArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stora
 	}
 	
 	@property {
-		typeof(this)*        ptr()         { return &this; }
-		ElementType[]        data()        { return array_.data; }
-		const(ElementType[]) cdata() const { return array_.cdata; }
-		size_t               size()  const { return size_; }
+		typeof(this)*       ptr()         { return &this; }
+		ElementType*        data()        { return array_.data; }
+		const(ElementType)* cdata() const { return array_.cdata; }
+		size_t              size()  const { return size_; }
 	}
 	
 	alias size rows;

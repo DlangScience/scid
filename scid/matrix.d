@@ -1,6 +1,8 @@
 module scid.matrix;
 
 import scid.internal.assertmessages;
+import scid.internal.expression;
+import scid.internal.hlblas;
 import scid.storage.generalmat;
 import scid.storage.triangular;
 import scid.storage.symmetric;
@@ -16,6 +18,13 @@ enum StorageOrder {
 	RowMajor, ColumnMajor
 }
 
+enum MatrixStorageType {
+	Virtual, General,
+	Triangular, Symmetric, Hermitian,
+	GeneralBand, SymmetricBand, HermitianBand,
+	Diagonal
+};
+
 template storageOrderOf( M ) {
 	static if( is( typeof(M.storageOrder) ) )
 		enum storageOrderOf = M.storageOrder;
@@ -23,6 +32,16 @@ template storageOrderOf( M ) {
 		enum storageOrderOf = storageOrderOf!E;
 	else {
 		static assert( false, M.stringof ~ " hasn't got a storage order. ");
+	}
+}
+
+template storageTypeOf( M ) {
+	static if( is( typeof(M.storageType) ) )
+		enum storageTypeOf = M.storageType;
+	else static if( is( M E : RefCounted!(E,a), uint a ) )
+		enum storageTypeOf = storageTypeOf!E;
+	else {
+		static assert( false, M.stringof ~ " hasn't got a storage type. ");
 	}
 }
 
@@ -66,14 +85,15 @@ struct BasicMatrix( Storage_ ) {
 	alias BaseElementType!Storage_      ElementType;
 	alias Storage_                      Storage;
 	alias BasicMatrix!( Storage.Slice ) Slice;
-	alias storageOrderOf!Storage        storageOrder;
+	alias Storage.storageOrder          storageOrder;
 	alias Storage.RowView               RowView;
 	alias Storage.ColumnView            ColumnView;
 	alias Storage.DiagonalView          DiagonalView;
 	alias BasicMatrix!( Storage.View )  View;
 	alias storage                       this;
 	
-	enum bool isRowMajor = ( storageOrder == StorageOrder.RowMajor );
+	
+	enum isRowMajor = ( storageOrder == StorageOrder.RowMajor );
 	
 	static if( isRowMajor ) {
 		alias RowView    MajorView;
@@ -83,13 +103,17 @@ struct BasicMatrix( Storage_ ) {
 		alias ColumnView MajorView;
 	}
 	
-	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) ) {
+	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) && !isExpression!(A[0]) ) {
 		storage = Storage( args );
 	}
 	
 	this( A )( BasicMatrix!(A, vectorType) other ) {
 		static if( is( A : Storage ) ) storage = other.storage;
 		else                           storage.copy( other.storage );
+	}
+	
+	this( Expr )( auto ref Expr expr ) if( isExpression!Expr ) {
+		this[] = expr;
 	}
 	
 	this( this ) {}
@@ -144,6 +168,20 @@ struct BasicMatrix( Storage_ ) {
 		return typeof(return)( this, rowStart, rowEnd );
 	}
 	
+	void opSliceAssign(Rhs)( auto ref Rhs rhs ) {
+		hlCopy( rhs, this );	
+	}
+	
+	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "*" || op == "/" ) {
+		static if( op == "+" )      { hlAxpy( One!ElementType, rhs, this ); }
+		else static if( op == "*" ) {
+			static if( closureOf!Rhs == Closure.Matrix ) this[] = this * rhs;
+			else                                         hlScal( rhs, this );
+		} else static if ( op == "/" ) {
+			hlScal( One!ElementType	/ rhs, this );
+		}
+	}
+			
 	@property {
 		MajorView front() { return storage.front; }
 		MajorView back()  { return storage.back; }
@@ -180,6 +218,8 @@ struct BasicMatrix( Storage_ ) {
 	
 	Storage storage;
 	
+	mixin Literal!( Closure.Matrix );
+	
 	static struct SliceProxy_ {
 		alias BasicMatrix MatrixType;
 		alias Storage     StorageType;
@@ -195,6 +235,14 @@ struct BasicMatrix( Storage_ ) {
 		Slice      opSlice()                       { return m_.slice( start_, end_, 0, m_.columns ); }
 		Slice      opSlice( size_t j1, size_t j2 ) { return m_.slice( start_, end_, j1, j2 ); }
 		ColumnView opIndex( size_t j )             { return m_.columnSlice( j, start_, end_ ); }
+		
+		void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
+			hlCopy( rhs, m_.view( start_, end_, 0, m_.columns ) );
+		}
+		
+		void opSliceAssign( Rhs )( auto ref Rhs rhs, size_t j1, size_t j2 ) {
+			hlCopy( rhs, m_.view( start_, end_, j1, j2 ) );
+		}
 		
 		void popFront()
 		in {
@@ -213,6 +261,8 @@ struct BasicMatrix( Storage_ ) {
 			
 		}	
 	}
+	
+	
 }
 
 version( unittest ) {

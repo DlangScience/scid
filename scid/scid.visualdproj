@@ -29,7 +29,7 @@
   <useArrayBounds>0</useArrayBounds>
   <noboundscheck>0</noboundscheck>
   <useSwitchError>0</useSwitchError>
-  <useUnitTests>1</useUnitTests>
+  <useUnitTests>0</useUnitTests>
   <useInline>0</useInline>
   <release>0</release>
   <preservePaths>0</preservePaths>
@@ -205,6 +205,9 @@
     <File path="internal\calculus\integrate_qng.d" />
    </Folder>
    <File path="internal\assertmessages.d" />
+   <File path="internal\expression.d" />
+   <File path="internal\hlblas.d" />
+   <File path="internal\fbblas.d" />
   </Folder>
   <Folder name="ports">
    <Folder name="intde">
@@ -267,6 +270,20 @@
     <File path="ports\quadpack\qwgts.d" />
    </Folder>
   </Folder>
+  <Folder name="storage">
+   <File path="storage\array.d" />
+   <File path="storage\arraydata.d" />
+   <File path="storage\arrayview.d" />
+   <File path="storage\cowarray.d" />
+   <File path="storage\cowmatrix.d" />
+   <File path="storage\generalmat.d" />
+   <File path="storage\generalmatview.d" />
+   <File path="storage\packedmat.d" />
+   <File path="storage\packedsubmat.d" />
+   <File path="storage\packedsubvec.d" />
+   <File path="storage\symmetric.d" />
+   <File path="storage\triangular.d" />
+  </Folder>
   <File path="calculus.d" />
   <File path="constants.d" />
   <File path="exception.d" />
@@ -278,19 +295,5 @@
   <File path="vector.d" />
   <File path="main.d" />
   <File path="matrix.d" />
-  <Folder name="storage">
-   <File path="internal\packedmat.d" />
-   <File path="internal\generalmat.d" />
-   <File path="internal\triangular.d" />
-   <File path="internal\generalmatview.d" />
-   <File path="internal\cowmatrix.d" />
-   <File path="internal\arrayview.d" />
-   <File path="internal\array.d" />
-   <File path="internal\cowarray.d" />
-   <File path="internal\arraydata.d" />
-   <File path="storage\packedsubvec.d" />
-   <File path="storage\packedsubmat.d" />
-   <File path="storage\symmetric.d" />
-  </Folder>
  </Folder>
 </DProject>

@@ -20,6 +20,7 @@ struct PackedStorage( MatrixRef_ ) {
 	alias matrix_                                                            this;
 	
 	enum isRowMajor   = (storageOrder == StorageOrder.RowMajor );
+	enum storageType  = matrix_.storageType;
 	
 	this(A...)( A args ) {
 		matrix_ = MatrixRef( args );
