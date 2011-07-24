@@ -160,7 +160,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ ) {
 	    copy() is specialized to forward the call to the container to allow for copy-on-write implementations
 	    of the container.
 	*/
-	void copy( Transpose tr, Source )( const ref Source rhs ) if( isVectorStorage!(Source,ElementType) ) {
+	void copy( Transpose tr, Source )( auto ref Source rhs ) if( isStridedVectorStorage!(Source,ElementType) ) {
 		static if( is( Source : ArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = ContainerRef( rhs.containerRef_.ptr );	

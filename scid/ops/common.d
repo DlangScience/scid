@@ -76,7 +76,7 @@ template transposeStorageOrder( StorageOrder S, Transpose transposed = Transpose
 /** Transposes a vector if the given parameter is Transpose.yes. This simply means conjugate its elements if the
     element type is complex.
 */
-void vectorTranspose( Transpose trans )( ref V vec ) {
+void vectorTranspose( Transpose trans, V )( ref V vec ) {
 	static if( trans && isComplex!(BaseElementType!V) ) {
 		auto n = vec.length;
 		foreach( i ; 0 .. n )
