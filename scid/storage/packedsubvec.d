@@ -1,17 +1,21 @@
 module scid.storage.packedsubvec;
 
 import scid.internal.assertmessages;
+import scid.ops.common;
 import scid.vector, scid.matrix;
 import scid.common.traits;
+import scid.ops.eval;
 import std.algorithm, std.traits, std.range;
 
+
 struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
-	alias vtype_                    vectorType;
-	alias MatrixRef_                MatrixRef;
-	alias BaseElementType!MatrixRef ElementType;
-	alias typeof(this)              Slice;
-	alias typeof(this)              View;
-	alias typeof(this)              StridedView;
+	alias vtype_                                                           vectorType;
+	alias MatrixRef_                                                       MatrixRef;
+	alias BaseElementType!MatrixRef                                        ElementType;
+	alias PackedSubVectorStorage!( MatrixRef, transposeVectorType!vtype_ ) Transposed;
+	alias typeof(this)                                                     Slice;
+	alias typeof(this)                                                     View;
+	alias typeof(this)                                                     StridedView;
 	
 	enum bool isRow   = ( vectorType       == VectorType.Row );
 	enum bool isUpper = ( matrix_.triangle == MatrixTriangle.Upper );
@@ -67,60 +71,22 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		else               matrix_.indexAssign!op( rhs, i + start_, fixed_ );
 	}
 	
-	void copyFrom( S )( S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void copy( Transpose tr = Transpose.yes, S )( S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( rhs.length == length, sliceAssignMsg_( 0, length, rhs.length ) );
 	} body {
-		slicedCopyFrom( rhs, 0, length_ );
+		slicedCopy_!tr( rhs, 0, length_ );
 	}
 	
-	void slicedCopyFrom( S )( ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
-	in {
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
-	} body {
-		size_t i = realStart_( start );
-		size_t e = realEnd_( end );
-		popFrontN(rhs,  i );
-		for( ; i < e ; ++i ) {
-			indexAssign( rhs.front, i );
-			rhs.popFront();
-		}
-	}
-	
-	void axpyFrom( S )( ref S rhs, ElementType alpha ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void scaledAddition( Transpose tr = Transpose.yes, S )( ref S rhs, ElementType alpha ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( rhs.length <= length, fmt( msgPrefix_ ~ "axpy length mismatch %d vs %d", length, rhs.length ) ); 
 	} body {
-		slicedAxpyFrom( rhs, alpha, 0, length_ );
+		slicedScaledAddition_!tr( rhs, alpha, 0, length_ );
 	}
 	
-	void slicedAxpyFrom( S )( ref S rhs, ElementType alpha, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
-	in {
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-		assert( end-start >= rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
-	} body {
-		size_t i = realStart_( start );
-		size_t e = realEnd_( end );
-		popFrontN( rhs, i );
-		for( ; i < e ; ++i ) {
-			indexAssign!"+"( rhs.front * x, i );
-			rhs.popFront();
-		}
-	}
-	
-	void scalFrom( ElementType rhs ) {
-		slicedScalFrom( rhs, 0, length_ );
-	}
-	
-	void slicedScalFrom( ElementType rhs, size_t start, size_t end )
-	in {
-		assert( start < end && end <= length, sliceMsg_( start, end ) );
-	} body {
-		size_t i = realStart_( start );
-		size_t e = realEnd_( end );
-		for( ; i < e ; ++i )
-			indexAssign!"*"( rhs, i );
+	void scale( ElementType rhs ) {
+		slicedScale_( rhs, 0, length_ );
 	}
 	
 	void popFront()
@@ -174,7 +140,51 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 	}
 	
 private:
-	mixin SliceIndexMessages;
+	mixin ArrayErrorMessages;
+
+	void slicedCopy_( Transpose tr = Transpose.yes, S )( ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	in {
+		assert( start < end && end <= length, sliceMsg_( start, end ) );
+		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
+	} body {
+		size_t i = realStart_( start );
+		size_t e = realEnd_( end );
+		popFrontN(rhs,  i );
+		for( ; i < e ; ++i ) {
+			static if( tr && isComplex!ElementType )
+				indexAssign( gconj(rhs.front), i );
+			else
+				indexAssign( rhs.front, i );
+			rhs.popFront();
+		}
+	}
+
+	void slicedScale_( ElementType rhs, size_t start, size_t end )
+	in {
+		assert( start < end && end <= length, sliceMsg_( start, end ) );
+	} body {
+		size_t i = realStart_( start );
+		size_t e = realEnd_( end );
+		for( ; i < e ; ++i )
+			indexAssign!"*"( rhs, i );
+	}
+	
+	void slicedScaledAddition_( Transpose tr = Transpose.yes, S )( ref S rhs, ElementType alpha, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	in {
+		assert( start < end && end <= length, sliceMsg_( start, end ) );
+		assert( end-start >= rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
+	} body {
+		size_t i = realStart_( start );
+		size_t e = realEnd_( end );
+		popFrontN( rhs, i );
+		for( ; i < e ; ++i ) {
+			static if( tr && isComplex!ElementType )
+				indexAssign!"+"( gconj(rhs.front) * alpha, i );
+			else
+				indexAssign!"+"( rhs.front * alpha, i );
+			rhs.popFront();
+		}
+	}
 
 	size_t realStart_( size_t fakeStart ) {
 		static if( !isUpper ^ !isRow ) return fakeStart;

@@ -87,7 +87,7 @@ void buildLib()
     auto sources = getSources();
 
     version (Posix)     immutable libFile = libName;
-    version (Windows)   immutable libFile = libName~".exe";
+    version (Windows)   immutable libFile = libName;
 
     immutable buildCmd = "dmd -g -debug -unittest deps\\blaslapackdll.lib "
         ~std.string.join(sources, " ")

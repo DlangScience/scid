@@ -6,7 +6,7 @@ import scid.storage.generalmat;
 import scid.common.traits, scid.common.meta;
 import scid.matrix, scid.vector;
 import std.algorithm;
-import scid.internal.hlblas;
+import scid.ops.eval, scid.ops.common;
 
 static import scid.bindings.blas.dblas;
 alias scid.bindings.blas.dblas blas;
@@ -24,7 +24,8 @@ template GeneralMatrixViewStorage( ElementOrMatrix, StorageOrder order_ = Storag
 struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	mixin GeneralMatrixTypes!MatrixRef_;
 	
-	alias typeof( this ) View;
+	alias typeof( this )                                           View;
+	alias BasicGeneralMatrixViewStorage!(TransposedOf!MatrixRef)   Transposed;
 	
 	this( ref MatrixRef matrixRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols, size_t offset=0 ) {
 		matrix_     = matrixRef;
@@ -109,13 +110,13 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	
 	alias slice view;
 	
-	void resizeOrClear( size_t rows, size_t columns, void* ) {
+	void resize( size_t rows, size_t columns, void* ) {
 		assert( rows == rows_ && cols_ == columns, "Matrix size mismatch in assignment to matrix view." );
 	}
 	
-	void resizeOrClear( size_t rows, size_t columns ) {
-		resizeOrClear( rows, columns, null );
-		hlGeneralMatrixScal!storageOrder( rows, columns, Zero!ElementType, this.data, leading );
+	void resize( size_t rows, size_t columns ) {
+		resize( rows, columns, null );
+		generalMatrixScaling!storageOrder( rows, columns, Zero!ElementType, this.data, leading );
 	}
 	
 	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
@@ -158,6 +159,7 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		size_t               firstIndex() const { return firstIndex_; }
 		
 		MajorView front() {
+			
 			return typeof( return )( matrix_, firstIndex_, minor_ );
 		}
 		
@@ -166,10 +168,10 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		}
 	}
 	
-	mixin GeneralMatrixAxpyScal;
+	mixin GeneralMatrixScalingAndAddition;
 	
 private:
-	mixin SliceIndex2dMessages;
+	mixin MatrixErrorMessages;
 
 	size_t map_( size_t i, size_t j ) const {
 		static if( isRowMajor )

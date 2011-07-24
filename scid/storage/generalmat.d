@@ -6,7 +6,7 @@ import scid.storage.generalmatview;
 import scid.common.traits;
 import scid.matrix;
 import scid.vector;
-import scid.internal.hlblas;
+import scid.ops.eval, scid.ops.common;
 import std.algorithm;
 
 
@@ -22,8 +22,9 @@ template GeneralMatrixStorage( ElementOrMatrix, StorageOrder order_ = StorageOrd
 struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 	mixin GeneralMatrixTypes!MatrixRef_;
 	
-	alias GeneralMatrixViewStorage!MatrixRef_ View;
-	alias matrix_                             this;
+	alias GeneralMatrixViewStorage!MatrixRef_                View;
+	alias matrix_                                            this;
+	alias BasicGeneralMatrixStorage!(TransposedOf!MatrixRef) Transposed;
 	
 	enum storageType = MatrixStorageType.General;
 	
@@ -43,16 +44,16 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 		matrix_ = MatrixRef( matrix_.ptr );
 	}
 	
-	void resizeOrClear( size_t rows, size_t columns, void* ) {
+	void resize( size_t rows, size_t columns, void* ) {
 		if( matrix_.RefCounted.isInitialized() ) 
-			matrix_.resizeOrClear( rows, columns, null );
+			matrix_.resize( rows, columns, null );
 		else
 			matrix_ = MatrixRef( rows, columns, null );
 	}
 	
-	void resizeOrClear( size_t rows, size_t columns ) {
+	void resize( size_t rows, size_t columns ) {
 		if( matrix_.RefCounted.isInitialized() ) 
-			matrix_.resizeOrClear( rows, columns );
+			matrix_.resize( rows, columns );
 		else
 			matrix_ = MatrixRef( rows, columns );
 	}
@@ -64,8 +65,8 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 		} else static if( srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
 			matrix_ = MatrixRef( source.matrix_.ptr );
 		} else {
-			resizeOrClear( source.rows, source.columns, null );
-			hlGeCopy!( srcOrder, storageOrder )(
+			resize( source.rows, source.columns, null );
+			generalMatrixCopy!( srcOrder, storageOrder )(
 				rows, columns,
 				source.cdata, source.leading,
 				this.data,
@@ -156,9 +157,9 @@ struct BasicGeneralMatrixStorage( MatrixRef_ ) {
 	
 	MatrixRef matrix_;
 	
-	mixin GeneralMatrixAxpyScal;
+	mixin GeneralMatrixScalingAndAddition;
 private:
-	mixin SliceIndex2dMessages;
+	mixin MatrixErrorMessages;
 
 	this( MatrixRef matrixRef ) {
 		matrix_ = matrixRef;

@@ -16,9 +16,15 @@ template TriangularStorage( ElementOrArray, MatrixTriangle triangle = MatrixTria
 		alias PackedStorage!( TriangularArrayAdapter!(ElementOrArray, triangle, storageOrder) )             TriangularStorage;
 }
 
-struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder storageOrder_ ) {
-	alias ArrayRef_                ArrayRef;
-	alias BaseElementType!ArrayRef ElementType;
+struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder storageOrder_ ) {
+	alias ContainerRef_                ContainerRef;
+	alias BaseElementType!ContainerRef ElementType;
+	
+	alias TriangularArrayAdapter!(
+		ContainerRef,
+		tri_ == MatrixTriangle.Upper ? MatrixTriangle.Lower : MatrixTriangle.Upper,
+		storageOrder_ 
+	) Transposed;
 	
 	enum triangle     = tri_;
 	enum storageOrder = storageOrder_;
@@ -26,14 +32,14 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
 	
-	this( size_t newSize, ElementType initWith = ElementType.init ) {
+	this( size_t newSize ) {
 		size_  = newSize;
-		array_ = ArrayRef( newSize * (newSize + 1) / 2, initWith );
+		array_ = ContainerRef( newSize * (newSize + 1) / 2 );
 	}
 	
 	this( size_t newSize, void* ) {
 		size_  = newSize;
-		array_ = ArrayRef( newSize * (newSize + 1) / 2, null );
+		array_ = ContainerRef( newSize * (newSize + 1) / 2, null );
 	}
 	
 	this( ElementType[] initializer ) {
@@ -42,11 +48,11 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
 		size_  = cast(size_t) tri;
-		array_ = ArrayRef( initializer );
+		array_ = ContainerRef( initializer );
 	}
 	
 	this( typeof(this) *other ) {
-		array_ = ArrayRef( other.array_.ptr );
+		array_ = ContainerRef( other.array_.ptr );
 		size_  = other.size_;
 	}
 	
@@ -57,7 +63,7 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 	}
 	
 	void resize( size_t size ) {
-		array_ = ArrayRef( size*(size+1)/2, null );
+		array_ = ContainerRef( size*(size+1)/2, null );
 		size_  = size;
 	}
 	
@@ -100,7 +106,7 @@ struct TriangularArrayAdapter( ArrayRef_, MatrixTriangle tri_, StorageOrder stor
 	alias size minor;
 	
 private:
-	mixin SliceIndex2dMessages;
+	mixin MatrixErrorMessages;
 
 	enum zero_ = cast(ElementType)(0.0);
 		
@@ -117,6 +123,6 @@ private:
 	}
 	
 	size_t   size_;
-	ArrayRef array_;
+	ContainerRef array_;
 }
 

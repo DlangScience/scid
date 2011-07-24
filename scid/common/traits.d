@@ -1,11 +1,12 @@
 /** Templates for compile-time introspection.
 
-    Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
+    Authors:    Lars Tandle Kyllingstad, Cristian Cobzarenco.
+    Copyright:  Copyright (c) 2011, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
 module scid.common.traits;
 
+import scid.ops.expression;
 
 import std.complex;
 import std.traits;
@@ -25,6 +26,63 @@ version(unittest)
     static assert (isComplex!(Complex!double));
     static assert (!isComplex!double);
     static assert (!isComplex!int);
+}
+
+
+/** Get the type that is referenced by a reference type. */
+template ReferencedBy( T ) {
+	static if( is( T.Referenced ) )
+		// specified explicitly
+		alias T.Referenced ReferencedBy;
+	else static if( is( T E : RefCounted!(E, autoInit), uint autoInit ) )
+		// std.typecons.RefCounted
+		alias E ReferencedBy;
+	else static if( is( Unqual!T E : E* ) )
+		// pointer
+		alias E ReferencedBy;
+	else
+		// a non-reference references itself
+		alias T ReferencedBy;
+}
+
+template isReference( T ) {
+	enum isReference = !is( ReferencedBy!T == T );	
+}
+
+template isStridedVectorStorage( T, E = BaseElementType!T ) {
+	enum isStridedVectorStorage =
+		(is( typeof(T.stride) : size_t ) &&
+		 is( typeof(T.cdata)  : const(E)* ) &&
+		 is( typeof(T.data)   : E* ) &&
+		 is( typeof(T.length) : size_t )) ||
+		 is( T : E[] );
+}
+
+template isGeneralMatrixStorage( T, E = BaseElementType!T ) {
+	enum isGeneralMatrixStorage =
+		(is( typeof(T.leading) : size_t ) &&
+		 is( typeof(T.cdata)   : const(E)* ) &&
+		 is( typeof(T.data)    : E* ) &&
+		 is( typeof(T.rows)    : size_t ) &&
+		 is( typeof(T.columns) : size_t )) ||
+		 is( T : E[][] );
+}
+
+template isExpression( T ) {
+	static if( is( typeof(T.operation) : Operation ) )
+		enum isExpression = true;
+	else
+		enum isExpression = false;
+}
+
+template isLeafExpression( T ) {
+	static if( is( T E : E* ) ) {
+		enum isLeafExpression = isLeafExpression!E;
+	} else static if( is(typeof(T.operation)) ) {
+		enum isLeafExpression = false;
+	} else {
+		enum isLeafExpression = true;
+	}
 }
 
 

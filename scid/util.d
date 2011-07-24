@@ -18,8 +18,6 @@ import scid.common.testing;
 import scid.common.traits;
 import scid.exception;
 
-import scid.main;
-
 
 /** Check whether lhs and rhs are equal to within the specified number
     of significant digits.  Both lhs and rhs can be floating-point

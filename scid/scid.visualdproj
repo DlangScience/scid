@@ -101,7 +101,7 @@
   <quiet>0</quiet>
   <verbose>0</verbose>
   <vtls>0</vtls>
-  <symdebug>0</symdebug>
+  <symdebug>1</symdebug>
   <optimize>0</optimize>
   <cpu>0</cpu>
   <isX86_64>0</isX86_64>
@@ -121,7 +121,7 @@
   <useSwitchError>0</useSwitchError>
   <useUnitTests>0</useUnitTests>
   <useInline>0</useInline>
-  <release>1</release>
+  <release>0</release>
   <preservePaths>0</preservePaths>
   <warnings>0</warnings>
   <infowarnings>0</infowarnings>
@@ -164,8 +164,8 @@
   <pathCv2pdb>$(VisualDInstallDir)cv2pdb\cv2pdb.exe</pathCv2pdb>
   <objfiles />
   <linkswitches />
-  <libfiles />
-  <libpaths />
+  <libfiles>$(SolutionDir)\deps\blaslapackdll.lib</libfiles>
+  <libpaths>$(SolutionDir)\deps</libpaths>
   <deffile />
   <resfile />
   <exefile>$(OutDir)\$(ProjectName).exe</exefile>
@@ -181,6 +181,12 @@
   <filesToClean>*.obj;*.cmd;*.build;*.json;*.dep</filesToClean>
  </Config>
  <Folder name="scid">
+  <Folder name="ops">
+   <File path="internal\expression.d" />
+   <File path="internal\fallback.d" />
+   <File path="internal\eval.d" />
+   <File path="ops\common.d" />
+  </Folder>
   <Folder name="bindings">
    <Folder name="blas">
     <File path="bindings\blas\blas.d" />
@@ -200,75 +206,7 @@
    <File path="common\traits.d" />
   </Folder>
   <Folder name="internal">
-   <Folder name="calculus">
-    <File path="internal\calculus\integrate_qk.d" />
-    <File path="internal\calculus\integrate_qng.d" />
-   </Folder>
    <File path="internal\assertmessages.d" />
-   <File path="internal\expression.d" />
-   <File path="internal\hlblas.d" />
-   <File path="internal\fbblas.d" />
-  </Folder>
-  <Folder name="ports">
-   <Folder name="intde">
-    <File path="ports\intde\intde1.d" />
-    <File path="ports\intde\intde2.d" />
-   </Folder>
-   <Folder name="linpack">
-    <File path="ports\linpack\gtsl.d" />
-   </Folder>
-   <Folder name="minpack">
-    <File path="ports\minpack\dogleg.d" />
-    <File path="ports\minpack\enorm.d" />
-    <File path="ports\minpack\fdjac1.d" />
-    <File path="ports\minpack\hybrd.d" />
-    <File path="ports\minpack\qform.d" />
-    <File path="ports\minpack\qrfac.d" />
-    <File path="ports\minpack\r1mpyq.d" />
-    <File path="ports\minpack\r1updt.d" />
-   </Folder>
-   <Folder name="napack">
-    <File path="ports\napack\addchg.d" />
-    <File path="ports\napack\quasi.d" />
-    <File path="ports\napack\stopit.d" />
-   </Folder>
-   <Folder name="quadpack">
-    <File path="ports\quadpack\qag.d" />
-    <File path="ports\quadpack\qage.d" />
-    <File path="ports\quadpack\qagi.d" />
-    <File path="ports\quadpack\qagie.d" />
-    <File path="ports\quadpack\qagp.d" />
-    <File path="ports\quadpack\qagpe.d" />
-    <File path="ports\quadpack\qags.d" />
-    <File path="ports\quadpack\qagse.d" />
-    <File path="ports\quadpack\qawc.d" />
-    <File path="ports\quadpack\qawce.d" />
-    <File path="ports\quadpack\qawf.d" />
-    <File path="ports\quadpack\qawfe.d" />
-    <File path="ports\quadpack\qawo.d" />
-    <File path="ports\quadpack\qawoe.d" />
-    <File path="ports\quadpack\qaws.d" />
-    <File path="ports\quadpack\qawse.d" />
-    <File path="ports\quadpack\qc25c.d" />
-    <File path="ports\quadpack\qc25f.d" />
-    <File path="ports\quadpack\qc25s.d" />
-    <File path="ports\quadpack\qcheb.d" />
-    <File path="ports\quadpack\qelg.d" />
-    <File path="ports\quadpack\qk15.d" />
-    <File path="ports\quadpack\qk15i.d" />
-    <File path="ports\quadpack\qk15w.d" />
-    <File path="ports\quadpack\qk21.d" />
-    <File path="ports\quadpack\qk31.d" />
-    <File path="ports\quadpack\qk41.d" />
-    <File path="ports\quadpack\qk51.d" />
-    <File path="ports\quadpack\qk61.d" />
-    <File path="ports\quadpack\qmomo.d" />
-    <File path="ports\quadpack\qng.d" />
-    <File path="ports\quadpack\qpsrt.d" />
-    <File path="ports\quadpack\qwgtc.d" />
-    <File path="ports\quadpack\qwgtf.d" />
-    <File path="ports\quadpack\qwgts.d" />
-   </Folder>
   </Folder>
   <Folder name="storage">
    <File path="storage\array.d" />
@@ -284,16 +222,12 @@
    <File path="storage\symmetric.d" />
    <File path="storage\triangular.d" />
   </Folder>
-  <File path="calculus.d" />
-  <File path="constants.d" />
   <File path="exception.d" />
-  <File path="functions.d" />
-  <File path="linalg.d" />
-  <File path="nonlinear.d" />
   <File path="types.d" />
   <File path="util.d" />
   <File path="vector.d" />
   <File path="main.d" />
   <File path="matrix.d" />
+  <File path="matvec.d" />
  </Folder>
 </DProject>

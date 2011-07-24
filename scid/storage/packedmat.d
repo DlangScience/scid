@@ -1,11 +1,11 @@
 module scid.storage.packedmat;
 
+import scid.matvec;
 import scid.storage.packedsubmat;
 import scid.storage.packedsubvec;
 import scid.internal.assertmessages;
 import scid.common.traits;
-import scid.matrix;
-import scid.vector;
+import scid.ops.common;
 import std.algorithm;
 
 struct PackedStorage( MatrixRef_ ) {
@@ -14,13 +14,13 @@ struct PackedStorage( MatrixRef_ ) {
 	alias storageOrderOf!MatrixRef                                           storageOrder;
 	alias PackedSubMatrixStorage!( MatrixRef, SubMatrixType.Slice)           Slice;
 	alias PackedSubMatrixStorage!( MatrixRef, SubMatrixType.View)            View;
+	alias PackedStorage!( TransposedOf!MatrixRef  )                          Transposed;
 	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Row ) )    RowView;
 	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Column ) ) ColumnView;
 	alias ColumnView                                                         DiagonalView;
 	alias matrix_                                                            this;
 	
 	enum isRowMajor   = (storageOrder == StorageOrder.RowMajor );
-	enum storageType  = matrix_.storageType;
 	
 	this(A...)( A args ) {
 		matrix_ = MatrixRef( args );
@@ -97,5 +97,5 @@ struct PackedStorage( MatrixRef_ ) {
 	MatrixRef matrix_;
 	
 private:
-	mixin SliceIndex2dMessages;
+	mixin MatrixErrorMessages;
 }

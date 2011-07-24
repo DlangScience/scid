@@ -4,6 +4,7 @@ import scid.common.traits;
 import scid.matrix, scid.vector;
 import scid.internal.assertmessages;
 import scid.storage.packedsubvec;
+import scid.ops.common;
 import std.algorithm;
 
 enum SubMatrixType {
@@ -20,6 +21,8 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Row ) )    RowView;
 	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Column ) ) ColumnView;
 	alias ColumnView                                                         DiagonalView;
+	
+	alias PackedSubMatrixStorage!( TransposedOf!MatrixRef, type_ ) Transposed;
 	
 	enum isView     = type_ == SubMatrixType.View;
 	enum isRowMajor = (storageOrder == StorageOrder.RowMajor );
@@ -150,7 +153,7 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	}
 	
 private:
-	mixin SliceIndex2dMessages;
+	mixin MatrixErrorMessages;
 
 	void assignMatrix_( ref MatrixRef rhs ) {
 		static if( isView )

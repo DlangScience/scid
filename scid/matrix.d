@@ -1,8 +1,7 @@
 module scid.matrix;
 
 import scid.internal.assertmessages;
-import scid.internal.expression;
-import scid.internal.hlblas;
+import scid.ops.eval, scid.ops.common;
 import scid.storage.generalmat;
 import scid.storage.triangular;
 import scid.storage.symmetric;
@@ -82,16 +81,16 @@ template isMatrix( T ) {
 }
 
 struct BasicMatrix( Storage_ ) {
-	alias BaseElementType!Storage_      ElementType;
-	alias Storage_                      Storage;
-	alias BasicMatrix!( Storage.Slice ) Slice;
-	alias Storage.storageOrder          storageOrder;
-	alias Storage.RowView               RowView;
-	alias Storage.ColumnView            ColumnView;
-	alias Storage.DiagonalView          DiagonalView;
-	alias BasicMatrix!( Storage.View )  View;
-	alias storage                       this;
-	
+	alias BaseElementType!Storage_           ElementType;
+	alias Storage_                           Storage;
+	alias BasicMatrix!( Storage.Slice )      Slice;
+	alias Storage.storageOrder               storageOrder;
+	alias Storage.RowView                    RowView;
+	alias Storage.ColumnView                 ColumnView;
+	alias Storage.DiagonalView               DiagonalView;
+	alias BasicMatrix!( Storage.View )       View;
+	alias BasicMatrix!( Storage.Transposed ) Transposed;
+	alias storage                            this;
 	
 	enum isRowMajor = ( storageOrder == StorageOrder.RowMajor );
 	
@@ -103,8 +102,20 @@ struct BasicMatrix( Storage_ ) {
 		alias ColumnView MajorView;
 	}
 	
-	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) && !isExpression!(A[0]) ) {
+	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) && !isExpression!(A[0]) && !is( A[0] : ElementType[][] ) ) {
 		storage = Storage( args );
+	}
+	
+	this()( ElementType[][] initializer ) {
+		if( initializer.length == 0 || initializer[0].length == 0)
+			return;
+		
+		storage = Storage();
+		storage.resize( initializer.length, initializer[0].length, null );
+		foreach( i ; 0 .. this.rows ) {
+			assert( initializer[i].length == this.columns );
+			this.row( i )[] = initializer[ i ].t;
+		}
 	}
 	
 	this( A )( BasicMatrix!(A, vectorType) other ) {
@@ -115,8 +126,6 @@ struct BasicMatrix( Storage_ ) {
 	this( Expr )( auto ref Expr expr ) if( isExpression!Expr ) {
 		this[] = expr;
 	}
-	
-	this( this ) {}
 	
 	this()( Storage stor ) {
 		move( stor, storage );
@@ -169,22 +178,23 @@ struct BasicMatrix( Storage_ ) {
 	}
 	
 	void opSliceAssign(Rhs)( auto ref Rhs rhs ) {
-		hlCopy( rhs, this );	
+		evalCopy( rhs, this );	
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "*" || op == "/" ) {
-		static if( op == "+" )      { hlAxpy( One!ElementType, rhs, this ); }
+		static if( op == "+" )      { evalScaledAddition( One!ElementType, rhs, this ); }
 		else static if( op == "*" ) {
 			static if( closureOf!Rhs == Closure.Matrix ) this[] = this * rhs;
-			else                                         hlScal( rhs, this );
+			else                                         evalScaling( rhs, this );
 		} else static if ( op == "/" ) {
-			hlScal( One!ElementType	/ rhs, this );
+			evalScaling( One!ElementType	/ rhs, this );
 		}
 	}
 			
 	@property {
-		MajorView front() { return storage.front; }
-		MajorView back()  { return storage.back; }
+		typeof(this)* addr()  { return &this; }
+		MajorView     front() { return storage.front; }
+		MajorView     back()  { return storage.back; }
 		
 		/** (Somewhat) Nicely formatted matrix output. */
 		string pretty() const {
@@ -218,7 +228,7 @@ struct BasicMatrix( Storage_ ) {
 	
 	Storage storage;
 	
-	mixin Literal!( Closure.Matrix );
+	mixin Operand!( Closure.Matrix );
 	
 	static struct SliceProxy_ {
 		alias BasicMatrix MatrixType;
@@ -237,11 +247,11 @@ struct BasicMatrix( Storage_ ) {
 		ColumnView opIndex( size_t j )             { return m_.columnSlice( j, start_, end_ ); }
 		
 		void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
-			hlCopy( rhs, m_.view( start_, end_, 0, m_.columns ) );
+			evalCopy( rhs, m_.view( start_, end_, 0, m_.columns ) );
 		}
 		
 		void opSliceAssign( Rhs )( auto ref Rhs rhs, size_t j1, size_t j2 ) {
-			hlCopy( rhs, m_.view( start_, end_, j1, j2 ) );
+			evalCopy( rhs, m_.view( start_, end_, j1, j2 ) );
 		}
 		
 		void popFront()
@@ -293,7 +303,7 @@ unittest {
 	
 	// matrix ctors
 	{
-		auto a = ColMat(3,6, 1.0);
+		auto a = ColMat(3,6);
 		auto b = RowMat(5,4, null);
 		auto c = ColMat(3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0] );
 		auto d = RowMat(3, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0] );
@@ -305,8 +315,9 @@ unittest {
 		
 		foreach( i ; 0 .. 3 )
 			foreach( j ; 0 .. 6 )
-				assert( a[ i, j ] == 1.0 );
+				assert( a[ i, j ] == 0.0 );
 		
+		writeln( c.pretty );
 		double k = 1.0;
 		foreach( i ; 0 .. 3 )
 			foreach( j ; 0 .. 3 ) {
@@ -318,7 +329,7 @@ unittest {
 	
 	// copy-on-write
 	void cowTest( Mat )() {
-		auto a = Mat( 3, 3, 0.0 );
+		auto a = Mat( 3, 3 );
 		auto b = a;
 		Mat c; c = b;
 		b[ 0, 0 ] =  1.0;
@@ -364,7 +375,7 @@ unittest {
 		
 		foreach( i ; 0 .. a.rows ) {
 			auto v = a[ i ][];
-			v *= 2.0;
+			v[] *= 2.0;
 		}
 		
 		k = 0.0;
@@ -481,7 +492,7 @@ unittest {
 	
 	// copy-on-write
 	void cowTest( Mat )() {
-		auto a = Mat( 3, 0.0 );
+		auto a = Mat( 3 );
 		auto b = a;
 		Mat c; c = b;
 		b[ 0, 0 ] =  1.0;
@@ -503,7 +514,7 @@ unittest {
 		
 		{
 			auto r = cu.row( 2 );
-			r *= 2.0;
+			r[] *= 2.0;
 		}
 		
 		assert( cu[ 0, 0 ] == 1.0 && cu[ 0, 1 ] == 2.0 && cu[ 0, 2 ] == 4.0 &&
@@ -512,7 +523,7 @@ unittest {
 
 		{
 			auto r = ru.column( 1 );
-			r *= 2.0;
+			r[] *= 2.0;
 		}
 		
 		assert( ru[ 0, 0 ] == 1.0 && ru[ 0, 1 ] == 4.0 && ru[ 0, 2 ] == 3.0 &&
@@ -524,7 +535,7 @@ unittest {
 			    cl[ 1, 0 ] == 2.0 && cl[ 1, 1 ] == 8.0 && cl[ 1, 2 ] == 0.0 &&
 			    cl[ 2, 0 ] == 3.0 && cl[ 2, 1 ] == 7.0 && cl[ 2, 2 ] == 6.0 );
 		
-		rl[1][][] = [9.0,8.0,7.0];
+		rl[1][][] = [9.0,8.0,7.0].t;
 		assert( rl[ 0, 0 ] == 1.0 && rl[ 0, 1 ] == 0.0 && rl[ 0, 2 ] == 0.0 &&
 			    rl[ 1, 0 ] == 9.0 && rl[ 1, 1 ] == 8.0 && rl[ 1, 2 ] == 0.0 &&
 			    rl[ 2, 0 ] == 4.0 && rl[ 2, 1 ] == 5.0 && rl[ 2, 2 ] == 6.0 );
@@ -624,7 +635,7 @@ unittest {
 	
 	// copy-on-write
 	void cowTest( Mat )() {
-		auto a = Mat( 3, 0.0 );
+		auto a = Mat( 3 );
 		auto b = a;
 		Mat c; c = b;
 		b[ 0, 0 ] =  1.0;
@@ -646,7 +657,7 @@ unittest {
 		
 		{
 			auto r = cu.row( 2 );
-			r *= 2.0;
+			r[] *= 2.0;
 		}
 		
 		assert( cu[ 0, 0 ] == 1.0 && cu[ 0, 1 ] == 2.0 && cu[ 0, 2 ] == 4.0 &&
@@ -655,7 +666,7 @@ unittest {
 
 		{
 			auto r = ru.column( 1 );
-			r *= 2.0;
+			r[] *= 2.0;
 		}
 		
 		assert( ru[ 0, 0 ] == 1.0 && ru[ 0, 1 ] == 4.0 && ru[ 0, 2 ] == 3.0 &&
@@ -667,7 +678,7 @@ unittest {
 			    cl[ 1, 0 ] == 2.0 && cl[ 1, 1 ] == 8.0 && cl[ 1, 2 ] == 7.0 &&
 			    cl[ 2, 0 ] == 3.0 && cl[ 2, 1 ] == 7.0 && cl[ 2, 2 ] == 6.0 );
 		
-		rl[1][][] = [9.0,8.0,7.0];
+		rl[1][][] = [9.0,8.0,7.0].t;
 		assert( rl[ 0, 0 ] == 1.0 && rl[ 0, 1 ] == 9.0 && rl[ 0, 2 ] == 4.0 &&
 			    rl[ 1, 0 ] == 9.0 && rl[ 1, 1 ] == 8.0 && rl[ 1, 2 ] == 5.0 &&
 			    rl[ 2, 0 ] == 4.0 && rl[ 2, 1 ] == 5.0 && rl[ 2, 2 ] == 6.0 );

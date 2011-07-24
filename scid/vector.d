@@ -3,18 +3,13 @@ module scid.vector;
 import scid.storage.array;
 import scid.storage.arrayview;
 import scid.common.traits;
-import scid.internal.expression;
-import scid.internal.hlblas;
+import scid.ops.expression;
+import scid.ops.eval;
 
 import std.traits, std.range, std.algorithm, std.conv;
 
 enum VectorType {
 	Row, Column
-}
-
-enum Transpose : bool {
-	no = false,
-	yes = true
 }
 
 template Vector( ElementOrStorage, VectorType vectorType = VectorType.Column )
@@ -28,7 +23,7 @@ template Vector( ElementOrStorage, VectorType vectorType = VectorType.Column )
 
 template VectorView( ElementOrStorage, VectorType vectorType = VectorType.Column )
 		if( isFortranType!(BaseElementType!ElementOrStorage) ) {
-	
+			
 	alias BasicVector!( ArrayViewStorage!( ElementOrStorage, vectorType ) ) VectorView;
 }
 
@@ -68,19 +63,21 @@ struct BasicVector( Storage_ ) {
 	alias BasicVector!( typeof(Storage.init.view(0,0)) )   View;
 	alias BasicVector!( typeof(Storage.init.view(0,0,0)) ) StridedView;
 	alias BasicVector!( Storage.Transposed )               Transposed;
-	alias storage                                            this;
-
+	alias storage                                          this;
 	
+	static if( isReference!Storage )
+		alias BasicVector!( ReferencedBy!Storage ) Referenced;
+
 	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isVector!(A[0]) && !isExpression!(A[0]) ) {
 		storage = Storage(args);
 	}
 	
-	this( Expr )( auto ref Expr expr ) if( isExpression!Expr ) {
+	this( Expr )( Expr expr ) if( isExpression!Expr ) {
 		this[] = expr;
 	}
 	
-	this( A )( auto ref BasicVector!A other ) {
-		static if( is( A : Storage ) ) storage = other.storage;
+	this( A )( BasicVector!A other ) {
+		static if( is( A : Storage ) ) move( other.storage, storage );
 		else                           this[] = other;
 	}
 	
@@ -111,13 +108,13 @@ struct BasicVector( Storage_ ) {
 	}
 	/*
 	ref typeof(this) opOpAssign( string op, Rhs )( Rhs rhs ) if( op == "+" || op == "-" ) {
-		hlAxpy( signOfOp!(op,ElementType), rhs, this );
+		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
 		return this;
 	}
 	
 	ref typeof(this) opOpAssign( string op )( ElementType rhs ) if(op == "*" || op == "/" ) {
 		static if( op == "/" ) rhs = 1.0 / rhs;
-		hlScal( rhs, this );
+		evalScaling( rhs, this );
 		return this;
 	}
 	*/
@@ -129,7 +126,7 @@ struct BasicVector( Storage_ ) {
 		return typeof(this)( storage.slice( start, end ) );	
 	}
 	
-	bool opEquals( Rhs )( Rhs rhs ) if( isInputRange!Rhs ) {
+	bool opEquals( Rhs )( Rhs rhs ) const if( isInputRange!Rhs ) {
 		size_t i = 0;
 		foreach( x ; rhs ) {
 			if( i >= length || this[ i ++ ] != x )
@@ -140,29 +137,33 @@ struct BasicVector( Storage_ ) {
 	}
 
 	void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
-		hlCopy( rhs, this );
+		evalCopy( rhs, this );
 	}
 	
 	void opSliceAssign( Rhs )( Rhs rhs, size_t start, size_t end ) {
-		hlCopy( rhs, view( start, end ) );
+		auto v = view( start, end );
+		evalCopy( rhs, v );
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" ) {
-		hlAxpy( signOfOp!(op,ElementType), rhs, this );
+		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
 	}
+	
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if(op == "*" || op == "/" ) {
 		static if( op == "/" ) rhs = 1.0 / rhs;
-		hlScal( rhs, this );
+		evalScaling( rhs, this );
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if( op == "+" || op == "-" ) {
-		hlAxpy( signOfOp!(op,ElementType), rhs, view(start,end) );
+		auto v = view( start, end );
+		evalScaledAddition( signOfOp!(op,ElementType), rhs, v );
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if(op == "*" || op == "/" ) {
+		auto v = view( start, end );
 		static if( op == "/" ) rhs = 1.0 / rhs;
-		hlScal( rhs, view( start, end ) );
+		evalScaling( rhs, v );
 	}
 	
 	View view( size_t start, size_t end ) {
@@ -179,10 +180,11 @@ struct BasicVector( Storage_ ) {
 	}
 	
 	@property {
-		bool                 empty()   const { return storage.empty; }
-		ElementType          front()   const { return storage.front; }
-		ElementType          back()    const { return storage.back; }
-		size_t               length()  const { return storage.length; }
+		bool          empty()   const { return storage.empty; }
+		ElementType   front()   const { return storage.front; }
+		ElementType   back()    const { return storage.back; }
+		size_t        length()  const { return storage.length; }
+		typeof(this)* addr()          { return &this; }
 	}
 	
 	string toString() const {
@@ -199,11 +201,28 @@ struct BasicVector( Storage_ ) {
 		return r.data();
 	}
 	
-	static if( vectorType == VectorType.Column ) mixin Literal!( Closure.ColumnVector );
-	else                                         mixin Literal!( Closure.RowVector    );
+	static if( vectorType == VectorType.Column ) mixin Operand!( Closure.ColumnVector );
+	else                                         mixin Operand!( Closure.RowVector    );
 	
 	Storage storage;
 }
+
+@property auto ref storage( S )( ref S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
+	return x;
+}
+
+@property auto data( S )( S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
+	return x.ptr;
+}
+
+@property const(S)* cdata( S )( S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
+	return x.ptr;
+}
+
+@property auto stride( S )( const(S[]) x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
+	return 1;
+}
+
 
 unittest {
 	// TODO: Write tests for Vector.

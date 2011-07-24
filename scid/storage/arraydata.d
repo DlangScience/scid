@@ -1,11 +1,19 @@
+/** Implementation of ArrayData, a reference counted array implementation which is wrapped by the containers used for
+    storage.
+
+    Authors:    Cristian Cobzarenco
+    Copyright:  Copyright (c) 2011, Cristian Cobzarenco. All rights reserved.
+    License:    Boost License 1.0
+*/
 module scid.storage.arraydata;
+
 import core.stdc.stdlib;
 import std.algorithm, std.conv;
 
 import scid.bindings.blas.dblas;
 alias scid.bindings.blas.dblas blas;
 
-debug = ArrayDataAllocs;
+// debug = ArrayData;
 
 debug( ArrayData ) {
 	debug = ArrayDataAllocs;
@@ -70,7 +78,7 @@ struct ArrayData( T ) {
 		if( !isInitialized() || array.length != data_.length || data_.refCount > 1  )
 			realloc_( array.length );
 		
-		blas.copy( data_.length, array.ptr, 1, data_.array_.ptr, 1 );
+		blas.copy( data_.length, array.ptr, 1, data_.ptr, 1 );
 	}
 	
 	/** Just clears the reference - makes this reference an empty array. Does not affect other
@@ -106,6 +114,14 @@ struct ArrayData( T ) {
 	/** Returns the array. */
 	@property const(T)* ptr() const {
 		return data_ is null ? null : data_.ptr;
+	}
+	
+	/** Returns true if the pointer is inside the memory owned by the array. */
+	bool owns( T* address ) const {
+		if( data_ is null )
+			return false;
+		
+		return address >= ptr && address < (ptr + length);
 	}
 	
 	/** Returns true if there is any data referenced, false otherwise. */
@@ -175,7 +191,7 @@ struct ArrayData( T ) {
 	// allocate everything in place.
 	private struct Data_ {
 		size_t refCount      = void;
-		size_t length        = void ;
+		size_t length        = void;
 		byte   ptrOffset     = void;
 		
 		T array_[1]  = void;
@@ -242,29 +258,29 @@ struct ArrayData( T ) {
 	}
 	
 	// A pointer to the referenced data.
-	private Data_ *data_;
+	private Data_ *data_ = null;
 }
 
 
-//unittest {
-//    alias ArrayData!int Test;
-//
-//    auto x = Test(10);
-//    
-//    assert( x.refCount() == 1 );
-//    
-//    auto y = x;
-//    assert( y.refCount() == 2 );
-//    assert( x.isSharingDataWith( y ) );
-//    
-//    Test z;
-//    assert( !z.isInitialized() );
-//    
-//    z = y;
-//    assert( z.refCount() == 3 );
-//    
-//    z.reset();
-//    y.reset();
-//    assert( x.refCount() == 1 );
-//    x.reset();
-//}
+unittest {
+    alias ArrayData!double Test;
+
+    auto x = Test(10);
+    
+    assert( x.refCount() == 1 );
+    
+    auto y = x;
+    assert( y.refCount() == 2 );
+    assert( x.isSharingDataWith( y ) );
+    
+    Test z;
+    assert( !z.isInitialized() );
+    
+    z = y;
+    assert( z.refCount() == 3 );
+    
+    z.reset();
+    y.reset();
+    assert( x.refCount() == 1 );
+    x.reset();
+}
