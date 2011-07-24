@@ -101,8 +101,7 @@ struct BasicVector( Storage_ ) {
 		move( rhs.storage, storage );
 		return this;
 	}
-	}
-	*/
+	
 	typeof( this ) opSlice() {
 		return typeof(this)( storage );
 	}

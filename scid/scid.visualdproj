@@ -182,9 +182,9 @@
  </Config>
  <Folder name="scid">
   <Folder name="ops">
-   <File path="internal\expression.d" />
-   <File path="internal\fallback.d" />
-   <File path="internal\eval.d" />
+   <File path="ops\expression.d" />
+   <File path="ops\fallback.d" />
+   <File path="ops\eval.d" />
    <File path="ops\common.d" />
   </Folder>
   <Folder name="bindings">
@@ -226,7 +226,6 @@
   <File path="types.d" />
   <File path="util.d" />
   <File path="vector.d" />
-  <File path="main.d" />
   <File path="matrix.d" />
   <File path="matvec.d" />
  </Folder>
