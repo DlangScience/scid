@@ -9,9 +9,10 @@ module scid.ops.expression;
 
 import scid.common.traits, scid.common.meta;
 import std.traits, std.range;
+import std.conv;
 
 debug( Expression ) {
-	import std.stdio, std.conv;
+	import std.stdio;
 }
 
 /** An enumeration of all the operations supported. */
@@ -239,7 +240,7 @@ template ExpressionResult( E ) {
 		// if the node is a matrix-column product then the result is that of the column child
 		alias ExpressionResult!(E.Rhs) ExpressionResult;
 		
-	} else static if( isAddition!(E.operation) || (isScaling!E.operation) ) {
+	} else static if( isAddition!(E.operation) || isScaling!(E.operation) ) {
 		// if the node is a vector/matrix sum/scaling then the result is that of the vector/matrix child
 		// note: all scaling ops have the scalar on the rhs
 		alias ExpressionResult!(E.Lhs) ExpressionResult;

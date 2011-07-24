@@ -6,6 +6,7 @@
 */
 module scid.ops.fallback;
 
+import scid.matvec;
 import scid.common.traits, scid.common.meta;
 import std.conv  : to;
 import scid.ops.expression;

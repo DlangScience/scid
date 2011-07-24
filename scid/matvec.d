@@ -8,3 +8,4 @@ module scid.matvec;
 
 public import scid.vector;
 public import scid.matrix;
+public import scid.ops.eval : eval;

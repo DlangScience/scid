@@ -228,5 +228,6 @@
   <File path="vector.d" />
   <File path="matrix.d" />
   <File path="matvec.d" />
+  <File path="main.d" />
  </Folder>
 </DProject>

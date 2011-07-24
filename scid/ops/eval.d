@@ -140,7 +140,7 @@ void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( au
 	alias BaseElementType!Source                  T;
 	alias transposeClosure!(closureOf!Source, tr) srcClosure;
 	alias closureOf!Dest                          dstClosure;
-	enum multClosure = operationClosures[ operationOf!("*",srcClosure,closureOf!Scalar) ];
+	enum multClosure = closureOf!(operationOf!("*",srcClosure,closureOf!Scalar));
 	
 	// check correct operation
 	static assert( isLeafExpression!Dest, Dest.stringof ~ " is not an lvalue." );
