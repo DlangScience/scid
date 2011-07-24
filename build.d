@@ -105,7 +105,7 @@ void buildHeaders()
     auto sources = getSources();
     foreach (s; sources)
     {
-        immutable d = std.path.join(headerDir, dirname(s));
+        immutable d = headerDir; // std.path.join(headerDir, dirname(s));
         ensureDir(d);
 
         immutable diName = basename(s, ".d")~".di";
