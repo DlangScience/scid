@@ -101,21 +101,6 @@ struct BasicVector( Storage_ ) {
 		move( rhs.storage, storage );
 		return this;
 	}
-	
-	ref typeof(this) opAssign( ElementType[] rhs ) {
-		//storage.copyFrom( rhs );
-		return this;
-	}
-	/*
-	ref typeof(this) opOpAssign( string op, Rhs )( Rhs rhs ) if( op == "+" || op == "-" ) {
-		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
-		return this;
-	}
-	
-	ref typeof(this) opOpAssign( string op )( ElementType rhs ) if(op == "*" || op == "/" ) {
-		static if( op == "/" ) rhs = 1.0 / rhs;
-		evalScaling( rhs, this );
-		return this;
 	}
 	*/
 	typeof( this ) opSlice() {
@@ -148,7 +133,6 @@ struct BasicVector( Storage_ ) {
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" ) {
 		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
 	}
-	
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if(op == "*" || op == "/" ) {
 		static if( op == "/" ) rhs = 1.0 / rhs;
