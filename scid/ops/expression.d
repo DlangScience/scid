@@ -357,7 +357,6 @@ private template operationOf( string op, Closure l, Closure r ) if( op == "*" ) 
 	else static if( l == Closure.Matrix       && r == Closure.ColumnVector )    { enum operationOf = Operation.MatColProd;   }
 	else static if( l == Closure.RowVector    && r == Closure.Matrix )          { enum operationOf = Operation.RowMatProd;   }
 	else static if( l == Closure.RowVector    && r == Closure.ColumnVector )    { enum operationOf = Operation.DotProd;      }
-	else static if( l == Closure.ColumnVector && r == Closure.RowVector )       { enum operationOf = Operation.DotProd;      }
 	
 	else static if( l == Closure.RowVector    && r == Closure.Scalar )          { enum operationOf = Operation.RowScalProd;  }
 	else static if( l == Closure.ColumnVector && r == Closure.Scalar )          { enum operationOf = Operation.ColScalProd;  }
@@ -365,6 +364,8 @@ private template operationOf( string op, Closure l, Closure r ) if( op == "*" ) 
 	else static if( l == Closure.Scalar       && r == Closure.RowVector )       { enum operationOf = Operation.ColScalProd;  }
 	
 	else static if( l == Closure.Scalar       && r == Closure.Scalar )          { enum operationOf = Operation.ScalScalProd; }
+	
+	else static if( l == Closure.ColumnVector && r == Closure.RowVector )       { static assert( false, "ColumnVector * RowVector is not supported yet." );  }
 	
 	else static assert( false, "Invalid multiplication between " ~ to!string(l) ~ " and " ~ to!string(r) );
 }

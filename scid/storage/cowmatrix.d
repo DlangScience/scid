@@ -121,7 +121,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	/** Resize the matrix and leave the elements uninitialized. */
 	void resize( size_t newRows, size_t newCols, void* ) {
 		auto newLength = newRows * newCols;
-		if( newLength != data_.length || data_.refCount() > 1 || leading_ != minor_ ) {
+		if( newLength != data_.length || data_.refCount() > 1 ) {
 			data_.reset( newLength );
 			ptr_     = data_.ptr;
 			rows_    = newRows;

@@ -65,12 +65,12 @@ struct CowArray( ElementType_ ) {
 	/** Resize the array and set all the elements to zero. */
 	void resize( size_t len ) {
 		resize( len, null );
-		scal( len, Zero!ElementType, ptr_, 1 );
+		scal( len, Zero!ElementType, this.ptr_, 1 );
 	}
 	
 	/** Resize the array and leave the elements uninitialized. */
 	void resize( size_t len, void* ) {
-		if( len != length ) {
+		if( len != length || data_.refCount() > 1 ) {
 			data_.reset( len );
 			ptr_ = data_.ptr;
 			length_ = len;

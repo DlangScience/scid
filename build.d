@@ -65,6 +65,7 @@ body
     {
         if (args.length == 1)           { buildLib(); buildHeaders(); }
         else if (args[1] == "lib")      buildLib();
+        else if (args[1] == "demo")     buildDemo();
         else if (args[1] == "headers")  buildHeaders();
         else if (args[1] == "html")     buildHTML();
         else if (args[1] == "clean")    buildClean();
@@ -96,7 +97,18 @@ void buildLib()
     enforce(system(buildCmd) == 0, "Error building library");
 }
 
+/** Build the demo file. */
+void buildDemo()
+{
+    ensureDir(libDir);
+    auto sources = getSources();
 
+    immutable buildCmd = "dmd -g -debug -version=demo deps\\blaslapackdll.lib "
+        ~ std.string.join(sources, " ")
+        ~" -od"~libDir~" -ofdemo";
+    writeln(buildCmd);
+    enforce(system(buildCmd) == 0, "Error building demo");
+}
 
 /** Generate header files. */
 void buildHeaders()
