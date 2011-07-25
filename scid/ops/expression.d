@@ -206,7 +206,7 @@ template Operand( Closure closure_ ) {
 	}
 	
 	auto opUnary( string op )() if( op == "-" ) {
-		return expression!"-"( this, MinusOne!ElementType );
+		return expression!"*"( this, MinusOne!ElementType );
 	}
 	
 	auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "-" ) {

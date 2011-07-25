@@ -192,7 +192,6 @@ struct BasicMatrix( Storage_ ) {
 	}
 			
 	@property {
-		typeof(this)* addr()  { return &this; }
 		MajorView     front() { return storage.front; }
 		MajorView     back()  { return storage.back; }
 		
@@ -223,7 +222,36 @@ struct BasicMatrix( Storage_ ) {
 
 			return app.data;
 		}
+	}
 	
+	/** In line matrix output. */
+	string toString() const {
+		if( this.rows == 0 || this.columns == 0 )
+			return "[]";
+		
+		auto app = appender!string();
+		app.put('[');
+		
+		void putRow( size_t r ) {
+			app.put( '[' );
+			app.put( to!string( this[r, 0] ) );
+			for( int i = 1; i < this.columns ; ++ i ) {
+				app.put( ", " );
+				app.put( to!string( this[r, i] ) );
+			}
+			app.put( ']' );
+		};
+		
+		auto last = this.rows - 1;
+		for( auto i = 0; i < last ; ++ i ) {
+			putRow( i );
+			app.put( ", " );
+		}
+		
+		putRow( last );
+		app.put("]");
+
+		return app.data;
 	}
 	
 	Storage storage;
