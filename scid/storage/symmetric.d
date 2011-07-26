@@ -5,9 +5,11 @@ import scid.bindings.blas.dblas;
 import scid.storage.cowarray;
 import scid.storage.packedmat;
 import scid.matrix, scid.vector;
-import scid.common.traits;
+import scid.common.storagetraits;
+import scid.ops.common;
 import std.math, std.algorithm;
-import std.complex;
+import std.complex, std.exception;
+
 
 template SymmetricStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
 	if( isFortranType!(BaseElementType!ElementOrArray) ) {
@@ -21,6 +23,7 @@ template SymmetricStorage( ElementOrArray, MatrixTriangle triangle = MatrixTrian
 struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder storageOrder_ ) {
 	alias ContainerRef_                ContainerRef;
 	alias BaseElementType!ContainerRef ElementType;
+	alias ContainerRef                 ArrayType;
 	
 	alias SymmetricArrayAdapter!(
 		ContainerRef,
@@ -43,12 +46,12 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	
 	this( size_t newSize ) {
 		size_  = newSize;
-		array_ = ContainerRef( newSize * (newSize + 1) / 2 );
+		containerRef_ = ContainerRef( packedArrayLength(newSize) );
 	}
 	
 	this( size_t newSize, void* ) {
 		size_  = newSize;
-		array_ = ContainerRef( newSize * (newSize + 1) / 2, null );
+		containerRef_ = ContainerRef( packedArrayLength(newSize), null );
 	}
 	
 	this( ElementType[] initializer ) {
@@ -57,33 +60,62 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
 		size_  = cast(size_t) tri;
-		array_ = ContainerRef( initializer );
+		containerRef_ = ContainerRef( initializer );
+	}
+	
+	this( ElementType[][] initializer ) {
+		if( !initializer.length )
+			return;
+		
+		size_  = initializer.length;
+		containerRef_ = ContainerRef( packedArrayLength(size_) , null );
+		
+		foreach( i ; 0 .. size_ ) {
+			static if( isUpper ) {
+				foreach( j ; i .. size_ )
+					this.indexAssign( initializer[ i ][ j ], i, j );
+			} else {
+				foreach( j ; 0 .. (i+1) )
+					this.indexAssign( initializer[ i ][ j ], i, j );
+			}
+		}
+	}
+	
+	void resize( size_t newRows, size_t newCols ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen );
+		else
+			containerRef_.resize( arrlen );
+		
+		size_ = newRows;
+	}
+	
+	void resize( size_t newRows, size_t newCols, void* ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen, null );
+		else
+			containerRef_.resize( arrlen, null );
+		
+		size_ = newRows;
 	}
 	
 	this( typeof(this) *other ) {
-		array_ = ContainerRef( other.array_.ptr );
+		containerRef_ = ContainerRef( other.containerRef_.ptr );
 		size_  = other.size_;
 	}
 	
-	void resize( size_t size ) {
-		array_ = ContainerRef( size*(size+1)/2, null );
-		size_  = size;
-	}
-	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.array_, array_ );
+		move( rhs.containerRef_, containerRef_ );
 		size_  = rhs.size_;
 		return this;
-	}
-
-	static if( isHermitian ) {
-		/** Generic conjugate - works on both cdouble & Complex!double. */
-		static const (C) genConj( C )( C z ) {
-			static if( __traits( compiles, z.conj ) )
-				return z.conj;
-			else
-				return conj(z);
-		}
 	}
 
 	ElementType index( size_t row, size_t column ) const
@@ -93,12 +125,12 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	} body {
 		if( needSwap_( row, column ) ) {
 			static if( isHermitian ) {
-				return genConj( array_.index( map_( column, row ) ) );
+				return gconj( containerRef_.index( map_( column, row ) ) );
 			} else {
-				return array_.index( map_( column, row ) );
+				return containerRef_.index( map_( column, row ) );
 			}
 		} else {
-			return array_.index( map_( row, column ) );
+			return containerRef_.index( map_( row, column ) );
 		}
 	}	
 
@@ -109,19 +141,19 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	} body {
 		if( needSwap_( row, column ) ) {
 			static if( isHermitian ) {
-				array_.indexAssign!op( genConj(rhs), map_( column, row ) );
+				containerRef_.indexAssign!op( gconj(rhs), map_( column, row ) );
 			} else {
-				array_.indexAssign!op( rhs, map_( column, row ) );
+				containerRef_.indexAssign!op( rhs, map_( column, row ) );
 			}
 		} else {
-			array_.indexAssign!op( rhs, map_( row, column ) );
+			containerRef_.indexAssign!op( rhs, map_( row, column ) );
 		}
 	}
 	
 	@property {
 		typeof(this)*       ptr()         { return &this; }
-		ElementType*        data()        { return array_.data; }
-		const(ElementType)* cdata() const { return array_.cdata; }
+		ElementType*        data()        { return isInitd_() ? containerRef_.data  : null; }
+		const(ElementType)* cdata() const { return isInitd_() ? containerRef_.cdata : null; }
 		size_t              size()  const { return size_; }
 	}
 	
@@ -129,6 +161,15 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	alias size columns;
 	alias size major;
 	alias size minor;
+	
+	template Promote( Other ) {
+		private import scid.storage.generalmat;
+		
+		static if( is( Other C : SymmetricArrayAdapter!C ) )
+			alias SymmetricStorage!(Promotion!(ContainerRef, C)) Promote;
+		else
+			alias Promotion!( GeneralMatrixStorage!ElementType, Other ) Promote;
+	}
 	
 private:
 	mixin MatrixErrorMessages;
@@ -153,6 +194,11 @@ private:
 		}
 	}
 	
+	bool isInitd_() const {
+		// TODO: This assumes the reference type is RefCounted. Provide a more general impl.
+		return containerRef_.RefCounted.isInitialized();	
+	}
+	
 	size_t   size_;
-	ContainerRef array_;
+	ContainerRef containerRef_;
 }

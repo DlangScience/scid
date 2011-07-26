@@ -9,8 +9,7 @@ module scid.common.meta;
 
 private import std.traits;
 private import scid.common.traits;
-
-
+private import std.complex;
 
 
 /** Evaluates to the zero value for a given type.
@@ -22,8 +21,14 @@ template Zero(T)
 {
     static if (isFloatingPoint!T)
         enum T Zero = 0.0;
-    else static if (isComplex!T)
-        enum T Zero = 0.0 + 0.0i;
+    else static if( is( T == cfloat ) )
+        enum T Zero = 0.0f + 0.0fi;
+	else static if( is( T == cdouble ) )
+		enum T Zero = 0.0 + 0.0i;
+	else static if( is( T == Complex!float ) )
+		enum T Zero = T(0.0f,0.0f);
+	else static if( is( T == Complex!double ) )
+		enum T Zero = T(0.0,0.0);
     else static if (isIntegral!T)
         enum T Zero = 0;
     else static assert (false, "Zero: Type has no obvious zero: "~T.stringof);

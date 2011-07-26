@@ -1,6 +1,6 @@
 module scid.storage.packedsubmat;
 
-import scid.common.traits;
+import scid.common.storagetraits;
 import scid.matrix, scid.vector;
 import scid.internal.assertmessages;
 import scid.storage.packedsubvec;
@@ -12,43 +12,42 @@ enum SubMatrixType {
 	Slice
 }
 
-struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
-	alias MatrixRef_                                                         MatrixRef;
-	alias BaseElementType!MatrixRef                                          ElementType;
-	alias storageOrderOf!MatrixRef                                           storageOrder;
+struct PackedSubMatrixStorage( ContainerRef_, SubMatrixType type_ ) {
+	alias ContainerRef_                                                         ContainerRef;
+	alias BaseElementType!ContainerRef                                          ElementType;
+	alias storageOrderOf!ContainerRef                                           storageOrder;
 	alias typeof(this)                                                       Slice;
 	alias typeof(this)                                                       View;
-	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Row ) )    RowView;
-	alias Vector!( PackedSubVectorStorage!( MatrixRef, VectorType.Column ) ) ColumnView;
+	alias Vector!( PackedSubVectorStorage!( ContainerRef, VectorType.Row ) )    RowView;
+	alias Vector!( PackedSubVectorStorage!( ContainerRef, VectorType.Column ) ) ColumnView;
 	alias ColumnView                                                         DiagonalView;
 	
-	alias PackedSubMatrixStorage!( TransposedOf!MatrixRef, type_ ) Transposed;
+	alias PackedSubMatrixStorage!( TransposedOf!ContainerRef, type_ ) Transposed;
 	
 	enum isView     = type_ == SubMatrixType.View;
 	enum isRowMajor = (storageOrder == StorageOrder.RowMajor );
 	enum storageType = MatrixStorageType.Virtual;
 	
-	this( ref MatrixRef matrixRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols ) {
-		assignMatrix_( matrixRef );
+	this( ref ContainerRef containerRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols ) {
+		assignMatrix_( containerRef );
 		rowStart_ = rowStart; rows_ = numRows;
 		colStart_ = colStart; cols_ = numCols;
 	}
 	
 	static if( !isView ) {
 		this( this ) {
-			
-			assignMatrix_( matrix_ );
+			assignMatrix_( containerRef_ );
 		}
 	}
 		
 	void forceRefAssign( ref typeof(this) rhs ) {
-		matrix_ = rhs.matrix_;
+		containerRef_ = rhs.containerRef_;
 		rowStart_ = rhs.rowStart_; rows_ = rhs.rows_;
 		colStart_ = rhs.colStart_; cols_ = rhs.cols_;
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.matrix_, matrix_ );
+		move( rhs.containerRef_, containerRef_ );
 		rowStart_ = rhs.rowStart_; rows_ = rhs.rows_;
 		colStart_ = rhs.colStart_; cols_ = rhs.cols_;
 		return this;
@@ -58,50 +57,50 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	in {
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
-		return matrix_.index( i + rowStart_, j + colStart_ );
+		return containerRef_.index( i + rowStart_, j + colStart_ );
 	}
 	
 	void indexAssign( string op = "" )( ElementType rhs, size_t i, size_t j )
 	in {
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
-		matrix_.indexAssign!op( rhs, i + rowStart_, j + colStart_ );
+		containerRef_.indexAssign!op( rhs, i + rowStart_, j + colStart_ );
 	}
 	
 	RowView row( size_t i )
 	in {
 		assert( i < rows_, sliceMsg_(i,0,i,cols_) );
 	} body {
-		return typeof( return )( matrix_, i + rowStart_, colStart_, cols_ );
+		return typeof( return )( containerRef_, i + rowStart_, colStart_, cols_ );
 	}
 	
 	ColumnView column( size_t j )
 	in {
 		assert( j < cols_, sliceMsg_(0,j,rows_,j) );
 	} body {
-		return typeof( return )( matrix_, j + colStart_, rowStart_, rows_ );
+		return typeof( return )( containerRef_, j + colStart_, rowStart_, rows_ );
 	}
 	
 	RowView rowSlice( size_t i, size_t start, size_t end )
 	in {
 		assert( i < rows_ && start < end && end <= cols_, sliceMsg_(i,start,i,end) );
 	} body {
-		return typeof( return )( matrix_, i + rowStart_, start + colStart_, end - start );
+		return typeof( return )( containerRef_, i + rowStart_, start + colStart_, end - start );
 	}
 	
 	ColumnView columnSlice( size_t j, size_t start, size_t end )
 	in {
 		assert( j < cols_ && start < end && end <= rows_, sliceMsg_(start,j,end,j) );
 	} body {
-		return typeof( return )( matrix_, j + colStart_, start + rowStart_, end - start );
+		return typeof( return )( containerRef_, j + colStart_, start + rowStart_, end - start );
 	}
 	
 	View view( size_t rowStart, size_t rowEnd, size_t colStart, size_t colEnd ) {
-		return typeof( return )( matrix_, rowStart + rowStart_, rowEnd - rowStart, colStart + colStart_, colEnd - colStart );
+		return typeof( return )( containerRef_, rowStart + rowStart_, rowEnd - rowStart, colStart + colStart_, colEnd - colStart );
 	}
 	
 	Slice slice( size_t rowStart, size_t rowEnd, size_t colStart, size_t colEnd ) {
-		return typeof( return )( matrix_, rowStart + rowStart_, rowEnd - rowStart, colStart + colStart_, colEnd - colStart );
+		return typeof( return )( containerRef_, rowStart + rowStart_, rowEnd - rowStart, colStart + colStart_, colEnd - colStart );
 	}
 	
 	void popFront()
@@ -136,7 +135,7 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 	}
 	
 	@property {
-		MatrixRef           matrix()        { return matrix_; }
+		ContainerRef           matrix()        { return containerRef_; }
 		size_t              rows()    const { return rows_; }
 		size_t              columns() const { return cols_; }
 		bool                empty()   const { return major_ != 0; }
@@ -152,17 +151,23 @@ struct PackedSubMatrixStorage( MatrixRef_, SubMatrixType type_ ) {
 		}
 	}
 	
+	/** Promotions for this type are inherited either from its container or from general matrix. */
+	template Promote( Other ) {
+		private import scid.storage.generalmat;
+		alias Promotion!( GeneralMatrixStorage!ElementType, Other ) Promote;
+	}
+	
 private:
 	mixin MatrixErrorMessages;
 
-	void assignMatrix_( ref MatrixRef rhs ) {
+	void assignMatrix_( ref ContainerRef rhs ) {
 		static if( isView )
-			matrix_ = rhs;
+			containerRef_ = rhs;
 		else
-			matrix_ = MatrixRef( rhs.ptr );
+			containerRef_ = ContainerRef( rhs.ptr );
 	}
 
-	MatrixRef matrix_;
+	ContainerRef containerRef_;
 	size_t    rowStart_, colStart_;
 	size_t    rows_, cols_;
 }

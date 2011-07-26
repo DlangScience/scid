@@ -11,8 +11,8 @@ import scid.vector;
 import scid.storage.cowarray;
 import scid.storage.arrayview;
 
-import scid.common.traits : isFortranType, BaseElementType;
-import std.algorithm      : swap;
+import scid.common.storagetraits;
+import std.algorithm;
 
 import scid.ops.eval;
 import scid.ops.common;
@@ -37,7 +37,7 @@ template ArrayStorage( ElementOrArray, VectorType vectorType = VectorType.Column
     original ArrayStorage went out of scope.
     The second parameter specifies whether the storage represents a row vector or a column vector.
 */
-struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ ) {
+struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Column ) {
 	/** The wrapped container reference. */
 	alias ContainerRef_ ContainerRef;
 	
@@ -224,6 +224,15 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ ) {
 		assert( !empty, msgPrefix_ ~ "popBack() on empty." );
 	} body {
 		containerRef_.popBack();
+	}
+	
+	/** Promotions for this storage. */
+	template Promote( Other ) {
+		static if( isVectorStorage!Other || isMatrixStorage!Other ) {
+			alias BasicArrayStorage!( Promotion!(Other.ContainerRef,ContainerRef), vectorType ) Promote;
+		} else static if( isFortranType!Other ) {
+			alias BasicArrayStorage!( Promotion!(ContainerRef, Other), vectorType ) Promote;
+		}
 	}
 	
 	/** Use the common axpy(), scal() and dot() for all strided storages. */

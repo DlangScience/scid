@@ -3,7 +3,8 @@ module scid.storage.generalmatview;
 import scid.internal.assertmessages;
 import scid.storage.cowmatrix;
 import scid.storage.generalmat;
-import scid.common.traits, scid.common.meta;
+import scid.common.storagetraits;
+import scid.common.meta;
 import scid.matrix, scid.vector;
 import std.algorithm;
 import scid.ops.eval, scid.ops.common;
@@ -21,18 +22,37 @@ template GeneralMatrixViewStorage( ElementOrMatrix, StorageOrder order_ = Storag
 		alias BasicGeneralMatrixViewStorage!( ElementOrMatrix ) GeneralMatrixViewStorage;
 }
 
-struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
-	mixin GeneralMatrixTypes!MatrixRef_;
+struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
+	alias ContainerRef_                  ContainerRef;
+	alias BaseElementType!ContainerRef   ElementType;
+	alias typeof(this)                   Slice;
+	alias storageOrderOf!ContainerRef    storageOrder;
 	
-	alias typeof( this )                                           View;
-	alias BasicGeneralMatrixViewStorage!(TransposedOf!MatrixRef)   Transposed;
+	enum bool isRowMajor = ( storageOrder == StorageOrder.RowMajor );
 	
-	this( ref MatrixRef matrixRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols, size_t offset=0 ) {
-		matrix_     = matrixRef;
-		firstIndex_ = matrix_.mapIndex( rowStart, colStart ) + offset;
+	static if( isRowMajor ) {
+		alias VectorView!(ContainerRef, VectorType.Row)           RowView;
+		alias StridedVectorView!(ContainerRef, VectorType.Column) ColumnView;
+		alias StridedVectorView!(ContainerRef, VectorType.Row)    DiagonalView;
+		alias RowView                                             MajorView;
+		alias ColumnView                                          MinorView;
+	} else {
+		alias VectorView!(ContainerRef, VectorType.Column)        ColumnView;
+		alias StridedVectorView!(ContainerRef, VectorType.Row)    RowView;
+		alias StridedVectorView!(ContainerRef, VectorType.Column) DiagonalView;
+		alias ColumnView                                          MajorView;
+		alias RowView                                             MinorView;
+	}
+	
+	alias typeof( this )                                            View;
+	alias BasicGeneralMatrixViewStorage!(TransposedOf!ContainerRef) Transposed;
+	
+	this( ref ContainerRef containerRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols, size_t offset=0 ) {
+		containerRef_     = containerRef;
+		firstIndex_ = containerRef_.mapIndex( rowStart, colStart ) + offset;
 		rows_       = numRows;
 		cols_       = numCols;
-		leading_    = matrix_.leading;
+		leading_    = containerRef_.leading;
 	}
 	
 	void forceRefAssign( ref typeof(this) rhs ) {
@@ -40,7 +60,7 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	}
 	
 	ref typeof( this ) opAssign( typeof( this ) rhs ) {
-		move( rhs.matrix_, matrix_ );
+		move( rhs.containerRef_, containerRef_ );
 		firstIndex_ = rhs.firstIndex_;
 		rows_       = rhs.rows_;
 		cols_       = rhs.cols_;
@@ -51,21 +71,21 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	typeof( this ) slice( size_t rowStart, size_t rowEnd, size_t colStart, size_t colEnd ) {
 		auto numRows = rowEnd - rowStart;
 		auto numCols = colEnd - colStart;	
-		return typeof( return )( matrix_, rowStart, numRows, colStart, numCols, firstIndex_);
+		return typeof( return )( containerRef_, rowStart, numRows, colStart, numCols, firstIndex_);
 	}
 	
 	ElementType index( size_t i, size_t j ) const
 	in {
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
-		return matrix_.cdata[ map_( i, j ) ];
+		return containerRef_.cdata[ map_( i, j ) ];
 	}
 	
 	void indexAssign( string op = "" )( ElementType rhs, size_t i, size_t j )
 	in {
 		assert( i < rows_ && j < cols_, boundsMsg_(i, j) );
 	} body {
-		mixin( "matrix_.data[ map_( i, j ) ]" ~ op ~ "= rhs;" );
+		mixin( "containerRef_.data[ map_( i, j ) ]" ~ op ~ "= rhs;" );
 	}
 	
 	RowView row( size_t i )
@@ -73,9 +93,9 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		assert( i < rows, sliceMsg_(i,0,i,columns) );
 	} body {
 		static if( isRowMajor )
-			return typeof( return )( matrix_, firstIndex_ + i * leading, columns );
+			return typeof( return )( containerRef_, firstIndex_ + i * leading, columns );
 		else
-			return typeof( return )( matrix_, firstIndex_ + i, columns, leading );
+			return typeof( return )( containerRef_, firstIndex_ + i, columns, leading );
 	}
 	
 	ColumnView column( size_t j )
@@ -83,9 +103,9 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		assert( j < columns, sliceMsg_(0,j,rows,j) );
 	} body {
 		static if( isRowMajor )
-			return typeof( return )( matrix_, firstIndex_ + j, rows, leading );
+			return typeof( return )( containerRef_, firstIndex_ + j, rows, leading );
 		else
-			return typeof( return )( matrix_, firstIndex_ + j * leading, rows );
+			return typeof( return )( containerRef_, firstIndex_ + j * leading, rows );
 	}
 	
 	RowView rowSlice( size_t i, size_t start, size_t end )
@@ -93,9 +113,9 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		assert( i < rows_ && start < end && end <= cols_, sliceMsg_(i,start,i,end) );
 	} body {
 		static if( isRowMajor )
-			return typeof( return )( matrix_, i * leading + start + firstIndex_, end-start );
+			return typeof( return )( containerRef_, i * leading + start + firstIndex_, end-start );
 		else
-			return typeof( return )( matrix_, i + start * leading + firstIndex_, end-start, leading );
+			return typeof( return )( containerRef_, i + start * leading + firstIndex_, end-start, leading );
 	}
 	
 	ColumnView columnSlice( size_t j, size_t start, size_t end )
@@ -103,9 +123,9 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		assert( j < cols_ && start < end && end <= rows_, sliceMsg_(start,j,end,j) );
 	} body {
 		static if( isRowMajor )
-			return typeof( return )( matrix_, j + start * leading + firstIndex_, end-start, leading );
+			return typeof( return )( containerRef_, j + start * leading + firstIndex_, end-start, leading );
 		else
-			return typeof( return )( matrix_, j * leading + start + firstIndex_, end-start );
+			return typeof( return )( containerRef_, j * leading + start + firstIndex_, end-start );
 	}
 	
 	alias slice view;
@@ -146,9 +166,9 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 	}
 	
 	@property {
-		ref MatrixRef        matrix()           { return matrix_; }
-		ElementType*         data()             { return matrix_.data + firstIndex_ ; }
-		const(ElementType)*  cdata()      const { return matrix_.cdata + firstIndex_; }
+		ref ContainerRef     container()        { return containerRef_; }
+		ElementType*         data()             { return containerRef_.data + firstIndex_ ; }
+		const(ElementType)*  cdata()      const { return containerRef_.cdata + firstIndex_; }
 		bool                 empty()      const { return major_ == 0; }
 		size_t               length()     const { return major_; }
 		size_t               rows()       const { return rows_; }
@@ -160,12 +180,18 @@ struct BasicGeneralMatrixViewStorage( MatrixRef_ ) {
 		
 		MajorView front() {
 			
-			return typeof( return )( matrix_, firstIndex_, minor_ );
+			return typeof( return )( containerRef_, firstIndex_, minor_ );
 		}
 		
 		MajorView back() {
-			return typeof( return )( matrix_, firstIndex_ + (major_ - 1) * leading_, minor_ );
+			return typeof( return )( containerRef_, firstIndex_ + (major_ - 1) * leading_, minor_ );
 		}
+	}
+	
+	/** Promotions for this type are inherited from GeneralMatrix */
+	private import scid.storage.generalmat;
+	template Promote( Other ) {
+		alias Promotion!( BasicGeneralMatrix!ContainerRef, Other ) Promote;
 	}
 	
 	mixin GeneralMatrixScalingAndAddition;
@@ -189,28 +215,5 @@ private:
 	}
 	
 	size_t    rows_, cols_, firstIndex_, leading_;
-	MatrixRef matrix_;
-}
-
-mixin template GeneralMatrixTypes( MatrixRef_ ) {
-	alias MatrixRef_                  MatrixRef;
-	alias BaseElementType!MatrixRef   ElementType;
-	alias typeof(this)                Slice;
-	alias storageOrderOf!MatrixRef    storageOrder;
-	
-	enum bool isRowMajor = ( storageOrder == StorageOrder.RowMajor );
-	
-	static if( isRowMajor ) {
-		alias VectorView!(MatrixRef, VectorType.Row)           RowView;
-		alias StridedVectorView!(MatrixRef, VectorType.Column) ColumnView;
-		alias StridedVectorView!(MatrixRef, VectorType.Row)    DiagonalView;
-		alias RowView                                          MajorView;
-		alias ColumnView                                       MinorView;
-	} else {
-		alias VectorView!(MatrixRef, VectorType.Column)        ColumnView;
-		alias StridedVectorView!(MatrixRef, VectorType.Row)    RowView;
-		alias StridedVectorView!(MatrixRef, VectorType.Column) DiagonalView;
-		alias ColumnView                                       MajorView;
-		alias RowView                                          MinorView;
-	}
+	ContainerRef containerRef_;
 }

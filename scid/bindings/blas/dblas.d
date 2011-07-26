@@ -12,7 +12,7 @@ import scid.bindings.blas.blas;
 public import scid.bindings.blas.types;
 import scid.common.fortran;
 
-//debug = blasCalls;
+// debug = blasCalls;
 
 debug( blasCalls ) {
 	import std.stdio, std.range, std.conv;

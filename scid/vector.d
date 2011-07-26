@@ -5,6 +5,7 @@ import scid.storage.arrayview;
 import scid.common.traits;
 import scid.ops.expression;
 import scid.ops.eval;
+import scid.matrix;
 
 import std.traits, std.range, std.algorithm, std.conv;
 
@@ -64,6 +65,8 @@ struct BasicVector( Storage_ ) {
 	alias BasicVector!( typeof(Storage.init.view(0,0,0)) ) StridedView;
 	alias BasicVector!( Storage.Transposed )               Transposed;
 	alias storage                                          this;
+	
+	//static assert( isVectorStorage!Storage );
 	
 	static if( isReference!Storage )
 		alias BasicVector!( ReferencedBy!Storage ) Referenced;
@@ -157,7 +160,7 @@ struct BasicVector( Storage_ ) {
 		return typeof( return )( storage.view( start, end, stride ) );	
 	}
 	
-	static if( isBidirectionalRange!Storage ) {
+	static if( isInputRange!Storage ) {
 		void popFront() { storage.popFront(); }
 		void popBack()  { storage.popBack(); }
 	}
@@ -184,8 +187,20 @@ struct BasicVector( Storage_ ) {
 		return r.data();
 	}
 	
+	alias toString pretty;
+	
 	static if( vectorType == VectorType.Column ) mixin Operand!( Closure.ColumnVector );
 	else                                         mixin Operand!( Closure.RowVector    );
+	
+	template Promote( T ) {
+		static if( is( T S : BasicVector!S ) ) {
+			alias BasicVector!( Promotion!(Storage,S) ) Promote;
+		} else static if( is( T S : BasicMatrix!S ) ) {
+			alias BasicVector!( Promotion!(Storage,S) ) Promote;
+		} else static if( isFortranType!T ) {
+			alias BasicVector!( Promotion!(Storage,T) ) Promote;
+		}
+	}
 	
 	Storage storage;
 }

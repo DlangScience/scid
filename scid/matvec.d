@@ -9,4 +9,4 @@ module scid.matvec;
 public import scid.vector;
 public import scid.matrix;
 public import scid.ops.eval : eval;
-public import scid.ops.expression : t;
+public import scid.ops.expression : t, inv;

@@ -12,6 +12,8 @@ import std.complex;
 import std.traits;
 import std.typecons;
 
+import scid.common.storagetraits;
+
 
 /** Detect whether T is a complex floating-point type. */
 template isComplex(T)
@@ -26,6 +28,26 @@ version(unittest)
     static assert (isComplex!(Complex!double));
     static assert (!isComplex!double);
     static assert (!isComplex!int);
+}
+
+/** Some containers might defer to a different container type to be used when an expression involving views gets
+    evaluated. This is because ArrayViews only require data/cdata methods on their container while ArrayStorages
+    require more functionality that might not be supported by the container type. */
+template ArrayTypeOf( T ) {
+	alias ArrayTypeOfImpl!T.Result ArrayTypeOf;
+}
+
+template ArrayTypeOfImpl( T ) {
+	static if( is( T.ArrayType ) ) {
+		alias T.ArrayType Result;
+	} else {
+		alias ReferencedBy!T R;
+		static if( is( R.ArrayType ) ) {
+			alias R.ArrayType Result;
+		} else {
+			alias T Result;
+		}
+	}	
 }
 
 

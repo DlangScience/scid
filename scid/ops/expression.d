@@ -10,6 +10,7 @@ module scid.ops.expression;
 import scid.common.traits, scid.common.meta;
 import std.traits, std.range;
 import std.conv;
+import std.typecons;
 
 debug( Expression ) {
 	import std.stdio;
@@ -74,9 +75,6 @@ Expression!( op, Unqual!Lhs ) expression( string op, Lhs )( auto ref Lhs lhs ) {
     TODO: Indexing & slicing are not implemented yet.
 */
 struct Expression( string op_, Lhs_, Rhs_ = void ) {
-	/** The element type of the result. */
-	alias BaseElementType!Lhs_ ElementType;
-	
 	/** The type of the left hand side of the operation. */
 	alias Lhs_ Lhs;
 	
@@ -88,6 +86,12 @@ struct Expression( string op_, Lhs_, Rhs_ = void ) {
 	
 	/** Whether the operation is binary. False if it's unary. */
 	enum isBinary   = !is( Rhs : void );
+	
+	/** The element type of the result. */
+	static if( isBinary )
+		alias Promotion!(BaseElementType!Lhs_,BaseElementType!Rhs_) ElementType;
+	else
+		alias BaseElementType!Lhs_ ElementType;
 	
 	/** The closure type of the left hand side. */
 	enum lhsClosure = closureOf!Lhs;
@@ -164,6 +168,11 @@ struct Expression( string op_, Lhs_, Rhs_ = void ) {
 	return typeof( return )( array );
 }
 
+/** Matrix inversion. */
+Expression!( "inv", M ) inv( M )( auto ref M matrix ) if( closureOf!M == Closure.Matrix ) {
+	return typeof( return )( matrix );	
+}
+
 /** Mixin that adds the appropriate operator overloads for any operand - literal or expression. */
 template Operand( Closure closure_ ) {
 	import scid.common.meta : Zero, One, MinusOne;
@@ -221,8 +230,8 @@ template Operand( Closure closure_ ) {
 /** Get the type of the result of an expression. */
 template ExpressionResult( E ) {
 	static if( isLeafExpression!E ) {
-		// if we've reached a leaf, return the type that the leaf refers to
-		alias ReferencedBy!E ExpressionResult;
+		// if we've reached a leaf return it
+		alias E ExpressionResult;
 		
 	} else static if( E.closure == Closure.Scalar ) {
 		// if the node results in a scalar then the result is of the same type as the element type
@@ -231,26 +240,11 @@ template ExpressionResult( E ) {
 	} else static if( isTransposition!(E.operation) ) {
 		// if the node is a transposition then the result is the Transposed of the child node
 		alias ExpressionResult!(E.Lhs).Transposed ExpressionResult;
-		
-	} else static if( E.operation == Operation.RowMatProd ) {
-		// if the node is a row-matrix product then the result is that of the row child
+	} else static if( E.isBinary ) {
+		alias Promotion!(ExpressionResult!(E.Lhs),ExpressionResult!(E.Rhs)) ExpressionResult;
+	} else {
 		alias ExpressionResult!(E.Lhs) ExpressionResult;
-		
-	} else static if( E.operation == Operation.MatColProd ) {
-		// if the node is a matrix-column product then the result is that of the column child
-		alias ExpressionResult!(E.Rhs) ExpressionResult;
-		
-	} else static if( isAddition!(E.operation) || isScaling!(E.operation) ) {
-		// if the node is a vector/matrix sum/scaling then the result is that of the vector/matrix child
-		// note: all scaling ops have the scalar on the rhs
-		alias ExpressionResult!(E.Lhs) ExpressionResult;
-		
-	} else static if( E.operation == Operation.MatMatProd ) {
-		// if the node is a matrix product then the result is that of any of the children
-		alias ExpressionResult!(E.Lhs) ExpressionResult;
-		
-	} else
-		static assert( false, E.stringof ~ " hasn't got a result." );
+	}
 }
 
 /** Operation trait. */
@@ -320,6 +314,40 @@ template isVectorClosure( Closure c ) {
 template closureOf( Operation op ) {
 	enum closureOf = operationClosures[ op ];
 }
+
+/** Find the more general type of two. */
+template Promotion( A, B ) {
+	alias PromotionImpl!(A,B).Result Promotion;	
+}
+
+template isRefCounted( T ) {
+	static if( is( T E : RefCounted!(E, autoInit), uint autoInit ) )
+		enum isRefCounted = true;
+	else
+		enum isRefCounted = false;
+}
+
+template refCountedAutoInitializeOf( T ) {
+	static if(	is( T E : RefCounted!(E, autoInit), uint autoInit ) )
+		enum refCountedAutoInitializeOf = autoInit;
+}
+
+private template PromotionImpl( A, B ) {
+	static if( isFortranType!A && isFortranType!B ) {
+		alias typeof( A.init + B.init ) Result;
+	} else static if( is( A E : RefCounted!(E, autoInit), uint autoInit ) ) {
+		alias Promotion!(E,B) Result;
+	} else static if( is( B E : RefCounted!(E, autoInit), uint autoInit ) )  {
+		alias Promotion!(A,E) Result;
+	} else static if( is(A.Promote!B) ) {
+		alias A.Promote!B Result;
+	} else static if( is(B.Promote!A) ) {
+		alias B.Promote!A Result;
+	} else {
+		static assert( false, "Types '" ~ A.stringof ~ "' and '" ~ B.stringof ~ "' do not define a promotion. " );
+	}
+}
+
 
 // This gives a small compile time boost when checking the closure of a given operation.
 private enum operationClosures = [
@@ -404,5 +432,5 @@ private template operationOf( string op, Closure l, Closure r ) if( op == "-" ) 
 
 private template operationOf( string op, Closure l ) if( op == "inv" ) {
 	static if( l == Closure.Matrix )  { enum operationOf = Operation.MatInverse;  }
-	else static assert( false, "Invalid inversion of " ~ to!string(l) ~ " and " ~ to!string(r) );
+	else static assert( false, "Invalid inversion of " ~ to!string(l) );
 }

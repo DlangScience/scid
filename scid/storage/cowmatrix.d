@@ -10,9 +10,12 @@ module scid.storage.cowmatrix;
 import scid.matrix;
 
 import scid.ops.common;
+import scid.ops.expression;
+
 import scid.storage.arraydata;
 import scid.storage.cowarray;
 import scid.common.meta;
+import scid.common.storagetraits;
 
 import scid.internal.assertmessages;
 import scid.bindings.blas.dblas;
@@ -237,6 +240,17 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 			return i * leading_ + j;
 		else
 			return j * leading_ + i;
+	}
+	
+	/** Promotions for this type. */
+	template Promote( T ) {
+		static if( isArrayContainer!T )
+			// TODO: Implement some kind of rebind for containers
+			alias CowArrayRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
+		else static if( isMatrixContainer!T ) {
+			alias CowMatrixRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
+		} else static if( isFortranType!T )
+			alias CowMatrixRef!(Promotion!(T,ElementType)) Promote;
 	}
 	
 private:

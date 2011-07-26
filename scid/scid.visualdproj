@@ -27,7 +27,7 @@
   <useIn>0</useIn>
   <useOut>0</useOut>
   <useArrayBounds>0</useArrayBounds>
-  <noboundscheck>0</noboundscheck>
+  <noboundscheck>1</noboundscheck>
   <useSwitchError>0</useSwitchError>
   <useUnitTests>0</useUnitTests>
   <useInline>0</useInline>
@@ -101,7 +101,7 @@
   <quiet>0</quiet>
   <verbose>0</verbose>
   <vtls>0</vtls>
-  <symdebug>1</symdebug>
+  <symdebug>0</symdebug>
   <optimize>0</optimize>
   <cpu>0</cpu>
   <isX86_64>0</isX86_64>
@@ -121,7 +121,7 @@
   <useSwitchError>0</useSwitchError>
   <useUnitTests>0</useUnitTests>
   <useInline>0</useInline>
-  <release>0</release>
+  <release>1</release>
   <preservePaths>0</preservePaths>
   <warnings>0</warnings>
   <infowarnings>0</infowarnings>
@@ -204,6 +204,7 @@
    <File path="common\meta.d" />
    <File path="common\testing.d" />
    <File path="common\traits.d" />
+   <File path="ops\storagetraits.d" />
   </Folder>
   <Folder name="internal">
    <File path="internal\assertmessages.d" />
@@ -228,6 +229,7 @@
   <File path="vector.d" />
   <File path="matrix.d" />
   <File path="matvec.d" />
-  <File path="main.d" />
+  <File path="demo.d" />
+  <File path="storages.d" />
  </Folder>
 </DProject>

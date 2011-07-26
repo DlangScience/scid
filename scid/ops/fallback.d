@@ -13,7 +13,7 @@ import scid.ops.expression;
 import scid.ops.common;
 import scid.ops.eval;
 
-//debug = fallbackCalls;
+// debug = fallbackCalls;
 
 debug( fallbackCalls ) {
 	import std.stdio : write, writeln, stdout;
@@ -117,11 +117,11 @@ void fallbackScaling( Scalar, Dest )( Scalar alpha, auto ref Dest dest ) {
 	enum destClosure = closureOf!Dest;
 	static if( isVectorClosure!destClosure ) {
 		auto l = dest.length;
-		debug( fallbackCalls ) write( "fbscal( ", alpha, ", ", to!string(dest), " ) => " );
+		debug( fallbackCalls ) write( "fbscal( ", alpha, ", ", dest.toString, " ) => " );
 		for( size_t i = 0; i < l ; ++ i )
 			dest[ i ] *= alpha;
-		debug( fallbackCalls ) writeln( to!string(dest) );	
-	} else static if( closure == Closure.Matrix ) {
+		debug( fallbackCalls ) writeln( dest.toString() );	
+	} else static if( destClosure == Closure.Matrix ) {
 		static if( storageOrderOf!Dest == StorageOrder.RowMajor ) {
 			size_t n = dest.rows;
 			for( auto i = 0; i < n ; ++ i )
@@ -143,12 +143,12 @@ void fallbackCopy( Transpose srcTrans, Source, Dest )( auto ref Source source, a
 	
 	static if( isVectorClosure!destClosure ) {
 		// fallback vector copy
-		debug( fallbackCalls ) { write( "fbcopy( ", to!string(source), ", ", to!string(dest), " ) => " ); }
+		debug( fallbackCalls ) { write( "fbcopy( ", source.toString(), ", ", dest.toString(), " ) => " ); }
 		assert( source.length == dest.length, "fbcopy: Length mismatch in fallback vector assignment." );
 		auto n = dest.length;
 		for( size_t i = 0 ; i < n ; ++ i )
 			dest[ i ] = source[ i ];
-		debug( fallbackCalls ) writeln( to!string(dest) );
+		debug( fallbackCalls ) writeln( dest.toString() );
 	} else static if( destClosure == Closure.Matrix ) {
 		// fallback matrix copy - copy major-by-major
 		size_t m = tr ? source.columns : source.rows;
@@ -171,25 +171,26 @@ void fallbackCopy( Transpose srcTrans, Source, Dest )( auto ref Source source, a
 	} else static assert( false );
 }
 
-/** Performs a scaled addition on a matrix or vector (i.e. axpy in BLAS terms, a*alpha + b). Vectors are processed,
+/** Performs a scaled addition on a matrix or vector (i.e. axpy in BLAS terms, a*alpha + b). Vectors are processed
     manually, while matrices fall back on vector routines.
 */
 void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
-		( Scalar scalar, auto ref Source src, auto ref Dest dest ) {
-	enum destClosure = closureOf!Dest;		
+		( Scalar alpha, auto ref Source source, auto ref Dest dest ) {
+	enum destClosure = closureOf!Dest;
+	alias srcTrans tr;
 			
 	static if( isVectorClosure!destClosure ) {	
 		// fallback vector axpy
 		auto alphaValue = eval( alpha );
 		debug( fallbackCalls ) {
 			auto dummy = dest.data;
-			write( "fbaxpy( ", alphaValue, ", ", to!string(source), ", ", to!string(dest), " ) => " );
+			write( "fbaxpy( ", alphaValue, ", ", source.toString(), ", ", dest.toString(), " ) => " );
 		}
 		assert( source.length == dest.length, "Length mismatch in fallback vector addition." );
 		auto n = dest.length;
 		for( size_t i = 0 ; i < n ; ++ i )
 			dest[ i ] += source[ i ] * alphaValue;	
-		debug( fallbackCalls ) writeln( to!string(dest) );
+		debug( fallbackCalls ) writeln( dest.toString() );
 	} else static if( destClosure == Closure.Matrix ) {
 		// fallback matrix axpy - axpy major-by-major
 		auto alphaValue = eval( alpha );
@@ -207,4 +208,9 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 				else            evalScaledAddition( alpha, source.column(i), dest.column( i ) );
 		}
 	} else static assert( false );		
+}
+
+/** Solves a linear problem (i.e. sv/sm in BLAS terms). */
+void fallbackSolve( Transpose transM, M, Dest )( auto ref M mat, auto ref Dest dest ) {
+	static assert( false, "Solve is not implemented for " ~ M.stringof ~ " and " ~ Dest.stringof );
 }

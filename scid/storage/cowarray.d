@@ -10,8 +10,9 @@ module scid.storage.cowarray;
 import scid.internal.assertmessages;
 import scid.storage.arraydata;
 import scid.bindings.blas.dblas;
-import scid.common.meta;
-
+import scid.common.meta, scid.common.storagetraits;
+import scid.storage.cowmatrix, scid.matrix;
+import scid.ops.expression;
 import std.typecons, std.algorithm, std.array;
 import std.conv;
 
@@ -132,6 +133,9 @@ struct CowArray( ElementType_ ) {
 	}
 	
 	@property {
+		/** Get a const ref to the wrapped ArrayData. */
+		ref const(Data) arrayData() const { return data_; }
+		
 		/** Get a mutable pointer to the memory used by this storage. */
 		ElementType* data() {
 			unshareData_();
@@ -190,6 +194,14 @@ struct CowArray( ElementType_ ) {
 			assert( !empty, msgPrefix_ ~ "back get on empty." );
 		} body {
 			return *(ptr_ + length_ - 1);
+		}
+	}
+	
+	template Promote( T ) {
+		static if( isArrayContainer!T || isMatrixContainer!T ) {
+			alias CowArrayRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
+		} else static if( isFortranType!T ) {
+			alias CowArrayRef!(Promotion!(T,ElementType)) Promote;
 		}
 	}
 	

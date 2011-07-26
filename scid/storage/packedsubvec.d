@@ -3,25 +3,28 @@ module scid.storage.packedsubvec;
 import scid.internal.assertmessages;
 import scid.ops.common;
 import scid.vector, scid.matrix;
-import scid.common.traits;
+import scid.common.storagetraits;
+import scid.common.meta;
 import scid.ops.eval;
-import std.algorithm, std.traits, std.range;
+import std.algorithm, std.traits, std.range, std.conv;
+import scid.storage.array;
 
 
-struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
+struct PackedSubVectorStorage( ContainerRef_, VectorType vtype_ ) {
 	alias vtype_                                                           vectorType;
-	alias MatrixRef_                                                       MatrixRef;
-	alias BaseElementType!MatrixRef                                        ElementType;
-	alias PackedSubVectorStorage!( MatrixRef, transposeVectorType!vtype_ ) Transposed;
+	alias ContainerRef_                                                       ContainerRef;
+	alias BaseElementType!ContainerRef                                        ElementType;
+	alias PackedSubVectorStorage!( ContainerRef, transposeVectorType!vtype_ ) Transposed;
+	// alias ArrayStorage!(ArrayTypeOf!ContainerRef)                             Referenced
 	alias typeof(this)                                                     Slice;
 	alias typeof(this)                                                     View;
 	alias typeof(this)                                                     StridedView;
 	
 	enum bool isRow   = ( vectorType       == VectorType.Row );
-	enum bool isUpper = ( matrix_.triangle == MatrixTriangle.Upper );
+	enum bool isUpper = ( containerRef_.triangle == MatrixTriangle.Upper );
 	
-	this( ref MatrixRef matrixRef, size_t fixed, size_t start, size_t len ) {
-		matrix_ = matrixRef;
+	this( ref ContainerRef containerRef, size_t fixed, size_t start, size_t len ) {
+		containerRef_ = containerRef;
 		fixed_  = fixed;
 		start_  = start;
 		length_ = len;
@@ -32,7 +35,7 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		move( rhs.matrix_, matrix_ );	
+		move( rhs.containerRef_, containerRef_ );	
 		fixed_  = rhs.fixed_;
 		start_  = rhs.start_;
 		length_ = rhs.length_;
@@ -40,11 +43,20 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		return this;
 	}
 	
+	void resize( size_t newLength ) {
+		resize( newLength, null );
+		scale( Zero!ElementType );
+	}
+	
+	void resize( size_t newLength, void* ) {
+		assert( newLength == length_, msgPrefix_ ~ "Cannot change length of packed subvector." );
+	}
+	
 	Slice slice( size_t start, size_t end )
 	in {
 		assert( start < end && end <= length_, sliceMsg_( start, end ) );
 	} body {
-		return typeof( return )( matrix_, fixed_, start + start_, end - start );	
+		return typeof( return )( containerRef_, fixed_, start + start_, end - start );	
 	}
 	
 	View view( size_t start, size_t end ) {
@@ -59,30 +71,30 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 	in {
 		assert( i < length, boundsMsg_( i ) );
 	} body {
-		static if( isRow ) return matrix_.index( fixed_, i + start_ );
-		else               return matrix_.index( i + start_, fixed_ );
+		static if( isRow ) return containerRef_.index( fixed_, i + start_ );
+		else               return containerRef_.index( i + start_, fixed_ );
 	}
 	
 	void indexAssign( string op="" )( ElementType rhs, size_t i )
 	in {
 		assert( i < length, boundsMsg_( i ) );
 	} body {
-		static if( isRow ) matrix_.indexAssign!op( rhs, fixed_, i + start_ );
-		else               matrix_.indexAssign!op( rhs, i + start_, fixed_ );
+		static if( isRow ) containerRef_.indexAssign!op( rhs, fixed_, i + start_ );
+		else               containerRef_.indexAssign!op( rhs, i + start_, fixed_ );
 	}
 	
-	void copy( Transpose tr = Transpose.yes, S )( S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void copy( Transpose tr = Transpose.yes, S )( auto ref S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( rhs.length == length, sliceAssignMsg_( 0, length, rhs.length ) );
 	} body {
 		slicedCopy_!tr( rhs, 0, length_ );
 	}
 	
-	void scaledAddition( Transpose tr = Transpose.yes, S )( ref S rhs, ElementType alpha ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void scaledAddition( Transpose tr = Transpose.yes, S )( ElementType alpha, auto ref S rhs ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
-		assert( rhs.length <= length, fmt( msgPrefix_ ~ "axpy length mismatch %d vs %d", length, rhs.length ) ); 
+		assert( rhs.length <= length, msgPrefix_ ~ "axpy length mismatch " ~ to!string(length) ~ " vs. " ~ to!string(rhs.length) ); 
 	} body {
-		slicedScaledAddition_!tr( rhs, alpha, 0, length_ );
+		slicedScaledAddition_!tr( alpha, rhs, 0, length_ );
 	}
 	
 	void scale( ElementType rhs ) {
@@ -104,7 +116,7 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 	}
 	
 	@property {
-		ref MatrixRef        matrix()       { return matrix_; }
+		ref ContainerRef        matrix()       { return containerRef_; }
 		size_t               start()  const { return start_; }
 		size_t               fixed()  const { return fixed_; }
 		size_t               length() const { return length_; }
@@ -139,10 +151,15 @@ struct PackedSubVectorStorage( MatrixRef_, VectorType vtype_ ) {
 		}
 	}
 	
+	/** Promotions for this type are inherited from ArrayStorage */
+	template Promote( Other ) {
+		alias Promotion!( BasicArrayStorage!(ArrayTypeOf!ContainerRef, vectorType), Other ) Promote;
+	}
+	
 private:
 	mixin ArrayErrorMessages;
 
-	void slicedCopy_( Transpose tr = Transpose.yes, S )( ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void slicedCopy_( Transpose tr = Transpose.yes, S )( auto ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 		assert( end-start == rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
@@ -169,7 +186,7 @@ private:
 			indexAssign!"*"( rhs, i );
 	}
 	
-	void slicedScaledAddition_( Transpose tr = Transpose.yes, S )( ref S rhs, ElementType alpha, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
+	void slicedScaledAddition_( Transpose tr = Transpose.yes, S )( ElementType alpha, auto ref S rhs, size_t start, size_t end ) if( isInputRange!(Unqual!S) && hasLength!(Unqual!S) )
 	in {
 		assert( start < end && end <= length, sliceMsg_( start, end ) );
 		assert( end-start >= rhs.length, sliceAssignMsg_( start, end, rhs.length )  );
@@ -206,6 +223,6 @@ private:
 		}
 	}
 
-	MatrixRef matrix_;
+	ContainerRef containerRef_;
 	size_t    fixed_, start_, length_;
 }

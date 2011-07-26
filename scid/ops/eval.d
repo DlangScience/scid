@@ -38,9 +38,9 @@ auto eval(string op_, Lhs, Rhs)( auto ref Expression!(op_, Lhs, Rhs) expr )
 }
 
 /** Evaluate a matrix or vector expression. */
-auto eval( E )( auto ref E expr ) if( isExpression!E && E.closure != Closure.Scalar ) {
+ExpressionResult!E  eval( E )( auto ref E expr ) if( isExpression!E && E.closure != Closure.Scalar ) {
 	// ExpressionResult gives you the type required to save the result of an expression.
-	ExpressionResult!E result;
+	typeof(return) result;
 	evalCopy( expr, result );
 	return result;
 }
@@ -90,8 +90,17 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 		"Incompatible types for assignment '" ~ to!string(srcClosure) ~
 		"' and '" ~ to!string(dstClosure) ~ "'."
 	);
+	
+	void resizeDest() {
+		static if( srcClosure == Closure.Matrix )
+			// matrix resizing
+			dest.storage.resize( source.rows, source.columns );
+		else
+			// vector resizing
+			dest.storage.resize( source.length );
+	}
 
-	static if( isLeafExpression!Source || __traits( compiles, dest.storage.copy!tr( source.storage ) ) ) {
+	static if( __traits( compiles, dest.storage.copy!tr( source.storage ) ) ) {
 		// call custom copy routine on destination
 		dest.storage.copy!tr( source.storage );
 	} else static if( __traits( compiles, source.storage.copyRight!tr( dest.storage ) ) ) {
@@ -101,13 +110,7 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 		enum op = Source.operation;
 		static if( isScaling!op ) {
 			// copy from a scaling operation - clear the destination & axpy with 1*source
-			static if( srcClosure == Closure.Matrix )
-				// matrix resizing
-				dest.storage.resize( source.rows, source.columns );
-			else
-				// vector resizing
-				dest.storage.resize( source.length );
-				
+			resizeDest();
 			evalScaledAddition!tr( source.rhs, source.lhs, dest );
 		} else static if( isAddition!op ) {
 			// copy from an addition - copy the first operand and axpy with the second
@@ -130,8 +133,10 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 			// can't solve the expression - use a temporary by calling eval
 			evalCopy!tr( eval(source), dest );
 		}
-	} else
+	} else {
+		resizeDest();
 		fallbackCopy!tr( source, dest );
+	}
 		
 }
 
@@ -222,6 +227,21 @@ void evalMatrixProduct( Transpose transA = Transpose.no, Transpose transB = Tran
 			evalMatrixProduct!(transA,transB)( alpha * a.rhs, a.lhs, b, beta, dest ); 
 		} else static if( A.operation == Operation.MatTrans ) {
 			evalMatrixProduct!( transNot!transA, transB )( alpha, a.lhs, b, beta, dest );
+		} else static if( A.operation == Operation.MatInverse ) {
+			auto betaValue = eval( beta );
+			if( !betaValue ) {
+				// dest = vec * alpha; dest = inv(mat.lhs) * dest
+				evalCopy!transB( b * alpha, dest );
+				evalSolve!transA( a.lhs, dest );
+			} else {
+				static if( transB )
+					auto tmp = eval( b.t * alpha );
+				else
+					auto tmp = eval( b * alpha );
+				evalSolve!transM( a, tmp );
+				evalScaling( beta, dest );
+				evalScaledAddition( alpha, tmp, dest );
+			}
 		} else {
 			evalMatrixProduct!( transA, transB )( alpha, eval(a), b, beta, dest );
 		}
@@ -260,18 +280,10 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 		mat.storage.matrixVectorProduct!(transM,transV)( alpha, vec.storage, beta, dest );
 	} else static if( __traits( compiles, mat.storage.mv!(transM,transV)( eval( alpha ), vec.storage, eval(beta), dest ) ) ) {
 		mat.storage.matrixVectorProduct!(transM,transV)( eval( alpha ), vec.storage, eval(beta), dest );
-	} else static if( __traits( compiles, vec.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, beta, dest ) ) ) {
-		mat.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, beta, dest );
-	} else static if( __traits( compiles, vec.storage.mvRight!(transM,transV)( eval( alpha ), mat.storage, eval( beta ), dest ) ) ) {
-		mat.storage.matrixVectorProductRight!(transM,transV)( eval( alpha ), vec.storage, eval( beta ), dest );
-	} else static if( isExpression!Mat ) {
-		static if( Mat.operation == Operation.MatScalProd ) {
-			evalMatrixVectorProduct!( transM, transV )( alpha * mat.rhs, mat.lhs, vec, beta, dest );
-		} else static if( Mat.operation == Operation.MatTrans ) {
-			evalMatrixVectorProduct!( transNot!transM, transV )( alpha, mat.lhs, vec, beta, dest );
-		} else {
-			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat), vec, beta, dest );	
-		}
+	} else static if( __traits( compiles, dest.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, vec.storage, eval( beta ) ) ) ) {
+		dest.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, vec.storage, eval( beta ) );
+	} else static if( __traits( compiles, dest.storage.matrixVectorProductRight!(transM,transV)( eval( alpha ), mat.storage, vec.storage, eval( beta ) ) ) ) {
+		dest.storage.matrixVectorProductRight!(transM,transV)( eval( alpha ), mat.storage, vec.storage, eval( beta ) );
 	} else static if( isExpression!Vec ) {
 		static if( Vec.operation == Operation.RowScalProd || Vec.operation == Operation.ColScalProd ) {
 			evalMatrixVectorProduct!( transM, transV )( alpha * vec.rhs, mat, vec.lhs, beta, dest );
@@ -280,10 +292,70 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 		} else {
 			evalMatrixVectorProduct!( transM, transV )( alpha, mat, eval(vec), beta, dest );
 		}
+	} else static if( isExpression!Mat ) {
+		static if( Mat.operation == Operation.MatScalProd ) {
+			evalMatrixVectorProduct!( transM, transV )( alpha * mat.rhs, mat.lhs, vec, beta, dest );
+		} else static if( Mat.operation == Operation.MatTrans ) {
+			evalMatrixVectorProduct!( transNot!transM, transV )( alpha, mat.lhs, vec, beta, dest );
+		} else static if( Mat.operation == Operation.MatInverse ) {
+			// d = inv(A) * v
+			auto betaValue = eval( beta );
+			if( !betaValue ) {
+				// dest = vec * alpha; dest = inv(mat.lhs) * dest
+				evalCopy!transV( vec * alpha, dest );
+				evalSolve!transM( mat.lhs, dest );
+			} else {
+				static if( transV )
+					auto tmp = eval( vec.t * alpha );
+				else
+					auto tmp = eval( vec * alpha );
+				evalSolve!transM( mat, tmp );
+				evalScaling( beta, dest );
+				evalScaledAddition( alpha, tmp, dest );
+			}
+		} else {
+			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat), vec, beta, dest );	
+		}
 	} else {
 		auto vAlpha = eval( alpha );
 		auto vBeta  = eval( beta );
 		fallbackMatrixVectorProduct!(transM, transV)( vAlpha, mat, vec, vBeta, dest );
+	}
+}
+
+/** Solve linear system (D := M^^(-1) * D). */
+void evalSolve( Transpose transM = Transpose.no, Mat, Dest )( auto ref Mat mat, auto ref Dest dest ) {
+	alias BaseElementType!Mat T;
+	
+	static assert( isLeafExpression!Dest );
+	
+	static if( __traits( compiles, dest.storage.solve!transM( mat.storage ) ) ) {
+		dest.storage.solve!transM( dest.storage );
+	} else static if( isLeafExpression!Mat || __traits( compiles, mat.storage.solveRight!transM( dest.storage ) ) ) {
+		mat.storage.solveRight!transM( dest.storage );
+	} else static if( isExpression!Mat ) {
+		static if( Mat.operation == Operation.MatScalProd ) {
+			// inv(x*A)*D = inv(A) * (D / x)
+			evalScal( One!T / mat.rhs, dest );
+			evalSolve!transM( mat.lhs, dest );
+		} else static if( Mat.operation == Operation.MatTrans ) {
+			// inv(A.t) * D
+			evalSolve!(transNot!transM)( mat.lhs, dest );
+		} else static if( Mat.operation == Operation.MatMatProd ) {
+			static if( !transM ) {
+				// inv(A*B) * D = inv(B) * (inv(A) * D);
+				evalSolve( mat.lhs, dest );
+				evalSolve( mat.rhs, dest );
+			} else {
+				// inv(A*B).t * D = inv(A).t * (inv(B).t * D);
+				evalSolve!transM( mat.rhs, dest );
+				evalSolve!transM( mat.lhs, dest );
+			}
+		} else {
+			evalSolve!transM( eval(mat), dest );
+		}
+	} else {
+		fallbackSolve!transM( mat, dest );
 	}
 }
 
@@ -310,9 +382,6 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 			return r;
 	} else static if( isExpression!A ) {
 		static if( A.operation == Operation.RowScalProd || A.operation == Operation.ColScalProd ) {
-			pragma( msg, A );
-			pragma( msg, to!string(A.operation) );
-			static assert(false);
 			return evalDot!(transA,transB)(a.lhs, b) * a.rhs;
 		} else static if( A.operation == Operation.RowTrans || A.operation == Operation.ColTrans ) {
 			return evalDot!( transNot!transA, transB )( a.lhs, b );

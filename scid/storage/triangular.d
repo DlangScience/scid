@@ -4,8 +4,10 @@ import scid.internal.assertmessages;
 import scid.storage.cowarray;
 import scid.storage.packedmat;
 import scid.matrix, scid.vector;
-import scid.common.traits;
+import scid.common.storagetraits;
+import scid.ops.expression;
 import std.math, std.algorithm;
+import std.exception;
 
 template TriangularStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
 	if( isFortranType!(BaseElementType!ElementOrArray) ) {
@@ -19,6 +21,7 @@ template TriangularStorage( ElementOrArray, MatrixTriangle triangle = MatrixTria
 struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder storageOrder_ ) {
 	alias ContainerRef_                ContainerRef;
 	alias BaseElementType!ContainerRef ElementType;
+	alias ContainerRef                 ArrayType;
 	
 	alias TriangularArrayAdapter!(
 		ContainerRef,
@@ -34,37 +37,77 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	
 	this( size_t newSize ) {
 		size_  = newSize;
-		array_ = ContainerRef( newSize * (newSize + 1) / 2 );
+		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2 );
 	}
 	
 	this( size_t newSize, void* ) {
 		size_  = newSize;
-		array_ = ContainerRef( newSize * (newSize + 1) / 2, null );
+		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, null );
 	}
 	
 	this( ElementType[] initializer ) {
 		auto tri  = (sqrt( initializer.length * 8.0 + 1.0 ) - 1.0 ) / 2.0;
 		
-		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
+		enforce( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
 		size_  = cast(size_t) tri;
-		array_ = ContainerRef( initializer );
+		containerRef_ = ContainerRef( initializer );
 	}
 	
+	this( ElementType[][] initializer ) {
+		if( !initializer.length )
+			return;
+		
+		size_  = initializer.length;
+		containerRef_ = ContainerRef( packedArrayLength(size_) , null );
+		
+		foreach( i ; 0 .. size_ ) {
+			static if( isUpper ) {
+				foreach( j ; i .. size_ )
+					this.indexAssign( initializer[ i ][ j ], i, j );
+			} else {
+				foreach( j ; 0 .. (i+1) )
+					this.indexAssign( initializer[ i ][ j ], i, j );
+			}
+		}
+	}
+	
+	void resize( size_t newRows, size_t newCols ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen );
+		else
+			containerRef_.resize( arrlen );
+		
+		size_ = newRows;
+	}
+	
+	void resize( size_t newRows, size_t newCols, void* ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen, null );
+		else
+			containerRef_.resize( arrlen, null );
+		
+		size_ = newRows;
+	}
+	
+	
 	this( typeof(this) *other ) {
-		array_ = ContainerRef( other.array_.ptr );
+		containerRef_ = ContainerRef( other.containerRef_.ptr );
 		size_  = other.size_;
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.array_, array_ );
+		move( rhs.containerRef_, containerRef_ );
 		size_  = rhs.size_;
 		return this;
-	}
-	
-	void resize( size_t size ) {
-		array_ = ContainerRef( size*(size+1)/2, null );
-		size_  = size;
 	}
 	
 	ElementType index( size_t i, size_t j ) const
@@ -79,7 +122,7 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 				return zero_;
 		}
 		
-		return array_.index( map_( i, j ) );
+		return containerRef_.index( map_( i, j ) );
 	}
 	
 	private void indexAssign(string op = "" )( ElementType rhs, size_t i, size_t j )
@@ -90,13 +133,13 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 		else
 			assert( i >= j, "Modification of zero element in triangle matrix." );
 	} body {
-		array_.indexAssign!op(rhs, map_( i, j ) );
+		containerRef_.indexAssign!op(rhs, map_( i, j ) );
 	}
 	
 	@property {
 		typeof(this)*       ptr()         { return &this; }
-		ElementType*        data()        { return array_.data; }
-		const(ElementType)* cdata() const { return array_.cdata; }
+		ElementType*        data()        { return containerRef_.data; }
+		const(ElementType)* cdata() const { return containerRef_.cdata; }
 		size_t              size()  const { return size_; }
 	}
 	
@@ -105,7 +148,16 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	alias size major;
 	alias size minor;
 	
+	template Promote( Other ) {
+		private import scid.storage.generalmat;
+	}
+	
 private:
+	bool isInitd_() const {
+		// TODO: This assumes the reference type is RefCounted. Provide a more general impl.
+		return containerRef_.RefCounted.isInitialized();	
+	}
+	
 	mixin MatrixErrorMessages;
 
 	enum zero_ = cast(ElementType)(0.0);
@@ -123,6 +175,6 @@ private:
 	}
 	
 	size_t   size_;
-	ContainerRef array_;
+	ContainerRef containerRef_;
 }
 

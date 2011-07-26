@@ -1,0 +1,11 @@
+scid/Debug
+scid/Release
+deps
+generated
+old
+*.di
+*.exe
+*.dll
+*.html
+*.deps
+*.zip

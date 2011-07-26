@@ -16,6 +16,7 @@ import scid.ops.eval;
 import scid.common.traits;
 
 import scid.bindings.blas.dblas;
+import scid.bindings.lapack.dlapack;
 
 /** Generic complex conjugate that works on both builtin complex numbers and on std.Complex */
 auto gconj( T )( T z ) if( is( T : cdouble ) || is( T : cfloat ) ) {
@@ -104,6 +105,8 @@ mixin template StridedScalingAdditionDot() {
 
 /** Mixin template that provides scaledAddition() and scale() for general matrix storage types. */
 mixin template GeneralMatrixScalingAndAddition() {
+	import scid.bindings.lapack.dlapack;
+	
 	void scaledAddition( S )( ElementType alpha, auto ref S rhs ) if( isGeneralMatrixStorage!(S, ElementType) ) {
 		assert( rhs.rows == this.rows && rhs.columns == this.columns, "Matrix size mismatch in addition." );
 		static assert( isGeneralMatrixStorage!(typeof(this), ElementType) );
@@ -115,9 +118,41 @@ mixin template GeneralMatrixScalingAndAddition() {
 		);
 	}
 	
-	void scale()( ElementType alpha ) {
+	void scale( ElementType alpha ) {
 		static assert( isGeneralMatrixStorage!(typeof(this), ElementType) );
 		generalMatrixScaling!storageOrder( this.rows, this.columns, alpha, this.data, this.leading );
+	}
+	
+	void solveRight( Transpose trans, Dest )( auto ref Dest dest ) if( isStridedVectorStorage!Dest ) {
+		static if( transposeStorageOrder!(storageOrder, trans) != StorageOrder.ColumnMajor ) {
+			static assert( false, "Non column-major matrix or row vector for SolveVector." );
+		}
+		auto ipiv = new int[ this.rows ];
+		auto cpy = this;
+		int info;
+		if( dest.stride == 1 )
+			gesv( cpy.rows, dest.length, cpy.data, cpy.leading, ipiv.ptr, dest.data, dest.length, info );
+		else {
+			static assert( is(Dest.Referenced), "sv: Stride != 1 in non-view type." );
+			Dest.Referenced destValue = dest;
+			assert( destValue.stride == 1 );
+			gesv( cpy.rows, dest.length, cpy.data, cpy.leading, ipiv.ptr, destValue.data, dest.length, info );
+		}
+		assert( info <= 0, "sv: Singular matrix in inversion." );
+			
+	}
+	
+	void solveRight( Transpose trans, Dest )( auto ref Dest dest ) if( isGeneralMatrixStorage!Dest ) {
+		static if( transposeStorageOrder!(storageOrder, trans) != StorageOrder.ColumnMajor &&
+				   storageOrderOf!Dest == StorageOrder.RowMajor ) {
+			static assert( false, "Non column-major matrix or row vector for SolveVector." );
+		}
+		
+		auto ipiv = new int[ this.rows ];
+		auto cpy = this;
+		int info;
+		// gesv( cpy.rows, dest.length, thisCopy.data, cpy.leading, ipiv.ptr, dest.data, dest.leading, info );
+		assert( info <= 0, "sm: Singular matrix in inversion." );
 	}
 }
 

@@ -11,7 +11,8 @@ import scid.vector;
 
 import scid.ops.eval, scid.ops.common;
 import scid.storage.array, scid.storage.cowarray;
-import scid.common.traits, scid.common.meta;
+import scid.common.meta;
+import scid.common.storagetraits;
 import std.traits, std.range, std.algorithm;
 import scid.internal.assertmessages;
 
@@ -297,6 +298,11 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 		}
 	}
 	
+	/** Promotions for this type are inherited from ArrayStorage */
+	template Promote( Other ) {
+		alias Promotion!( BasicArrayStorage!(ArrayTypeOf!ContainerRef, vectorType), Other ) Promote;
+	}
+	
 private:
 	mixin ArrayErrorMessages;
 
@@ -327,26 +333,6 @@ private:
 	
 	size_t firstIndex_, length_;
 	ContainerRef containerRef_;
-}
-
-/** Some containers might defer to a different container type to be used when an expression involving views gets
-    evaluated. This is because ArrayViews only require data/cdata methods on their container while ArrayStorages
-    require more functionality that might not be supported by the container type. */
-template ArrayTypeOf( T ) {
-	alias ArrayTypeOfImpl!T.Result ArrayTypeOf;
-}
-
-template ArrayTypeOfImpl( T ) {
-	static if( is( T.ArrayType ) ) {
-		alias T.ArrayType Result;
-	} else {
-		alias ReferencedBy!T R;
-		static if( is( R.ArrayType ) ) {
-			alias R.ArrayType Result;
-		} else {
-			alias T Result;
-		}
-	}	
 }
 
 unittest {

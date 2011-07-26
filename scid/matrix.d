@@ -6,6 +6,7 @@ import scid.storage.generalmat;
 import scid.storage.triangular;
 import scid.storage.symmetric;
 import scid.common.traits;
+import scid.vector;
 
 import std.algorithm, std.range, std.conv;
 
@@ -92,6 +93,8 @@ struct BasicMatrix( Storage_ ) {
 	alias BasicMatrix!( Storage.Transposed ) Transposed;
 	alias storage                            this;
 	
+	//static assert( isMatrixStorage!Storage );
+	
 	enum isRowMajor = ( storageOrder == StorageOrder.RowMajor );
 	
 	static if( isRowMajor ) {
@@ -102,20 +105,8 @@ struct BasicMatrix( Storage_ ) {
 		alias ColumnView MajorView;
 	}
 	
-	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) && !isExpression!(A[0]) && !is( A[0] : ElementType[][] ) ) {
+	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isMatrix!(A[0]) && !isExpression!(A[0]) ) {
 		storage = Storage( args );
-	}
-	
-	this()( ElementType[][] initializer ) {
-		if( initializer.length == 0 || initializer[0].length == 0)
-			return;
-		
-		storage = Storage();
-		storage.resize( initializer.length, initializer[0].length, null );
-		foreach( i ; 0 .. this.rows ) {
-			assert( initializer[i].length == this.columns );
-			this.row( i )[] = initializer[ i ].t;
-		}
 	}
 	
 	this( A )( BasicMatrix!(A, vectorType) other ) {
@@ -300,7 +291,17 @@ struct BasicMatrix( Storage_ ) {
 		}	
 	}
 	
+	template Promote( S : BasicVector!S ) {
+		alias BasicVector!( Promotion!(Storage,S) ) Promote;
+	}
 	
+	template Promote( S : BasicMatrix!S ) {
+		alias BasicMatrix!( Promotion!(Storage,S) ) Promote;
+	}
+	
+	template Promote( T ) if( isFortranType!T ) {
+		alias BasicMatrix!( Promotion!(Storage,T) ) Promote;
+	}
 }
 
 version( unittest ) {
