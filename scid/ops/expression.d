@@ -339,10 +339,10 @@ private template PromotionImpl( A, B ) {
 		alias Promotion!(E,B) Result;
 	} else static if( is( B E : RefCounted!(E, autoInit), uint autoInit ) )  {
 		alias Promotion!(A,E) Result;
-	} else static if( is(A.Promote!B) ) {
-		alias A.Promote!B Result;
-	} else static if( is(B.Promote!A) ) {
-		alias B.Promote!A Result;
+	} else static if( is(A.Promote!B R) ) {
+		alias R Result;
+	} else static if( is(B.Promote!A R) ) {
+		alias R Result;
 	} else {
 		static assert( false, "Types '" ~ A.stringof ~ "' and '" ~ B.stringof ~ "' do not define a promotion. " );
 	}

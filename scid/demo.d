@@ -4,6 +4,9 @@ import std.range, std.exception;
 import std.typetuple, std.demangle;
 import std.complex;
 import scid.common.traits, scid.common.meta;
+import scid.internal.regionallocator;
+
+version = demo;
 
 version( demo ) {
 	import scid.matvec;
@@ -118,13 +121,13 @@ version( demo ) {
 	/** Some of these types have to be disabled otherwise the compiler runs out of memory. */
 	template MatrixTypes( T ) {
 		alias TypeTuple!(
-			Matrix!T,
+			//Matrix!T,
 			// Matrix!(T,StorageOrder.RowMajor),
 			TriangularMatrix!T,
-			// TriangularMatrix!(T, MatrixTriangle.Lower ),
-			// TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
-			// TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
-			SymmetricMatrix!T,
+			TriangularMatrix!(T, MatrixTriangle.Lower ),
+			TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
+			TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
+			//SymmetricMatrix!T,
 			// SymmetricMatrix!(T, MatrixTriangle.Lower ),
 			// SymmetricMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			// SymmetricMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor)
@@ -133,7 +136,7 @@ version( demo ) {
 	
 	/** Syntactically test all the operations on all the matrix types. */
 	void opTest()() {
-		alias TypeTuple!(double,cdouble) ElementTypes;
+		alias TypeTuple!(cdouble) ElementTypes;
 		foreach(Element; ElementTypes) {
 			enum z = Zero!Element;
 			Element[][] minit = [[z, z, z], [z, z, z], [z, z, z]];
@@ -153,10 +156,12 @@ version( demo ) {
 	}
 	
 	void main() {
-		opTest();
+	
+		// opTest();
 		basicExpressions();
 		rangeInterface();
 		dataInterface();
+		
 		readln();
 	}
 }

@@ -70,8 +70,6 @@ template isVectorStorage( T ) {
 		}()) );
 }
 
-static assert( !isVectorStorage!float );
-
 template isMatrixStorage( T ) {
 	enum isMatrixStorage =
 		//isBasicStorage!T &&
@@ -100,43 +98,16 @@ template isMatrixContainer( T ) {
 		isFortranType!(BaseElementType!T) &&
 		hasMatrixDimensions!T;
 }
-
-version( unittest ) {
-	template assertIsMatrixContainer( T ) {
-		static assert( isFortranType!(BaseElementType!T) 					   );
-		static assert( is( typeof(T.init.rows) == typeof(T.init.columns) ) 	   );
-		static assert( is( typeof(T.init.leading) == typeof(T.major) ) 		   );
-		static assert( is( typeof(T.length) == typeof( T.minor ) )  		   );
-		static assert( is( T.Transposed ) 									   );
-		static assert( is( typeof( storageOrderOf!T ) ) 					   );
-		static assert( is( typeof((){
-			T mat;                      // can create
-			mat.resize( 10, 10 );       // zero resize
-			mat.resize( 10, 10, null ); // uninit resize
-			mat = mat;                  // opAssign
-			
-			// element access
-			mat.index( 0, 0 );
-			mat.indexAssign( BaseElementType!T.init, 0, 0 );
-			mat.indexAssign!"+"( BaseElementType!T.init, 0, 0 );
-			mat.indexAssign!"*"( BaseElementType!T.init, 0, 0 );
-			auto i = mat.mapIndex(0,0);
-			
-			auto d = mat.data;
-			auto c = mat.cdata;
-			auto p = mat.ptr;
-		}())));
-	}
-}
 		
-
-static assert( isArrayContainer!(CowArray!double) );
-static assert( isMatrixContainer!(CowMatrix!double) );
-static assert( isVectorStorage!(ArrayStorage!double) );
-static assert( isVectorStorage!(ArrayViewStorage!double) );
-static assert( isVectorStorage!(PackedSubVectorStorage!(SymmetricArrayAdapter!(CowArrayRef!double, MatrixTriangle.Upper, StorageOrder.ColumnMajor), VectorType.Column)) );
-static assert( isVectorStorage!(PackedSubVectorStorage!(TriangularArrayAdapter!(CowArrayRef!double, MatrixTriangle.Upper, StorageOrder.ColumnMajor), VectorType.Column)) );
-static assert( isMatrixStorage!(GeneralMatrixStorage!double) );
-static assert( isMatrixStorage!(SymmetricStorage!double) );
-static assert( isMatrixStorage!(TriangularStorage!double) );
-static assert( isMatrixStorage!(GeneralMatrixViewStorage!double) );
+version( unittest ) {
+	static assert( isArrayContainer!(CowArray!double) );
+	static assert( isMatrixContainer!(CowMatrix!double) );
+	static assert( isVectorStorage!(ArrayStorage!double) );
+	static assert( isVectorStorage!(ArrayViewStorage!double) );
+	static assert( isVectorStorage!(PackedSubVectorStorage!(SymmetricArrayAdapter!(CowArrayRef!double, MatrixTriangle.Upper, StorageOrder.ColumnMajor), VectorType.Column)) );
+	static assert( isVectorStorage!(PackedSubVectorStorage!(TriangularArrayAdapter!(CowArrayRef!double, MatrixTriangle.Upper, StorageOrder.ColumnMajor), VectorType.Column)) );
+	static assert( isMatrixStorage!(GeneralMatrixStorage!double) );
+	static assert( isMatrixStorage!(SymmetricStorage!double) );
+	static assert( isMatrixStorage!(TriangularStorage!double) );
+	static assert( isMatrixStorage!(GeneralMatrixViewStorage!double) );
+}

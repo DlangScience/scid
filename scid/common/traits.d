@@ -90,6 +90,11 @@ template isGeneralMatrixStorage( T, E = BaseElementType!T ) {
 		 is( T : E[][] );
 }
 
+template isAllocator( T ) {
+	enum isAllocator =
+		is( typeof( T.init.allocate( 42 ) ) == void* );
+}
+
 template isExpression( T ) {
 	static if( is( typeof(T.operation) : Operation ) )
 		enum isExpression = true;

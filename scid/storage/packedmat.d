@@ -78,10 +78,11 @@ struct PackedStorage( ContainerRef_ ) {
 	
 	/** Promotions for this type are inherited either from its container or from general matrix. */
 	template Promote( Other ) {
-		static if( is( Other : typeof(this) ) )
+		static if( is( Other : typeof(this) ) ) {
 			alias typeof(this) Promote;
-		else
+		} else {
 			alias Promotion!( GeneralMatrixStorage!ElementType, Other ) Promote;
+		}
 	}
 	
 	@property {

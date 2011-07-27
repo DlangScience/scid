@@ -204,10 +204,11 @@
    <File path="common\meta.d" />
    <File path="common\testing.d" />
    <File path="common\traits.d" />
-   <File path="ops\storagetraits.d" />
+   <File path="common\storagetraits.d" />
   </Folder>
   <Folder name="internal">
    <File path="internal\assertmessages.d" />
+   <File path="internal\regionallocator.d" />
   </Folder>
   <Folder name="storage">
    <File path="storage\array.d" />
@@ -222,6 +223,7 @@
    <File path="storage\packedsubvec.d" />
    <File path="storage\symmetric.d" />
    <File path="storage\triangular.d" />
+   <File path="storage\extarrayview.d" />
   </Folder>
   <File path="exception.d" />
   <File path="types.d" />

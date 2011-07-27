@@ -62,19 +62,9 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	/// ditto
 	enum  firstIndex = 0;
 	
-	/** Create a new array of given length. Initialize with zero. */
-	this( size_t newLength ) {
-		containerRef_ = ContainerRef( newLength );
-	}
-	
-	/** Create a new array of given length. Uninitialized. */
-	this( size_t newLength, void* ) {
-		containerRef_ = ContainerRef( newLength, null );
-	}
-	
-	/** Create a new array and initialize with a given built-in array. */
-	this( ElementType[] initializer ) {
-		containerRef_ = ContainerRef( initializer );
+	/** Create a new array, simply passes arguments to the wrapped container. */
+	this( A ... )( auto ref A containerArgs ) if( A.length > 0 && !is( A[0] : ContainerRef ) ) {
+		containerRef_ = ContainerRef( containerArgs );	
 	}
 	
 	/** Postblit c-tor creates a new container initialized with a copy of the source.
@@ -249,7 +239,7 @@ private:
 	}
 	
 	// Constructor for slice()
-	this( ContainerRef containerRef ) {
+	this()( ContainerRef containerRef ) {
 		swap( containerRef, containerRef_ );	
 	}
 	

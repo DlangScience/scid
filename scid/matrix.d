@@ -291,16 +291,14 @@ struct BasicMatrix( Storage_ ) {
 		}	
 	}
 	
-	template Promote( S : BasicVector!S ) {
-		alias BasicVector!( Promotion!(Storage,S) ) Promote;
-	}
-	
-	template Promote( S : BasicMatrix!S ) {
-		alias BasicMatrix!( Promotion!(Storage,S) ) Promote;
-	}
-	
-	template Promote( T ) if( isFortranType!T ) {
-		alias BasicMatrix!( Promotion!(Storage,T) ) Promote;
+	template Promote( T ) {
+		static if( isFortranType!T )	
+			alias BasicMatrix!( Promotion!(Storage,T) ) Promote;
+		else static if( is( T S : BasicVector!S ) ) {
+			alias BasicVector!( Promotion!(Storage,S) ) Promote;
+		} else static if( is( T S : BasicMatrix!S ) ) {
+			alias BasicMatrix!( Promotion!(Storage,S) ) Promote;
+		}
 	}
 }
 

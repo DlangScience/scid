@@ -45,6 +45,22 @@ ExpressionResult!E  eval( E )( auto ref E expr ) if( isExpression!E && E.closure
 	return result;
 }
 
+
+/** Evaluate a matrix or vector expression in memory allocated with the specified allocator. */
+ExpressionResult!E  eval( E, Allocator )( auto ref E expr, Allocator* allocator )
+		if( isAllocator!Allocator && isExpression!E && E.closure != Closure.Scalar ) {
+	// ExpressionResult gives you the type required to save the result of an expression.
+	static if( isVectorClosure!(E.closure) )
+		auto result = typeof(return)( expr.length, allocator );
+	else {
+		static assert(false);
+		// auto result = typeof(return)( expr.rows, expr.columns, allocator );
+	}
+	
+	evalCopy( expr, result );
+	return result;
+}
+
 /** Scale destination with a scalar expression. */
 void evalScaling( Scalar, Dest )( auto ref Scalar scalar, auto ref Dest dest ) {
 	alias BaseElementType!Dest T;
