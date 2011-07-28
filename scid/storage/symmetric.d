@@ -9,6 +9,7 @@ import scid.common.storagetraits;
 import scid.ops.common;
 import std.math, std.algorithm;
 import std.complex, std.exception;
+import scid.storage.external;
 
 
 template SymmetricStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
@@ -31,6 +32,9 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 		storageOrder_ 
 	) Transposed;
 	
+	alias SymmetricArrayAdapter!( ExternalArray!(ElementType, ArrayTypeOf!ContainerRef), tri_, storageOrder_ )
+		Temporary;
+	
 	enum triangle     = tri_;
 	enum storageOrder = storageOrder_;
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
@@ -44,17 +48,12 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	else
 		enum storageType  = MatrixStorageType.Symmetric;
 	
-	this( size_t newSize ) {
+	this( A ... )( size_t newSize, A arrayArgs ) {
 		size_  = newSize;
-		containerRef_ = ContainerRef( packedArrayLength(newSize) );
+		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs );
 	}
 	
-	this( size_t newSize, void* ) {
-		size_  = newSize;
-		containerRef_ = ContainerRef( packedArrayLength(newSize), null );
-	}
-	
-	this( ElementType[] initializer ) {
+	this()( ElementType[] initializer ) {
 		auto tri  = (sqrt( initializer.length * 8.0 + 1.0 ) - 1.0 ) / 2.0;
 		
 		assert( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
@@ -63,7 +62,7 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 		containerRef_ = ContainerRef( initializer );
 	}
 	
-	this( ElementType[][] initializer ) {
+	this()( ElementType[][] initializer ) {
 		if( !initializer.length )
 			return;
 		
@@ -81,35 +80,22 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 		}
 	}
 	
-	void resize( size_t newRows, size_t newCols ) {
-		size_t arrlen = packedArrayLength(newRows);
-		
-		enforce( newRows == newCols );
-		
-		if( !isInitd_ )
-			containerRef_ = ContainerRef( arrlen );
-		else
-			containerRef_.resize( arrlen );
-		
-		size_ = newRows;
-	}
-	
-	void resize( size_t newRows, size_t newCols, void* ) {
-		size_t arrlen = packedArrayLength(newRows);
-		
-		enforce( newRows == newCols );
-		
-		if( !isInitd_ )
-			containerRef_ = ContainerRef( arrlen, null );
-		else
-			containerRef_.resize( arrlen, null );
-		
-		size_ = newRows;
-	}
-	
-	this( typeof(this) *other ) {
+	this()( SymmetricArrayAdapter *other ) {
 		containerRef_ = ContainerRef( other.containerRef_.ptr );
 		size_  = other.size_;
+	}
+	
+	void resize( A ... )( size_t newRows, size_t newCols, A arrayArgs ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen, arrayArgs );
+		else
+			containerRef_.resize( arrlen, arrayArgs );
+		
+		size_ = newRows;
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {

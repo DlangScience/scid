@@ -42,7 +42,7 @@ template ArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Co
 			vectorType
 		) ArrayViewStorage;
 	} else {
-		// if the given type is a container use that
+		// if the given type is a container use that as container
 		alias BasicArrayViewStorage!(
 			ElementOrArray,
 			ArrayViewType.Interval,
@@ -86,13 +86,7 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 	
 	/** The orientation of the vector (row/column). */
 	alias vectorType_ vectorType;
-	
-	/** Conceptually an ArrayViewStorage is a reference to a ArrayStorage. This type ensures that when evaluating an
-	    expression involving views, the resulting vector uses ArrayStorage as storage, rather than a view. The reason
-	    for using ArrayTypeOf is explained in the comment for that template, defined after this struct.
-	*/
-	alias BasicArrayStorage!( ArrayTypeOf!ContainerRef, vectorType ) Referenced;
-	
+
 	/** The result of evaluating a transposition operation on this. */
 	alias BasicArrayStorage!( ArrayTypeOf!ContainerRef, transposeVectorType!vectorType ) Transposed;
 	
@@ -107,7 +101,7 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 	
 	static if( isStrided ) {
 		/** Construct a view from a container reference, a start index, length and a stride. */
-		this( ref ContainerRef containerRef, size_t iFirstIndex, size_t iLength, size_t iStride )
+		this()( ref ContainerRef containerRef, size_t iFirstIndex, size_t iLength, size_t iStride )
 		in {
 			assert( iStride != 0, strideMsg_ );
 		} body {
@@ -116,10 +110,19 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 		}
 	} else {
 		/** Construct a view from a container reference, a start index and length. */
-		this( ref ContainerRef containerRef, size_t iFirstIndex, size_t iLength ) {
+		this()( ref ContainerRef containerRef, size_t iFirstIndex, size_t iLength ) {
 			containerRef_ = containerRef;
 			setParams_( iFirstIndex, iLength );
 		}
+	}
+	
+	/** Allow construction of containers. This allows the creation of vector views without creating vectors. */
+	this( A ... )( A args ) if( A.length > 0 && !is( A[ 0 ] == ContainerRef ) ) {
+		containerRef_ = ContainerRef( args );
+		static if( isStrided )
+			setParams_( 0, containerRef_.length, 1 );
+		else
+			setParams_( 0, containerRef_.length );
 	}
 	
 	/** Forces reference sharing with another Array. This will cause two storages to refer to the same array.

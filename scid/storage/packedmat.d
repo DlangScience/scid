@@ -21,6 +21,8 @@ struct PackedStorage( ContainerRef_ ) {
 	alias ColumnView                                                            DiagonalView;
 	alias containerRef_                                                         this;
 	
+	alias PackedStorage!( ContainerRef.Temporary ) Temporary;
+	
 	enum isRowMajor   = (storageOrder == StorageOrder.RowMajor );
 	
 	this(A...)( A args ) {

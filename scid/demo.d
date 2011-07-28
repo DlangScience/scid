@@ -121,13 +121,13 @@ version( demo ) {
 	/** Some of these types have to be disabled otherwise the compiler runs out of memory. */
 	template MatrixTypes( T ) {
 		alias TypeTuple!(
-			//Matrix!T,
-			// Matrix!(T,StorageOrder.RowMajor),
+			Matrix!T,
+			//Matrix!(T,StorageOrder.RowMajor),
 			TriangularMatrix!T,
-			TriangularMatrix!(T, MatrixTriangle.Lower ),
-			TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
-			TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
-			//SymmetricMatrix!T,
+			//TriangularMatrix!(T, MatrixTriangle.Lower ),
+			//TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
+			//TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
+			SymmetricMatrix!T,
 			// SymmetricMatrix!(T, MatrixTriangle.Lower ),
 			// SymmetricMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			// SymmetricMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor)
@@ -136,7 +136,7 @@ version( demo ) {
 	
 	/** Syntactically test all the operations on all the matrix types. */
 	void opTest()() {
-		alias TypeTuple!(cdouble) ElementTypes;
+		alias TypeTuple!(double) ElementTypes;
 		foreach(Element; ElementTypes) {
 			enum z = Zero!Element;
 			Element[][] minit = [[z, z, z], [z, z, z], [z, z, z]];
@@ -144,12 +144,20 @@ version( demo ) {
 				auto lhs = LhsType( minit );
 				foreach(RhsType; MatrixTypes!Element) {
 					auto rhs = RhsType( minit );
-					eval(lhs + rhs);
-					eval(lhs - rhs);
-					eval(lhs * rhs);
-					eval(lhs.column(0) + rhs.column(1));
-					eval(lhs.row(0) - rhs.row(1));
-					eval(lhs.row(0) * rhs.column(0));
+					
+					eval(lhs + rhs*2.0);
+					eval(lhs*2.0 - rhs);
+					eval(lhs * rhs*2.0);
+					eval(lhs.column(0)*2.0 + rhs.column(1));
+					eval(lhs.row(0) - rhs.row(1)*2.0);
+					eval(lhs.row(0) * rhs.column(0)*2.0);
+					
+					writeln( "<Temp (3 allocs)>" );
+					// require temporaries
+					eval( lhs.t*(lhs + rhs*2.0) );
+					eval( (lhs.column(0) - rhs.column(0)*2.0).t*lhs );
+					eval( (lhs.column(0)*2.0 + rhs.column(0)).t*lhs.column(1) );
+					writeln( "</Temp>" );
 				}
 			}
 		}
@@ -157,10 +165,12 @@ version( demo ) {
 	
 	void main() {
 	
-		// opTest();
-		basicExpressions();
-		rangeInterface();
-		dataInterface();
+		opTest();
+		// basicExpressions();
+		// rangeInterface();
+		// dataInterface();
+		//auto v = Vector!double([1.,2.,3.]);
+		//writeln( eval((v-v*2.0).t * (v+v)));
 		
 		readln();
 	}

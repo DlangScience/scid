@@ -8,6 +8,7 @@ import scid.matrix;
 import scid.vector;
 import scid.ops.eval, scid.ops.common;
 import std.algorithm;
+import scid.storage.external;
 
 
 template GeneralMatrixStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
@@ -44,6 +45,8 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	alias GeneralMatrixViewStorage!ContainerRef_                View;
 	alias containerRef_                                         this;
 	alias BasicGeneralMatrixStorage!(TransposedOf!ContainerRef) Transposed;
+	alias BasicGeneralMatrixViewStorage!( ExternalMatrix!(ElementType, storageOrder, ContainerRef) )
+		Temporary;
 	
 	enum storageType = MatrixStorageType.General;
 	

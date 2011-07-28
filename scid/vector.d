@@ -66,6 +66,11 @@ struct BasicVector( Storage_ ) {
 	alias BasicVector!( Storage.Transposed )               Transposed;
 	alias storage                                          this;
 	
+	static if( is( Storage.Temporary ) )
+		alias BasicVector!( Storage.Temporary ) Temporary;
+	else
+		alias typeof( this ) Temporary;
+	
 	//static assert( isVectorStorage!Storage );
 	
 	static if( isReference!Storage )

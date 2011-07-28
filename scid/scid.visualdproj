@@ -223,7 +223,7 @@
    <File path="storage\packedsubvec.d" />
    <File path="storage\symmetric.d" />
    <File path="storage\triangular.d" />
-   <File path="storage\extarrayview.d" />
+   <File path="storage\external.d" />
   </Folder>
   <File path="exception.d" />
   <File path="types.d" />

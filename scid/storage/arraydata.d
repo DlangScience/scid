@@ -13,7 +13,7 @@ import std.algorithm, std.conv;
 import scid.bindings.blas.dblas;
 alias scid.bindings.blas.dblas blas;
 
-// debug = ArrayData;
+// debug = ArrayDataAllocs;
 
 debug( ArrayData ) {
 	debug = ArrayDataAllocs;

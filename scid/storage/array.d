@@ -10,6 +10,7 @@ import scid.vector;
 
 import scid.storage.cowarray;
 import scid.storage.arrayview;
+import scid.storage.external;
 
 import scid.common.storagetraits;
 import std.algorithm;
@@ -17,6 +18,7 @@ import std.algorithm;
 import scid.ops.eval;
 import scid.ops.common;
 import scid.internal.assertmessages;
+
 
 
 /** Template that aliases to BasicArrayStorage. If it's given a floating point type it defaults to
@@ -55,6 +57,10 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	
 	/** The type that represents the transposition of this ArrayStorage - simply negating the vector type. */
 	alias BasicArrayStorage!( ContainerRef, transposeVectorType!vectorType ) Transposed;
+	
+	/** The storage used to store temporaries for expressions involving this type. */
+	alias BasicArrayViewStorage!( ExternalArray!(ElementType,ContainerRef), ArrayViewType.Interval, vectorType )
+		Temporary;
 	
 	/** Define a stride and a first index to implement the StridedVectorStorage concept. */
 	enum  stride = 1;

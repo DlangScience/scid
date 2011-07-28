@@ -45,14 +45,20 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	}
 	
 	alias typeof( this )                                            View;
-	alias BasicGeneralMatrixViewStorage!(TransposedOf!ContainerRef) Transposed;
 	
-	this( ref ContainerRef containerRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols, size_t offset=0 ) {
-		containerRef_     = containerRef;
-		firstIndex_ = containerRef_.mapIndex( rowStart, colStart ) + offset;
-		rows_       = numRows;
-		cols_       = numCols;
-		leading_    = containerRef_.leading;
+	alias BasicGeneralMatrixStorage!( TransposedOf!(MatrixTypeOf!ContainerRef) )
+		Transposed;
+	
+	this()( ref ContainerRef containerRef, size_t rowStart, size_t numRows, size_t colStart, size_t numCols, size_t offset=0 ) {
+		containerRef_ = containerRef;
+		firstIndex_   = containerRef_.mapIndex( rowStart, colStart ) + offset;
+		rows_         = numRows;
+		cols_         = numCols;
+		leading_      = containerRef_.leading;
+	}
+	
+	this( A ... )( A args ) if( A.length > 0 && !is( A[ 0 ] : ContainerRef ) ) {
+		containerRef_ = ContainerRef( args );
 	}
 	
 	void forceRefAssign( ref typeof(this) rhs ) {
@@ -191,7 +197,7 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	/** Promotions for this type are inherited from GeneralMatrix */
 	private import scid.storage.generalmat;
 	template Promote( Other ) {
-		alias Promotion!( BasicGeneralMatrix!ContainerRef, Other ) Promote;
+		alias Promotion!( BasicGeneralMatrix!(MatrixTypeOf!ContainerRef), Other ) Promote;
 	}
 	
 	mixin GeneralMatrixScalingAndAddition;

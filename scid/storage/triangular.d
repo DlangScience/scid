@@ -8,6 +8,7 @@ import scid.common.storagetraits;
 import scid.ops.expression;
 import std.math, std.algorithm;
 import std.exception;
+import scid.storage.external;
 
 template TriangularStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
 	if( isFortranType!(BaseElementType!ElementOrArray) ) {
@@ -29,23 +30,22 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 		storageOrder_ 
 	) Transposed;
 	
+	alias TriangularArrayAdapter!( ExternalArray!(ElementType, ArrayTypeOf!ContainerRef), tri_, storageOrder_ )
+		Temporary;
+	
 	enum triangle     = tri_;
 	enum storageOrder = storageOrder_;
 	enum storageType  = MatrixStorageType.Triangular;
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
 	
-	this( size_t newSize ) {
+	
+	this( A ... )( size_t newSize, A arrayArgs ) {
 		size_  = newSize;
-		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2 );
+		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs );
 	}
 	
-	this( size_t newSize, void* ) {
-		size_  = newSize;
-		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, null );
-	}
-	
-	this( ElementType[] initializer ) {
+	this()( ElementType[] initializer ) {
 		auto tri  = (sqrt( initializer.length * 8.0 + 1.0 ) - 1.0 ) / 2.0;
 		
 		enforce( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
@@ -54,7 +54,7 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 		containerRef_ = ContainerRef( initializer );
 	}
 	
-	this( ElementType[][] initializer ) {
+	this()( ElementType[][] initializer ) {
 		if( !initializer.length )
 			return;
 		
@@ -72,36 +72,22 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 		}
 	}
 	
-	void resize( size_t newRows, size_t newCols ) {
-		size_t arrlen = packedArrayLength(newRows);
-		
-		enforce( newRows == newCols );
-		
-		if( !isInitd_ )
-			containerRef_ = ContainerRef( arrlen );
-		else
-			containerRef_.resize( arrlen );
-		
-		size_ = newRows;
-	}
-	
-	void resize( size_t newRows, size_t newCols, void* ) {
-		size_t arrlen = packedArrayLength(newRows);
-		
-		enforce( newRows == newCols );
-		
-		if( !isInitd_ )
-			containerRef_ = ContainerRef( arrlen, null );
-		else
-			containerRef_.resize( arrlen, null );
-		
-		size_ = newRows;
-	}
-	
-	
-	this( typeof(this) *other ) {
+	this()( TriangularArrayAdapter *other ) {
 		containerRef_ = ContainerRef( other.containerRef_.ptr );
 		size_  = other.size_;
+	}
+	
+	void resize( A ... )( size_t newRows, size_t newCols, A arrayArgs ) {
+		size_t arrlen = packedArrayLength(newRows);
+		
+		enforce( newRows == newCols );
+		
+		if( !isInitd_ )
+			containerRef_ = ContainerRef( arrlen, arrayArgs );
+		else
+			containerRef_.resize( arrlen, arrayArgs );
+		
+		size_ = newRows;
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {

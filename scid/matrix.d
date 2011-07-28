@@ -93,6 +93,11 @@ struct BasicMatrix( Storage_ ) {
 	alias BasicMatrix!( Storage.Transposed ) Transposed;
 	alias storage                            this;
 	
+	static if( is( Storage.Temporary ) )
+		alias BasicMatrix!( Storage.Temporary ) Temporary;
+	else
+		alias typeof( this ) Temporary;
+	
 	//static assert( isMatrixStorage!Storage );
 	
 	enum isRowMajor = ( storageOrder == StorageOrder.RowMajor );

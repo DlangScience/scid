@@ -37,13 +37,30 @@ template ArrayTypeOf( T ) {
 	alias ArrayTypeOfImpl!T.Result ArrayTypeOf;
 }
 
-template ArrayTypeOfImpl( T ) {
+private template ArrayTypeOfImpl( T ) {
 	static if( is( T.ArrayType ) ) {
 		alias T.ArrayType Result;
 	} else {
 		alias ReferencedBy!T R;
 		static if( is( R.ArrayType ) ) {
 			alias R.ArrayType Result;
+		} else {
+			alias T Result;
+		}
+	}	
+}
+
+template MatrixTypeOf( T ) {
+	alias MatrixTypeOfImpl!T.Result MatrixTypeOf;
+}
+
+private template MatrixTypeOfImpl( T ) {
+	static if( is( T.MatrixType ) ) {
+		alias T.MatrixType Result;
+	} else {
+		alias ReferencedBy!T R;
+		static if( is( R.MatrixType ) ) {
+			alias R.MatrixType Result;
 		} else {
 			alias T Result;
 		}

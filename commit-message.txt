@@ -1,0 +1,4 @@
+Finished integrating RegionAllocator. Added two Container types (albeit not concept-compliant yet) ExternalArray and ExternalMatrix. These are meant to be wrapped by views. All storage types that can be an expression result (i.e. not views) may define a "Temporary" type which is used to store the temporary result of a subexpression.
+For ArrayStorage the type is ArrayStorageView!ExternalArray and for GeneralMatrix it's GeneralMatrixView!ExternalMatrix. For packed storages, the temporary is the PackedStorage!(ArrayAdapter!ExternalArray).
+To allow the array adapters to allow for both reference and value semantics depending on the container they use, their constructors had to be changed quite a bit.
+An intended side effect of this addition is that one can use Vector!(ArrayViewStorage!ExternalArray!double) (and similarly for matrices) to treat a builtin array as a vector supporting all operations that the library supports. This will be great for interoperability.
