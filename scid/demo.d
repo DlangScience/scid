@@ -6,7 +6,7 @@ import std.complex;
 import scid.common.traits, scid.common.meta;
 import scid.internal.regionallocator;
 
-version = demo;
+// version = demo;
 
 version( demo ) {
 	import scid.matvec;

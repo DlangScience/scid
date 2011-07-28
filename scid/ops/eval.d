@@ -18,9 +18,9 @@ import scid.internal.regionallocator;
 
 import scid.matvec;
 
-debug = eval;
+// debug = TempAllocation;
 
-debug( eval ) {
+debug( TempAllocation ) {
 	import std.stdio;	
 }
 
@@ -61,10 +61,10 @@ auto eval( E, Allocator )( auto ref E expr, Allocator* allocator )
 		if( isAllocator!Allocator && isExpression!E && E.closure != Closure.Scalar ) {
 	// ExpressionResult gives you the type required to save the result of an expression.
 	static if( isVectorClosure!(E.closure) ) {
-		debug( eval ) writeln("Allocated temporary of size ", expr.length, ".");
+		debug( TempAllocation ) writeln("Allocated temporary of size ", expr.length, ".");
 		auto result = (ExpressionResult!E).Temporary( expr.length, allocator );
 	} else {
-		debug( eval ) writeln("Allocated temporary of size (", expr.rows,", ", expr.columns, ").");
+		debug( TempAllocation ) writeln("Allocated temporary of size (", expr.rows,", ", expr.columns, ").");
 		auto result = (ExpressionResult!E).Temporary( expr.rows, expr.columns, allocator );
 	}
 	evalCopy( expr, result );
