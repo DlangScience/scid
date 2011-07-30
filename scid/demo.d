@@ -1,17 +1,25 @@
 module scid.demo;
 
-import std.range, std.exception;
+import scid.matvec;
+import std.stdio;
 
-import std.typetuple;
-import std.complex;
-import scid.common.traits, scid.common.meta;
-import scid.internal.regionallocator, scid.storages;
+void main() {
+	auto x = Matrix!double([[1.0, 4, 3], [4.0, 5, 6], [7.0, 8, 9]]);
+	auto v = Vector!double([2.0, 8, 7]);
+	auto expr = x * x;
+	readln();
+}
 
-//version = demo;
+// version = demo;
 
 version( demo ) {
 	import scid.matvec;
 	import std.stdio, std.conv;	
+	import std.typetuple;
+	import std.complex;
+	import scid.common.traits, scid.common.meta;
+	import scid.internal.regionallocator, scid.storages;
+	import std.range, std.exception;
 	
 	void basicExpressions()() {
 		writeln();
@@ -261,38 +269,5 @@ version( demo ) {
 		static assert( is( typeof(e) : zGeMat ) );
 		
 		testMat( e, 2, 2, [ 33.760 +  0.000i, 38.640 - 17.040i, 48.640 - 12.960i, 60.280 - 30.000i] );
-	}
-	import scid.ops.eval, scid.common.meta;
-	void main() {
-		auto dm = DiagonalMatrix!double([1,2,3,4,5]);
-		//writeln( dm.column(0).pretty );
-		dm[] =dm * dm;
-		
-		writeln( dm.pretty );
-		//static assert( isScalar!(BaseElementType!double) );
-		//writeln( MinusOne!double );
-		//auto x = Matrix!double([[1.0, 4, 3], [4.0, 5, 6], [7.0, 8, 9]]);
-		//auto vec = Vector!double([8.0, 2, 3]);
-		//evalSolve(x, vec);
-	    //writeln(vec.pretty);
-		//dMatOpsTest();
-		//zMatOpsTest();
-		readln();
-		//writeln( y );
-		// alias Matrix!cdouble Mat;
-		//alias Matrix!double Mat;
-		//auto x = Mat([[1,2,3],[4,5,6],[7,8,9]]);
-		//x[] += 2*x.t;
-		//writeln(x.pretty);
-		//writeln( x.pretty );
-		//Mat x2 = (x.t+x);
-		//writeln( x2.pretty );
-		
-		//opTest();
-		// basicExpressions();
-		// rangeInterface();
-		// dataInterface();
-		//auto v = Vector!double([1.,2.,3.]);
-		//writeln( eval((v-v*2.0).t * (v+v)));
 	}
 }
