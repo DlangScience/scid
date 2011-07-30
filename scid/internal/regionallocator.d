@@ -80,7 +80,7 @@ Copyright:  Copyright (c) 2008-2011, David Simcha.
 License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
 
-module scid.internal.regionallocator;
+module std.regionallocator;
 
 import std.traits, core.memory, std.range, core.exception, std.conv,
     std.algorithm, std.typetuple, std.exception;
@@ -408,7 +408,8 @@ private:
 public:
 
     this(this) {
-        if(initialized) incrementRefCount();
+        ensureInitialized();
+        incrementRefCount();
     }
 
     ~this() {
@@ -786,7 +787,9 @@ unittest {
 }
 
 unittest {
-    RegionAllocator alloc;
+    auto alloc = newRegionAllocator();
+    auto alloc2 = alloc;
+
     double[] arr = alloc.uninitializedArray!(double[])(100);
     assert(arr.length == 100);
 
