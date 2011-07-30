@@ -80,7 +80,7 @@ Copyright:  Copyright (c) 2008-2011, David Simcha.
 License:    $(WEB boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
 
-module std.regionallocator;
+module scid.internal.regionallocator;
 
 import std.traits, core.memory, std.range, core.exception, std.conv,
     std.algorithm, std.typetuple, std.exception;
