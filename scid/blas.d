@@ -7,7 +7,7 @@ import std.traits;
 import std.algorithm;
 import std.conv;
 import std.string;
-debug = blasCalls;
+// debug = blasCalls;
 // version = nodeps;
 
 debug( blasCalls ) {

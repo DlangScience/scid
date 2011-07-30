@@ -18,7 +18,7 @@ import scid.internal.regionallocator;
 
 import scid.matvec;
 
-debug = EvalCalls;
+//debug = EvalCalls;
 //debug = TempAllocation;
 
 debug( TempAllocation ) {

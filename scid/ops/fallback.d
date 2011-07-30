@@ -13,7 +13,7 @@ import scid.ops.expression;
 import scid.ops.common;
 import scid.ops.eval;
 
-debug = fallbackCalls;
+//debug = fallbackCalls;
 
 debug( fallbackCalls ) {
 	import std.stdio : write, writeln, stdout;
