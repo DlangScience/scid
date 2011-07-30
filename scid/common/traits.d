@@ -17,7 +17,7 @@ import scid.common.meta;
 import std.conv;
 
 template isConvertible( S, T ) {
-	enum isConvertible = is( typeof(to!T(S)) );
+	enum isConvertible = is( typeof(to!T(S.init)) );
 }
 
 template isScalar( T ) {
