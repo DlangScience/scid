@@ -15,11 +15,7 @@ import scid.common.meta;
 import scid.common.storagetraits;
 import std.traits, std.range, std.algorithm;
 import scid.internal.assertmessages;
-
-// import blas functions with the blas. prefix to avoid clashes with
-// similarly named methods
-static import scid.bindings.blas.dblas;
-alias scid.bindings.blas.dblas blas;
+import scid.blas;
 
 
 /** Enumeration that specifies if the elements in an array view ar contiguous or not. */
@@ -32,9 +28,9 @@ enum ArrayViewType {
     point type it defaults to using CowArrayRef as container. If passed a container type is uses that.
 */
 template ArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrArray) ) {
+		if( isScalar!(BaseElementType!ElementOrArray) ) {
 	
-	static if( isFortranType!ElementOrArray ) {
+	static if( isScalar!ElementOrArray ) {
 		// if the given type is a floating point no. use CowArrayRef as container
 		alias BasicArrayViewStorage!(
 			CowArrayRef!ElementOrArray,
@@ -55,9 +51,9 @@ template ArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Co
     point type it defaults to using CowArrayRef as container. If passed a container type is uses that.
 */
 template StridedArrayViewStorage( ElementOrArray, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrArray) ) {
+		if( isScalar!(BaseElementType!ElementOrArray) ) {
 	
-	static if( isFortranType!ElementOrArray ) {
+	static if( isScalar!ElementOrArray ) {
 		alias BasicArrayViewStorage!(
 			CowArrayRef!ElementOrArray,
 			ArrayViewType.Strided,
@@ -208,7 +204,7 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 	
 	/** Copy specialization. */
 	void copy( Transpose tr, S )( auto ref S rhs ) if( isStridedVectorStorage!(S, ElementType) ) {
-		stridedCopy( rhs, this );
+		stridedCopy!tr( rhs, this );
 	}
 	
 	/** Use the common scale(), scaledAddition() and dot() methods for strided storages. */

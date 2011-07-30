@@ -1,18 +1,19 @@
 module scid.demo;
+
 import std.range, std.exception;
 
-import std.typetuple, std.demangle;
+import std.typetuple;
 import std.complex;
 import scid.common.traits, scid.common.meta;
-import scid.internal.regionallocator;
+import scid.internal.regionallocator, scid.storages;
 
-// version = demo;
+version = demo;
 
 version( demo ) {
 	import scid.matvec;
 	import std.stdio, std.conv;	
 	
-	void basicExpressions() {
+	void basicExpressions()() {
 		writeln();
 		writeln( "======================= Basic Expressions =======================" );
 		// The simplest constructors take a built-in array.
@@ -50,7 +51,7 @@ version( demo ) {
 		enforce( x == 0.0 );
 	}
 	
-	void rangeInterface() {
+	void rangeInterface()() {
 		writeln();
 		writeln( "======================== Range Interface ========================" );
 		
@@ -92,7 +93,7 @@ version( demo ) {
 		writeln();
 	}
 	
-	void dataInterface() {
+	void dataInterface()() {
 		writeln();
 		writeln( "========================= Data Interface =========================" );
 		
@@ -123,11 +124,11 @@ version( demo ) {
 		alias TypeTuple!(
 			Matrix!T,
 			//Matrix!(T,StorageOrder.RowMajor),
-			TriangularMatrix!T,
+			//TriangularMatrix!T,
 			//TriangularMatrix!(T, MatrixTriangle.Lower ),
 			//TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			//TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
-			SymmetricMatrix!T,
+			//SymmetricMatrix!T,
 			// SymmetricMatrix!(T, MatrixTriangle.Lower ),
 			// SymmetricMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			// SymmetricMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor)
@@ -137,41 +138,161 @@ version( demo ) {
 	/** Syntactically test all the operations on all the matrix types. */
 	void opTest()() {
 		alias TypeTuple!(double) ElementTypes;
-		foreach(Element; ElementTypes) {
-			enum z = Zero!Element;
-			Element[][] minit = [[z, z, z], [z, z, z], [z, z, z]];
-			foreach(LhsType; MatrixTypes!Element) {
+		foreach(T; ElementTypes) {
+			enum z = One!T;
+			T[][] minit = [[z, z, z], [z, z, z], [z, z, z]];
+			foreach(LhsType; MatrixTypes!T) {
 				auto lhs = LhsType( minit );
-				foreach(RhsType; MatrixTypes!Element) {
+				foreach(RhsType; MatrixTypes!T) {
 					auto rhs = RhsType( minit );
 					
-					eval(lhs + rhs*2.0);
-					eval(lhs*2.0 - rhs);
-					eval(lhs * rhs*2.0);
-					eval(lhs.column(0)*2.0 + rhs.column(1));
-					eval(lhs.row(0) - rhs.row(1)*2.0);
-					eval(lhs.row(0) * rhs.column(0)*2.0);
+					eval(lhs + rhs*z);
+					eval(lhs*z - rhs);
+					eval(lhs * rhs*z);
+					eval(lhs.column(0)*z + rhs.column(1));
+					eval(lhs.row(0) - rhs.row(1)*z);
+					eval(lhs.row(0) * rhs.column(0)*z);
 					
-					writeln( "<Temp (3 allocs)>" );
-					// require temporaries
-					eval( lhs.t*(lhs + rhs*2.0) );
-					eval( (lhs.column(0) - rhs.column(0)*2.0).t*lhs );
-					eval( (lhs.column(0)*2.0 + rhs.column(0)).t*lhs.column(1) );
-					writeln( "</Temp>" );
+					eval( lhs.t*(lhs + rhs*z) );
+					eval( (lhs.column(0) - rhs.column(0)*z).t*lhs );
+					eval( (lhs.column(0)*z + rhs.column(0)).t*lhs.column(1) );
+					
+					lhs[] += rhs;
+					lhs[] -= rhs;
+					lhs[] *= rhs;
+					lhs[] *= z;
+					lhs[] /= z;
+					
+					lhs[0][] *= z;
+					lhs[0][] /= z;
+					lhs[0][] += lhs[][0].t;
+					lhs[][0] -= lhs[1][].t;
+					
+					lhs[1..3][1..3] *= rhs[0..2][0..2];
+					
 				}
 			}
 		}
 	}
+	import std.string;
+	import scid.matvec;
+	import std.math;
 	
+	
+	void testMat( M, E )( auto ref M m, size_t r, size_t c, E[] expected ) {
+		debug {
+			enum epsilon = 1e-3;
+			assert( m.rows == r, format("Wrong no. of rows %d vs %d", m.rows, r) );
+			assert( m.columns == c, format("Wrong no. of rows %d vs %d", m.columns, c ) );
+			auto a = m.cdata[ 0 .. expected.length ];
+			auto b = to!(BaseElementType!M[])(expected.dup);
+			b[] -= a[];
+			foreach( i, x ; b ) {
+				assert( abs(x) <= epsilon,
+				   "Expected " ~ to!string(expected) ~ ", got "~ to!string(a) ~ " (" ~ to!string(i) ~ ", " ~ to!string(abs(x)) ~ ")"  );
+			}
+		}
+	}
+	
+	void testVec( V, E )( auto ref V v, E[] expected ) {
+		debug {
+			assert( v.length == expected.length, format("Wrong vector length: %d vs. %d", v.length, expected.length) );
+			assert( v.cdata[ 0 .. expected.length ] == to!(BaseElementType!V)(expected) );
+		}
+	}
+	
+	import scid.ops.expression;
+	void dMatOpsTest()() {
+		alias Matrix!double            dGeMat;
+		alias SymmetricMatrix!double   dSyMat;
+		
+		auto a = dGeMat( 3, [1.,2,3,4,5,6,7,8,9] );
+		auto b = dGeMat( 3, [1.,2,3,4,5,6] );
+		
+		dGeMat c = b * a;
+		testMat( c, 2, 3, [22,28,49,64,76,100] );
+		c[] = c[0 .. 2][ 0 .. 2 ].t * ( (b[][0] - a[1..3][0]).t * eval(c[][0]) ) / 50.;
+		testMat( c, 2, 2, [-22,-49,-28,-64] );
+		
+		dSyMat s = c.t*c;
+		
+		testMat( s, 2, 2, [2885, 3752, 4880] );
+		
+		auto d = eval( s - dSyMat([2800.,3700,4800]) );
+		static assert( is( typeof(d) : dSyMat ) );
+		testMat( d, 2, 2, [85,52,80] );
+		assert( d[1][0] == 52 );
+		
+		auto e = eval( d - b[0..2][1..3]*10 );
+		static assert( is( typeof(e) : dGeMat ) );
+		testMat( e, 2, 2, [ 55, 12, 2, 20 ] );
+	}
+	
+	void zMatOpsTest()() {
+		alias Matrix!cdouble            zGeMat;
+		alias SymmetricMatrix!cdouble   zSyMat;
+		
+		auto a = zGeMat( 3, [1.+4.i,2+3.i,3+2.i,4+1.i,5+0.i,6-1.i,7-2.i,8-3.i,9-4.i] );
+		auto b = zGeMat( 3, [1.+2.i,2.+1.i,3+0.i,4-1.i,5-2.i,6-3.i] );
+				   
+		zGeMat c = b * a;
+		testMat( c, 2, 3, [ 18 + 19.i, 33 + 22i, 45 - 8i, 60 - 23i, 72 -35i, 87 - 68i ] );
+		
+		
+		c[] = c[0 .. 2][ 0 .. 2 ].t * ( (b[][0] - a[1..3][0]).t * eval(c[][0]) ) / (10.+0.i);
+		testMat( c, 2, 2, [-146.60 + 192.80i, -422.00 -  28.60i, -281.60 + 235.40i, -575.00 - 151.60i] );
+		
+		c[] = c + zGeMat([[150-190i,280-230i], [430+28i,570+150i]]);
+		zSyMat s = c.t*c;
+		
+		testMat( s, 2, 2, [ 83.760 +  0.000i,  
+		                   -29.360 +  7.040i,
+		                    59.280 +  0.000i ]);
+		assert( abs(s[1][0] + 29.360 + 7.040i) <= 1e-3 );
+		
+		auto d = eval( s - zSyMat([80.+0.i,-28,59]) );
+		static assert( is( typeof(d) : zSyMat ) );
+		
+		testMat( d, 2, 2, [ 3.76 + 0.0i, -1.36 + 7.04i, 0.28 + 0.0i ] );
+		assert( abs(d[1][0] + 1.36 + 7.04i) <= 1e-3 );
+		
+		
+		auto e = eval( d + b[0..2][1..3]*(10.+0.i) );
+		static assert( is( typeof(e) : zGeMat ) );
+		
+		testMat( e, 2, 2, [ 33.760 +  0.000i, 38.640 - 17.040i, 48.640 - 12.960i, 60.280 - 30.000i] );
+	}
+	import scid.ops.eval, scid.common.meta;
 	void main() {
-	
-		opTest();
+		auto dm = DiagonalMatrix!double([1,2,3,4,5]);
+		//writeln( dm.column(0).pretty );
+		dm[] =dm * dm;
+		
+		writeln( dm.pretty );
+		//static assert( isScalar!(BaseElementType!double) );
+		//writeln( MinusOne!double );
+		//auto x = Matrix!double([[1.0, 4, 3], [4.0, 5, 6], [7.0, 8, 9]]);
+		//auto vec = Vector!double([8.0, 2, 3]);
+		//evalSolve(x, vec);
+	    //writeln(vec.pretty);
+		//dMatOpsTest();
+		//zMatOpsTest();
+		readln();
+		//writeln( y );
+		// alias Matrix!cdouble Mat;
+		//alias Matrix!double Mat;
+		//auto x = Mat([[1,2,3],[4,5,6],[7,8,9]]);
+		//x[] += 2*x.t;
+		//writeln(x.pretty);
+		//writeln( x.pretty );
+		//Mat x2 = (x.t+x);
+		//writeln( x2.pretty );
+		
+		//opTest();
 		// basicExpressions();
 		// rangeInterface();
 		// dataInterface();
 		//auto v = Vector!double([1.,2.,3.]);
 		//writeln( eval((v-v*2.0).t * (v+v)));
-		
-		readln();
 	}
 }

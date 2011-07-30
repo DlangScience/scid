@@ -25,9 +25,9 @@ import scid.internal.assertmessages;
     using CowArrayRef as container. Otherwise it uses the container type provided.
 */
 template ArrayStorage( ElementOrArray, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrArray) ) {
+		if( isScalar!(BaseElementType!ElementOrArray) ) {
 	
-	static if( isFortranType!ElementOrArray )
+	static if( isScalar!ElementOrArray )
 		alias BasicArrayStorage!( CowArrayRef!ElementOrArray, vectorType ) ArrayStorage;
 	else
 		alias BasicArrayStorage!( ElementOrArray, vectorType )             ArrayStorage;
@@ -157,14 +157,14 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	    of the container.
 	*/
 	void copy( Transpose tr, Source )( auto ref Source rhs ) if( isStridedVectorStorage!(Source,ElementType) ) {
-		static if( is( Source : ArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
+		static if( (!isComplex!ElementType || !tr) && is( Source : ArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = ContainerRef( rhs.containerRef_.ptr );	
-		} else static if( is( Source : ArrayViewStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
+		} else static if( (!isComplex!ElementType || !tr) && is( Source : ArrayViewStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = rhs.array.slice( rhs.firstIndex, rhs.firstIndex + rhs.length );	
 		} else {
-			stridedCopy( rhs, this );
+			stridedCopy!tr( rhs, this );
 		}
 	}
 	
@@ -226,7 +226,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	template Promote( Other ) {
 		static if( isVectorStorage!Other || isMatrixStorage!Other ) {
 			alias BasicArrayStorage!( Promotion!(Other.ContainerRef,ContainerRef), vectorType ) Promote;
-		} else static if( isFortranType!Other ) {
+		} else static if( isScalar!Other ) {
 			alias BasicArrayStorage!( Promotion!(ContainerRef, Other), vectorType ) Promote;
 		}
 	}

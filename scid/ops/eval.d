@@ -18,15 +18,21 @@ import scid.internal.regionallocator;
 
 import scid.matvec;
 
-// debug = TempAllocation;
+debug = EvalCalls;
+//debug = TempAllocation;
 
 debug( TempAllocation ) {
 	import std.stdio;	
 }
 
+debug( EvalCalls ) {
+	import std.stdio;	
+}
+
 /** Evaluate a leaf expression (a floating point type, BasicVector or BasicMatrix) - simply return it. */
-auto eval( T )( T value ) if( isLeafExpression!T ) {
-	return value;	
+Promotion!(T,T) eval( T )( T value ) if( isLeafExpression!T ) {
+	typeof(return) r = value;
+	return r;
 }
 
 /** Evaluate a trivial scalar expression. */
@@ -55,9 +61,8 @@ ExpressionResult!E  eval( E )( auto ref E expr ) if( isExpression!E && E.closure
 	return result;
 }
 
-
 /** Evaluate a matrix or vector expression in memory allocated with the specified allocator. */
-auto eval( E, Allocator )( auto ref E expr, Allocator* allocator )
+auto eval( E, Allocator )( auto ref E expr, Allocator allocator )
 		if( isAllocator!Allocator && isExpression!E && E.closure != Closure.Scalar ) {
 	// ExpressionResult gives you the type required to save the result of an expression.
 	static if( isVectorClosure!(E.closure) ) {
@@ -72,7 +77,7 @@ auto eval( E, Allocator )( auto ref E expr, Allocator* allocator )
 }
 
 /** Scale destination with a scalar expression. */
-void evalScaling( Scalar, Dest )( auto ref Scalar scalar, auto ref Dest dest ) {
+void evalScaling( Scalar, Dest )( auto ref Scalar scalar_, auto ref Dest dest ) {
 	alias BaseElementType!Dest T;
 	alias closureOf!Dest closure;
 	
@@ -86,14 +91,16 @@ void evalScaling( Scalar, Dest )( auto ref Scalar scalar, auto ref Dest dest ) {
 		"multiplication in place."
 	);
 	
+	auto scalar = eval( scalar_ );
+	
+	debug( EvalCalls )
+		writeln( "-- evalCopy( ", scalar, ", ", dest.toString, ")" );
+	
 	static if( __traits( compiles, dest.storage.scale( scalar ) ) ) {
 		// custom expression scaling
 		dest.storage.scale( scalar );
-	} else static if( __traits( compiles, dest.storage.scale( eval(scalar) ) ) ) {
-		// custom literal scaling
-		dest.storage.scale( eval(scalar) );
 	} else {
-		fallbackScaling( eval(scalar), dest );	
+		fallbackScaling( scalar, dest );	
 	}
 		
 }
@@ -118,14 +125,17 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 	);
 	
 	void resizeDest() {
-		static if( srcClosure == Closure.Matrix )
+		static if( dstClosure == Closure.Matrix )
 			// matrix resizing
-			dest.storage.resize( source.rows, source.columns );
+			dest.resize( source.rows, source.columns );
 		else
 			// vector resizing
-			dest.storage.resize( source.length );
+			dest.resize( source.length );
 	}
-
+	
+	debug( EvalCalls )
+		writeln( "-- evalCopy( ", source.toString, ", ", dest.toString, ")" );
+	
 	static if( __traits( compiles, dest.storage.copy!tr( source.storage ) ) ) {
 		// call custom copy routine on destination
 		dest.storage.copy!tr( source.storage );
@@ -146,7 +156,7 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 			// copy from a transposition operation - recurse with the negated tranposition flag
 			evalCopy!( transNot!tr )( source.lhs, dest );
 		} else static if( op == Operation.MatMatProd ) {
-			// copy from a matrix multiplication - fwd to hlMatMult
+			// copy from a matrix multiplication - fwd to evalMatrixProduct
 			static if( tr )
 				evalMatrixProduct!( Transpose.yes, Transpose.yes )( One!T, source.rhs, source.lhs, Zero!T, dest );
 			else
@@ -168,7 +178,7 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 }
 
 /** Scale the source expression with a scalar expression and add it to the destination. */
-void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( auto ref Scalar alpha, auto ref Source source, auto ref Dest dest ) {
+void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( auto ref Scalar alpha_, auto ref Source source, auto ref Dest dest ) {
 	alias BaseElementType!Source                  T;
 	alias transposeClosure!(closureOf!Source, tr) srcClosure;
 	alias closureOf!Dest                          dstClosure;
@@ -196,14 +206,15 @@ void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( au
 		"multiplication in place."
 	);
 	
-	static if( __traits( compiles, dest.storage.scaledAddition( alpha, source.storage ) ) ) {
-		dest.storage.scaledAddition( alpha, source.storage );
-	} else static if( __traits( compiles, source.storage.scaledAdditionRight( alpha, dest.storage ) ) ) {
-		source.storage.scaledAdditionRight( alpha, dest.storage );
-	} else static if( __traits( compiles, dest.storage.scaledAddition( eval( alpha ), source.storage ) ) ) {
-		dest.storage.scaledAddition( eval( alpha ), source.storage );
-	} else static if( __traits( compiles, source.storage.scaledAdditionRight( eval( alpha ), dest.storage ) ) ) {
-		source.storage.scaledAdditionRight( eval( alpha ), dest.storage );
+	auto alpha = eval( alpha_ );
+	
+	debug( EvalCalls )
+		writeln( "-- evalScaledAddition( ", alpha, ", ", source.toString, ", ", dest.toString, ")" );
+	
+	static if( __traits( compiles, dest.storage.scaledAddition!tr( alpha, source.storage ) ) ) {
+		dest.storage.scaledAddition!tr( alpha, source.storage );
+	} else static if( __traits( compiles, source.storage.scaledAdditionRight!tr( alpha, dest.storage ) ) ) {
+		source.storage.scaledAdditionRight!tr( alpha, dest.storage );
 	} else static if( isExpression!Source ) {
 		enum op = Source.operation;
 		static if( isScaling!op ) {
@@ -237,35 +248,41 @@ void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( au
 
 /** Copy the product of two matrices into the destination matrix. */
 void evalMatrixProduct( Transpose transA = Transpose.no, Transpose transB = Transpose.no, Alpha, Beta, A, B, Dest )
-		( auto ref Alpha alpha, auto ref A a, auto ref B b, auto ref Beta beta, auto ref Dest dest ) {
+		( auto ref Alpha alpha_, auto ref A a, auto ref B b, auto ref Beta beta_, auto ref Dest dest ) {
 	alias BaseElementType!Dest T;
 	
 	static assert( isLeafExpression!Dest, Dest.stringof ~ " is not an lvalue." );
 	static assert( is( T : BaseElementType!Alpha ) && is( T : BaseElementType!Beta ) && is( T : BaseElementType!A ) && is( T : BaseElementType!B ) );
 	static assert( closureOf!A == Closure.Matrix && closureOf!B == Closure.Matrix && closureOf!Alpha == Closure.Scalar && closureOf!Beta == Closure.Scalar );
 	
-	static if( __traits( compiles, dest.storage.matrixProduct( alpha, a.storage, b.storage, beta ) ) ) {
-		dest.storage.matrixProduct( alpha, a.storage, b.storage, beta );
-	} else static if( __traits( compiles, dest.storage.matrixProduct( eval(alpha), a.storage, b.storage, eval(beta) ) ) ) {
-		auto alphaValue = eval( alpha );
-		auto betaValue  = eval( beta  );
-		dest.storage.matrixProduct( alphaValue, a.storage, b.storage, betaValue );
+	auto alpha = eval( alpha_ );
+	auto beta  = eval( beta_ );
+	
+	debug( EvalCalls )
+		writeln( "-- evalMatrixProduct( ", alpha, ", ", a.toString, ", ", b.toString, ", ", beta, ", ", dest.toString, ")" );
+
+	static if( __traits( compiles, dest.storage.matrixProduct!( transA, transB )( alpha, a.storage, b.storage, beta ) ) ) {
+		dest.storage.matrixProduct!( transA, transB )( alpha, a.storage, b.storage, beta );
+	} else static if( __traits( compiles, a.storage.matrixProductA( alpha, b.storage, beta, dest ) ) ) {
+		a.storage.matrixProductA!( transA, transB )( alpha, b.storage, beta, dest );
+	} else static if( __traits( compiles, b.storage.matrixProductB( alpha, a.storage, beta, dest ) ) ) {
+		b.storage.matrixProductB!( transA, transB )( alpha, a.storage, beta, dest );
 	} else static if( isExpression!A ) {
 		static if( A.operation == Operation.MatScalProd ) {
 			evalMatrixProduct!(transA,transB)( alpha * a.rhs, a.lhs, b, beta, dest ); 
 		} else static if( A.operation == Operation.MatTrans ) {
 			evalMatrixProduct!( transNot!transA, transB )( alpha, a.lhs, b, beta, dest );
 		} else static if( A.operation == Operation.MatInverse ) {
-			auto betaValue = eval( beta );
-			if( !betaValue ) {
+			if( !beta ) {
 				// dest = vec * alpha; dest = inv(mat.lhs) * dest
 				evalCopy!transB( b * alpha, dest );
 				evalSolve!transA( a.lhs, dest );
 			} else {
+				RegionAllocator alloc = newRegionAllocator();	
 				static if( transB )
-					auto tmp = eval( b.t * alpha );
+					auto tmp = eval( b.t * alpha, &alloc );
 				else
-					auto tmp = eval( b * alpha );
+					auto tmp = eval( b * alpha, &alloc );
 				evalSolve!transM( a, tmp );
 				evalScaling( beta, dest );
 				evalScaledAddition( alpha, tmp, dest );
@@ -284,15 +301,13 @@ void evalMatrixProduct( Transpose transA = Transpose.no, Transpose transB = Tran
 			evalMatrixProduct!( transA, transB )( alpha, a, eval(b, &alloc), beta, dest );
 		}
 	} else {
-		auto vAlpha = eval( alpha );
-		auto vBeta  = eval( beta  );
-		fallbackMatrixProduct!(transA,transB)( vAlpha, a, b, vBeta, dest );
+		fallbackMatrixProduct!(transA,transB)( alpha, a, b, beta, dest );
 	}
 }
 
 /** Copy the result of a matrix-vector product between expressions into the destination. */
 void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, Mat, Vec, Dest )
-		( auto ref Alpha alpha, auto ref Mat mat, auto ref Vec vec, auto ref Beta beta, auto ref Dest dest ) {
+		( auto ref Alpha alpha_, auto ref Mat mat, auto ref Vec vec, auto ref Beta beta_, auto ref Dest dest ) {
 	enum vecClosure = transposeClosure!( Vec.closure, transV );
 	alias BaseElementType!Alpha T;
 	
@@ -306,14 +321,16 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 	static assert( is( BaseElementType!Beta : T ) );
 	static assert( isLeafExpression!Dest );
 	
+	auto alpha = eval( alpha_ );
+	auto beta  = eval( beta_ );
+	
+	debug( EvalCalls )
+		writeln( "-- evalMatrixVectorProduct( ", alpha, ", ", mat.toString, ", ", vec.toString, ", ", beta, ", ", dest.toString, ")" );
+	
 	static if( __traits( compiles, mat.storage.matrixVectorProduct!(transM,transV)( alpha, vec.storage, beta, dest ) ) ) {
 		mat.storage.matrixVectorProduct!(transM,transV)( alpha, vec.storage, beta, dest );
-	} else static if( __traits( compiles, mat.storage.mv!(transM,transV)( eval( alpha ), vec.storage, eval(beta), dest ) ) ) {
-		mat.storage.matrixVectorProduct!(transM,transV)( eval( alpha ), vec.storage, eval(beta), dest );
 	} else static if( __traits( compiles, dest.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, vec.storage, eval( beta ) ) ) ) {
 		dest.storage.matrixVectorProductRight!(transM,transV)( alpha, mat.storage, vec.storage, eval( beta ) );
-	} else static if( __traits( compiles, dest.storage.matrixVectorProductRight!(transM,transV)( eval( alpha ), mat.storage, vec.storage, eval( beta ) ) ) ) {
-		dest.storage.matrixVectorProductRight!(transM,transV)( eval( alpha ), mat.storage, vec.storage, eval( beta ) );
 	} else static if( isExpression!Vec ) {
 		static if( Vec.operation == Operation.RowScalProd || Vec.operation == Operation.ColScalProd ) {
 			evalMatrixVectorProduct!( transM, transV )( alpha * vec.rhs, mat, vec.lhs, beta, dest );
@@ -330,8 +347,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 			evalMatrixVectorProduct!( transNot!transM, transV )( alpha, mat.lhs, vec, beta, dest );
 		} else static if( Mat.operation == Operation.MatInverse ) {
 			// d = inv(A) * v
-			auto betaValue = eval( beta );
-			if( !betaValue ) {
+			if( beta != Zero!T ) {
 				// dest = vec * alpha; dest = inv(mat.lhs) * dest
 				evalCopy!transV( vec * alpha, dest );
 				evalSolve!transM( mat.lhs, dest );
@@ -349,9 +365,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat, &alloc), vec, beta, dest );	
 		}
 	} else {
-		auto vAlpha = eval( alpha );
-		auto vBeta  = eval( beta );
-		fallbackMatrixVectorProduct!(transM, transV)( vAlpha, mat, vec, vBeta, dest );
+		fallbackMatrixVectorProduct!(transM, transV)( alpha, mat, vec, beta, dest );
 	}
 }
 
@@ -360,6 +374,9 @@ void evalSolve( Transpose transM = Transpose.no, Mat, Dest )( auto ref Mat mat, 
 	alias BaseElementType!Mat T;
 	
 	static assert( isLeafExpression!Dest );
+	
+	debug( EvalCalls )
+		writeln( "-- evalSolve( ", mat.toString, ", ", dest.toString, ")" );
 	
 	static if( __traits( compiles, dest.storage.solve!transM( mat.storage ) ) ) {
 		dest.storage.solve!transM( dest.storage );
@@ -400,7 +417,8 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 		
 	static assert( aClosure == Closure.RowVector );
 	static assert( bClosure == Closure.ColumnVector );
-	
+	debug( EvalCalls )
+		writeln( "-- evalDot( ", a.toString, ", ", b.toString, ")" );
 	static if( __traits( compiles, a.storage.dot!( transXor!(transA,transB) )( b.storage ) ) ) {
 		auto r = a.storage.dot!( transXor!(transA,transB) )( b.storage );
 		static if( transB && isComplex!T )
@@ -431,7 +449,7 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 }
 
 template isPrimitiveLiteral( T ) {
-    enum isPrimitiveLiteral = (is( T : BaseElementType!T[] ) || is( T : BaseElementType!T[][] ) || is( T : BaseElementType!T )) && isFortranType!(BaseElementType!T);
+    enum isPrimitiveLiteral = (is( T : BaseElementType!T[] ) || is( T : BaseElementType!T[][] ) || is( T : BaseElementType!T )) && isScalar!(BaseElementType!T);
 }
 
 template StorageOf( T ) {

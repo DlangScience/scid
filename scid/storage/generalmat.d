@@ -12,9 +12,9 @@ import scid.storage.external;
 
 
 template GeneralMatrixStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
-		if( isFortranType!(BaseElementType!ElementOrMatrix) ) {
+		if( isScalar!(BaseElementType!ElementOrMatrix) ) {
 	
-	static if( isFortranType!ElementOrMatrix )
+	static if( isScalar!ElementOrMatrix )
 		alias BasicGeneralMatrixStorage!( CowMatrixRef!(ElementOrMatrix,order_) ) GeneralMatrixStorage;
 	else
 		alias BasicGeneralMatrixStorage!( ElementOrMatrix ) GeneralMatrixStorage;
@@ -50,27 +50,8 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	
 	enum storageType = MatrixStorageType.General;
 	
-	this( size_t newRows, size_t newCols ) {
-		containerRef_ = ContainerRef( newRows, newCols );
-	}	
-	
-	this( size_t newRows, size_t newCols, void* ) {
-		containerRef_ = ContainerRef( newRows, newCols, null );
-	}	
-	
-	this( size_t newRows, ElementType[] initializer ) {
-		containerRef_ = ContainerRef( newRows, initializer );
-	}
-	
-	this( ElementType[][] initializer ) {
-		if( initializer.length == 0 || initializer[0].length == 0)
-			return;
-		
-		containerRef_ = ContainerRef( initializer.length, initializer[0].length, null );
-		foreach( i ; 0 .. this.rows ) {
-			assert( initializer[i].length == this.columns );
-			this.row( i )[] = initializer[ i ].t;
-		}
+	this( A ... )( auto ref A containerArgs ) if( A.length > 0 && !is( A[0] : ContainerRef ) ) {
+		containerRef_ = ContainerRef( containerArgs );	
 	}
 	
 	this( this ) {
@@ -91,20 +72,15 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 			containerRef_ = ContainerRef( rows, columns );
 	}
 	
-	void copy( Transpose tr, Source )( auto ref Source source ) {
+	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source ) if( isGeneralMatrixStorage!Source ) {
 		enum srcOrder = transposeStorageOrder!( Source.storageOrder, tr ) ;
-		static if( srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!ContainerRef ) ) {
+		static if( (!tr || !isComplex!ElementType) && srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!ContainerRef ) ) {
 			containerRef_ = ContainerRef( source.matrix.ptr, source.firstIndex, source.rows, source.columns );
-		} else static if( srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
+		} else static if( (!tr || !isComplex!ElementType) && srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
 			containerRef_ = ContainerRef( source.containerRef_.ptr );
 		} else {
 			resize( source.rows, source.columns, null );
-			generalMatrixCopy!( srcOrder, storageOrder )(
-				rows, columns,
-				source.cdata, source.leading,
-				this.data,
-				leading
-			);
+			generalMatrixCopy!tr( source, this );
 		}
 	}
 	
@@ -169,15 +145,14 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	void popBack()  { containerRef_.popBack(); }
 	
 	@property {
-		ContainerRef matrix()        { return containerRef_; }
-		bool      empty()   const { return containerRef_.empty; }
-		size_t    length()  const { return containerRef_.major; }
-		
-		size_t    rows()    const { return containerRef_.rows; }
-		size_t    columns() const { return containerRef_.columns; }
-		size_t    major()   const { return containerRef_.major; }
-		size_t    minor()   const { return containerRef_.minor; }
-		size_t    leading() const { return containerRef_.leading; }
+		ContainerRef matrix()     { return containerRef_; }
+		bool      empty()   const { return isInitd_() ? containerRef_.empty  : true; }
+		size_t    length()  const { return isInitd_() ? containerRef_.major  : 0;    }
+		size_t    rows()    const { return isInitd_() ? containerRef_.rows   : 0;    }
+		size_t    columns() const { return isInitd_() ? containerRef_.columns: 0;    }
+		size_t    major()   const { return isInitd_() ? containerRef_.major  : 0;    }
+		size_t    minor()   const { return isInitd_() ? containerRef_.minor  : 0;    }
+		size_t    leading() const { return isInitd_() ? containerRef_.leading: 0;    }
 		
 		MajorView front() {
 			return typeof(return)( containerRef_, 0, minor );
@@ -195,7 +170,7 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	template Promote( Other ) {
 		static if( isMatrixStorage!Other ) {
 			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef,Other.ContainerRef) ) Promote;
-		} else static if( isFortranType!Other ) {
+		} else static if( isScalar!Other ) {
 			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef, Other ) ) Promote;
 		}
 	}
@@ -204,7 +179,11 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 private:
 	mixin MatrixErrorMessages;
 
-	this( ContainerRef containerRef ) {
+	this()( ContainerRef containerRef ) {
 		containerRef_ = containerRef;
+	}
+	
+	bool isInitd_() const {
+		return containerRef_.RefCounted.isInitialized();
 	}
 }

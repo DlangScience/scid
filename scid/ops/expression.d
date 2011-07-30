@@ -60,6 +60,11 @@ enum Transpose : bool {
 
 /** Convinience function to create an expression object. */
 Expression!( op, Unqual!Lhs, Unqual!Rhs ) expression( string op, Lhs, Rhs )( auto ref Lhs lhs, auto ref Rhs rhs ) {
+	static assert( isConvertible!(BaseElementType!Lhs, BaseElementType!Rhs) &&
+				   isConvertible!(BaseElementType!Lhs, BaseElementType!Rhs),
+		"Invalid types in " ~ to!string(closureOf!Lhs) ~ " " ~ op ~ " " ~ to!string(closureOf!Rhs) ~ ": " ~
+		BaseElementType!Lhs.stringof ~ " and " ~ BaseElementType!Rhs.stringof
+	);
 	return typeof( return )( lhs, rhs );
 }
 
@@ -147,6 +152,22 @@ struct Expression( string op_, Lhs_, Rhs_ = void ) {
 		}
 	}
 	
+	string toString() {
+		static if( isScalar!Lhs )
+			string lhsString = toImpl!(string,Lhs)(lhs);
+		else
+			string lhsString = lhs.toString;
+		
+		static if( isBinary ) {
+			static if( isScalar!Rhs )
+				string rhsString = toImpl!(string,Rhs)(rhs);
+			else
+				string rhsString = rhs.toString;
+			return "( " ~ lhsString ~ " " ~ operator ~ " " ~ rhsString ~ " )";
+		} else
+			return lhsString ~ "." ~ operator;
+	}
+	
 	/** The left hand side of the operation. */
 	alias lhs_ lhs;
 	Lhs   lhs_;
@@ -158,21 +179,6 @@ struct Expression( string op_, Lhs_, Rhs_ = void ) {
 	}
 }
 
-/** Transposition property for builtin arrays. */
-@property Expression!( "t", T[] ) t( T )( T[] array ) if( isFortranType!T ) {
-	return typeof( return )( array );
-}
-
-/** Transposition property for builtin matrices. */
-@property Expression!( "t", T[][] ) t( T )( T[][] array ) if( isFortranType!T ) {
-	return typeof( return )( array );
-}
-
-/** Matrix inversion. */
-Expression!( "inv", M ) inv( M )( auto ref M matrix ) if( closureOf!M == Closure.Matrix ) {
-	return typeof( return )( matrix );	
-}
-
 /** Mixin that adds the appropriate operator overloads for any operand - literal or expression. */
 template Operand( Closure closure_ ) {
 	import scid.common.meta : Zero, One, MinusOne;
@@ -181,8 +187,9 @@ template Operand( Closure closure_ ) {
 	alias closure_ closure;
 	
 	static if( closure == Closure.Scalar ) { 
-		auto opBinaryRight( string op )( ElementType newLhs )
-				if( op == "^^" || op == "/" || op == "-" || op == "*" ) {
+		auto opBinaryRight( string op, E )( E newLhs )
+				if( isConvertible!(E,ElementType) && 
+				   (op == "^^" || op == "/" || op == "-" || op == "*") ) {
 			return expression!op( newLhs, this );
 		}
 		
@@ -210,20 +217,20 @@ template Operand( Closure closure_ ) {
 		}
 	
 		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "*" || op == "+" ) {
-			return expression!op( this, newRhs);
+			return expression!op( this, newRhs );
+		}
+		
+		auto opBinaryRight( string op, E )( E newLhs ) if( isConvertible!(E,ElementType) && op == "*" ) {
+			return expression!op( this, newLhs );
+		}
+		
+		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "-" ) {
+			return expression!"+"( this, expression!"*"(newRhs, MinusOne!ElementType) );
 		}
 	}
 	
 	auto opUnary( string op )() if( op == "-" ) {
 		return expression!"*"( this, MinusOne!ElementType );
-	}
-	
-	auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "-" ) {
-		return expression!"+"( this, expression!"*"(newRhs, MinusOne!ElementType) );
-	}
-		
-	auto opBinaryRight( string op )( ElementType newLhs ) if( op == "*" ) {
-		return expression!op( this, newLhs );
 	}
 }
 
@@ -282,22 +289,10 @@ template isTransposition( Operation op ) {
 
 /** Get the closure type of an expression or a literal. */
 template closureOf( T ) {
-	static if( isFortranType!(Unqual!T) ) { 
+	static if( isScalar!(Unqual!T) ) { 
 		enum closureOf = Closure.Scalar;
 	} else static if( is( typeof(T.closure) : Closure ) ) {
 		enum closureOf = T.closure;
-	} else static if( is( T E : E[] ) && isFortranType!(Unqual!E) ) {
-		enum closureOf = Closure.ColumnVector;
-	} else static if( is( T E : E[][] ) && isFortranType!(Unqual!E) ) {
-		enum closureOf = Closure.Matrix;
-	} else static if( isInputRange!T && hasLength!T ) {
-		enum c_ = closureOf!(typeof(T.front));
-		static if( c_ == Closure.Scalar )
-			enum closureOf = Closure.ColumnVector;
-		else static if( c_ == Closure.ColumnVector || c_ == Closure.RowVector )
-			enum closureOf = Closure.Matrix;
-		else
-			static assert( false, T.stringof ~ " invalid range for expression." );
 	} else {
 		static assert( false, T.stringof ~ " is not a valid expression." );
 	}
@@ -333,7 +328,7 @@ template refCountedAutoInitializeOf( T ) {
 }
 
 private template PromotionImpl( A, B ) {
-	static if( isFortranType!A && isFortranType!B ) {
+	static if( isScalar!A && isScalar!B ) {
 		alias typeof( A.init + B.init ) Result;
 	} else static if( is( A E : RefCounted!(E, autoInit), uint autoInit ) ) {
 		alias Promotion!(E,B) Result;

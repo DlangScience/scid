@@ -82,6 +82,8 @@ struct PackedStorage( ContainerRef_ ) {
 	template Promote( Other ) {
 		static if( is( Other : typeof(this) ) ) {
 			alias typeof(this) Promote;
+		} else static if( isScalar!Other ) {
+			alias PackedStorage!( Promotion!(Other,ContainerRef) ) Promote;
 		} else {
 			alias Promotion!( GeneralMatrixStorage!ElementType, Other ) Promote;
 		}

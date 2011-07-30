@@ -8,6 +8,7 @@
 module scid.storage.cowmatrix;
 
 import scid.matrix;
+import scid.blas;
 
 import scid.ops.common;
 import scid.ops.expression;
@@ -18,8 +19,10 @@ import scid.common.meta;
 import scid.common.storagetraits;
 
 import scid.internal.assertmessages;
-import scid.bindings.blas.dblas;
-import std.algorithm, std.array, std.typecons;
+
+import std.algorithm, std.typecons;
+import std.array, std.conv;
+
 
 /** A copy-on-write matrix. Used as a container for storage types. */
 struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.ColumnMajor ) {
@@ -32,16 +35,20 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	enum isRowMajor = (storageOrder == StorageOrder.RowMajor);
 	
 	/** Allocate a new matrix of given dimensions. Initialize with zero. */
-	this( size_t newRows, size_t newCols )
+	this()( size_t newRows, size_t newCols )
 	in {
 		assert( newRows != 0 && newCols != 0, zeroDimMsg_( newRows, newCols ) );
 	} body {
-		this( newRows, newCols, null );
-		scal( newRows * newCols, Zero!ElementType, ptr_, 1 );
+		data_.reset( newRows * newCols );
+		ptr_     = data_.ptr;
+		rows_    = newRows;
+		cols_    = newCols;
+		leading_ = minor_;
+		blas.scal( newRows * newCols, Zero!ElementType, ptr_, 1 );
 	}
 	
 	/** Allocate a new uninitialized matrix of given dimensions. */
-	this( size_t newRows, size_t newCols, void* )
+	this()( size_t newRows, size_t newCols, void* )
 	in {
 		assert( newRows != 0 && newCols != 0, zeroDimMsg_( newRows, newCols ) );
 	} body {
@@ -53,7 +60,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	}
 	
 	/** Create a new matrix with given data, data pointer and dimensions. */
-	this(  Data data, ElementType* ptr, size_t numRows, size_t numColumns, size_t leadingDimension  )
+	this()( Data data, ElementType* ptr, size_t numRows, size_t numColumns, size_t leadingDimension  )
 	in {
 		assert( data.owns( ptr ), "Pointer passed to ctor is not owned by data." );
 	} body {
@@ -70,19 +77,35 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	/** Create a new matrix with a given major dimension (i.e number of columns for ColumnMajor matrices)
 	    and an array with the elements in minor order.
 	*/
-	this( size_t newMajor, ElementType[] initializer )
+	this( E )( size_t newMajor, E[] initializer ) if( isConvertible!(E, ElementType) )
 	in {
 		assert( newMajor != 0 && initializer.length % newMajor == 0, initMsg_( newMajor, initializer ) );
 	} body {
-		data_.reset( initializer );
+		data_.reset( to!(ElementType[])(initializer) );
 		ptr_     = data_.ptr;
 		major_   = newMajor;
 		minor_   = initializer.length / major_;
 		leading_ = minor_;
 	}
 	
+	this( E )( E[][] initializer ) if( isConvertible!(E, ElementType) ) {
+		if( initializer.length == 0 || initializer[0].length == 0)
+			return;
+		
+		rows_ = initializer.length;
+		cols_ = initializer[0].length;
+		data_.reset( rows_ * cols_ );
+		
+		ptr_     = data_.ptr;
+		leading_ = minor_;
+		
+		foreach( i ; 0 .. rows )
+			foreach( j ; 0.. columns )
+				indexAssign( to!ElementType(initializer[i][j]), i, j );
+	}
+	
 	/** Create a matrix as a copy of another exisiting one. */
-	this( typeof(this)* other ) {
+	this()( CowMatrix* other ) {
 		data_    = other.data_;
 		ptr_     = other.ptr_;
 		rows_    = other.rows_;
@@ -91,7 +114,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	}
 	
 	/** Create a matrix as a slice of an existing one. */
-	this( typeof(this)* other, size_t rowStart, size_t numRows, size_t colStart, size_t numCols )
+	this()( CowMatrix* other, size_t rowStart, size_t numRows, size_t colStart, size_t numCols )
 	in {
 		assert( rowStart + numRows <= other.rows_ && colStart + numCols <= other.cols_,
 			    sliceMsg_( rowStart, numRows, colStart, numCols ) );
@@ -104,7 +127,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	}
 	
 	/// ditto
-	this( typeof(this)* other, size_t firstIndex, size_t numRows, size_t numCols )
+	this()( CowMatrix* other, size_t firstIndex, size_t numRows, size_t numCols )
 	in {
 		
 	} body {
@@ -249,7 +272,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 			alias CowArrayRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
 		else static if( isMatrixContainer!T ) {
 			alias CowMatrixRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
-		} else static if( isFortranType!T )
+		} else static if( isScalar!T )
 			alias CowMatrixRef!(Promotion!(T,ElementType)) Promote;
 	}
 	
@@ -281,12 +304,8 @@ private:
 			data_.reset( rows_ * cols_ );
 			auto newp = data_.ptr;
 			
-			generalMatrixCopy!( storageOrder, storageOrder )(
-				rows_, cols_,
-				oldp, leading_,
-				newp, minor_
-			);
-			
+			blas.xgecopy( 'n', rows_, cols_, oldp, leading_, newp, minor_ );
+
 			leading_ = minor_;
 		}
 		

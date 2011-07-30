@@ -13,18 +13,22 @@ import scid.ops.expression;
 import scid.ops.common;
 import scid.ops.eval;
 
-// debug = fallbackCalls;
+debug = fallbackCalls;
 
 debug( fallbackCalls ) {
 	import std.stdio : write, writeln, stdout;
-	
+}
+
+private {
+	string toString(T)( T[]   v ) @property if(isScalar!T) { return to!string( v ); }
+	string toString(T)( T[][] m ) @property if(isScalar!T) { return to!string( m ); }
 }
 
 /** Matrix product. Similiar to the mm BLAS routines, performs matrix-vector products to compute the result. */
 void fallbackMatrixProduct( Transpose transA, Transpose transB, A, B, E, Dest )
 		( E alpha, auto ref A a, auto ref B b, E beta, auto ref Dest dest ) {
-	size_t m = transA ? a.rows    : a.columns;
-	size_t n = transB ? a.columns : a.rows;
+	size_t m = transA ? a.columns : a.rows;
+	size_t n = transB ? b.rows : b.columns;
 	
 	if( !alpha ) {
 		if( !beta ) dest.resize( m, n );
@@ -39,13 +43,7 @@ void fallbackMatrixProduct( Transpose transA, Transpose transB, A, B, E, Dest )
 		
 		
 	void doElement( size_t i, size_t j ) {
-		E dot;
-			
-		static if( !transA && !transB )     dot = evalDot!( transA, transB )( a.row( i ),    b.column( j ) );
-		else static if( !transA && transB ) dot = evalDot!( transA, transB )( a.row( i ),    b.row( j )    );
-		else static if( transA && !transB ) dot = evalDot!( transA, transB )( a.column( i ), b.column( j ) );
-		else static if( transA && transB )  dot = evalDot!( transA, transB )( a.column( i ), b.row( j )    );
-			
+		E dot = rowColumnDot!( transA, transB )(a, i, b, j);	
 		dot *= alpha; dot += beta * dest[i, j];
 		dest[ i, j ] = dot;	
 	}
@@ -184,12 +182,18 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 		auto alphaValue = eval( alpha );
 		debug( fallbackCalls ) {
 			auto dummy = dest.data;
-			write( "fbaxpy( ", alphaValue, ", ", source.toString(), ", ", dest.toString(), " ) => " );
+			write( "fbaxpy",(tr?".t":""), "( ",  alphaValue, ", ", source.toString(), ", ", dest.toString(), " ) => " );
 		}
 		assert( source.length == dest.length, "Length mismatch in fallback vector addition." );
 		auto n = dest.length;
-		for( size_t i = 0 ; i < n ; ++ i )
-			dest[ i ] += source[ i ] * alphaValue;	
+		for( size_t i = 0 ; i < n ; ++ i ) {
+			static if( tr && isComplex!(BaseElementType!Source) ) {
+				dest[ i ] += gconj(source[ i ]) * alphaValue;
+			} else {
+				dest[ i ] += source[ i ] * alphaValue;
+			}
+			
+		}
 		debug( fallbackCalls ) writeln( dest.toString() );
 	} else static if( destClosure == Closure.Matrix ) {
 		// fallback matrix axpy - axpy major-by-major

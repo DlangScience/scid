@@ -3,33 +3,36 @@ module scid.vector;
 import scid.storage.array;
 import scid.storage.arrayview;
 import scid.common.traits;
+import scid.common.meta;
 import scid.ops.expression;
 import scid.ops.eval;
 import scid.matrix;
 
 import std.traits, std.range, std.algorithm, std.conv;
 
+import scid.internal.assertmessages;
+
 enum VectorType {
 	Row, Column
 }
 
 template Vector( ElementOrStorage, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrStorage) ) {
+		if( isScalar!(BaseElementType!ElementOrStorage) ) {
 	
-	static if( isFortranType!ElementOrStorage )
+	static if( isScalar!ElementOrStorage )
 		alias BasicVector!( ArrayStorage!( ElementOrStorage, vectorType ) ) Vector;
 	else
 		alias BasicVector!( ElementOrStorage )              Vector;
 }
 
 template VectorView( ElementOrStorage, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrStorage) ) {
+		if( isScalar!(BaseElementType!ElementOrStorage) ) {
 			
 	alias BasicVector!( ArrayViewStorage!( ElementOrStorage, vectorType ) ) VectorView;
 }
 
 template StridedVectorView( ElementOrStorage, VectorType vectorType = VectorType.Column )
-		if( isFortranType!(BaseElementType!ElementOrStorage) ) {
+		if( isScalar!(BaseElementType!ElementOrStorage) ) {
 	
 	alias BasicVector!( StridedArrayViewStorage!( ElementOrStorage, vectorType ) ).View StridedVectorView;
 }
@@ -52,17 +55,15 @@ template isVector( T ) {
 
 template signOfOp( string op, T ) {
 	static if( op == "+" )
-		enum T signOfOp = 1;
+		enum T signOfOp = One!T;
 	else static if( op == "-" )
-		enum T signOfOp = -1;
+		enum T signOfOp = MinusOne!T;
 }
 
 struct BasicVector( Storage_ ) {
 	alias BaseElementType!Storage                          ElementType;
 	alias Storage_                                         Storage;
-	alias Storage.vectorType                               vectorType;
 	alias BasicVector!( typeof(Storage.init.view(0,0)) )   View;
-	alias BasicVector!( typeof(Storage.init.view(0,0,0)) ) StridedView;
 	alias BasicVector!( Storage.Transposed )               Transposed;
 	alias storage                                          this;
 	
@@ -71,10 +72,18 @@ struct BasicVector( Storage_ ) {
 	else
 		alias typeof( this ) Temporary;
 	
-	//static assert( isVectorStorage!Storage );
+	static if( is( typeof(Storage.vectorType) ) )
+		alias Storage.vectorType vectorType;
+	else
+		alias VectorType.Column vectorType;
 	
-	static if( isReference!Storage )
-		alias BasicVector!( ReferencedBy!Storage ) Referenced;
+	/** Whether the storage can be resized. */
+	enum isResizable = is( typeof( Storage.init.resize(0) ) );
+	
+	static if( is( typeof(Storage.init.view(0,0,0)) R ) )
+		alias BasicVector!R StridedView;
+	
+	//static assert( isVectorStorage!Storage );
 
 	this( A... )( A args ) if( A.length > 0 && !is( A[0] : Storage ) && !isVector!(A[0]) && !isExpression!(A[0]) ) {
 		storage = Storage(args);
@@ -127,23 +136,52 @@ struct BasicVector( Storage_ ) {
 		
 		return true;
 	}
+	
+	/** Resize the vector and leave the memory uninitialized. If not resizeable simply check that the length is
+	    correct.
+	*/
+	void resize( size_t newLength, void* ) {
+		static if( isResizable ) {
+			storage.resize( newLength, null );
+		} else {
+			assert( length == newLength,
+				lengthMismatch_( newLength ) );
+		}
+	}
+	
+	/** Resize the vectors and set all the elements to zero. If not resizeable, check that the length is correct
+	    and just set the elements to zero.
+	*/
+	void resize( size_t newLength ) {
+		static if( isResizable ) {
+			storage.resize( newLength );
+		} else {
+			this.resize( newLength, null );
+			evalScaling( Zero!ElementType, this );
+		}
+	}
 
 	void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
-		evalCopy( rhs, this );
+		static if( is( Rhs E : E[] ) && isConvertible( E, ElementType  ) )
+			evalCopy( BasicVector(rhs), this );
+		else
+			evalCopy( rhs, this );
+		
 	}
 	
 	void opSliceAssign( Rhs )( Rhs rhs, size_t start, size_t end ) {
 		auto v = view( start, end );
-		evalCopy( rhs, v );
+		v[] = rhs;
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" ) {
 		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
 	}
 	
-	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if(op == "*" || op == "/" ) {
-		static if( op == "/" ) rhs = 1.0 / rhs;
-		evalScaling( rhs, this );
+	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( (op == "*" || op == "/") && isConvertible!(Rhs,ElementType) ) {
+		static if( op == "/" )
+			rhs = One!ElementType / rhs;
+		evalScaling( to!ElementType(rhs), this );
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if( op == "+" || op == "-" ) {
@@ -151,18 +189,22 @@ struct BasicVector( Storage_ ) {
 		evalScaledAddition( signOfOp!(op,ElementType), rhs, v );
 	}
 	
-	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if(op == "*" || op == "/" ) {
+	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if( (op == "*" || op == "/") && isConvertible!(Rhs,ElementType) ) {
 		auto v = view( start, end );
-		static if( op == "/" ) rhs = 1.0 / rhs;
-		evalScaling( rhs, v );
+		auto s = to!ElementType(rhs);
+		static if( op == "/" )
+			s = One!ElementType / s;
+		evalScaling( s, v );
 	}
 	
 	View view( size_t start, size_t end ) {
 		return typeof( return )( storage.view( start, end ) );
 	}
 	
-	StridedView view( size_t start, size_t end, size_t stride ) {
-		return typeof( return )( storage.view( start, end, stride ) );	
+	static if( is( StridedView ) ) {
+		StridedView view( size_t start, size_t end, size_t stride ) {
+			return typeof( return )( storage.view( start, end, stride ) );	
+		}
 	}
 	
 	static if( isInputRange!Storage ) {
@@ -171,11 +213,36 @@ struct BasicVector( Storage_ ) {
 	}
 	
 	@property {
-		bool          empty()   const { return storage.empty; }
-		ElementType   front()   const { return storage.front; }
-		ElementType   back()    const { return storage.back; }
-		size_t        length()  const { return storage.length; }
-		typeof(this)* addr()          { return &this; }
+		bool empty() const {
+			static if( is(typeof(Storage.init.empty)) )
+				return storage.empty;
+			else
+				return storage.length == 0;
+		}
+		
+		size_t length() const {
+			return storage.length;
+		}
+		
+		ElementType front() const
+		in {
+			assert( !empty, emptyMsg_("front") );	
+		} body {
+			static if( is( typeof(Storage.init.front) ) )
+				return storage.front;
+			else
+				return storage.index( 0 );
+		}
+		
+		ElementType back() const
+		in {
+			assert( !empty, emptyMsg_("back") );
+		} body {
+			static if( is( typeof(Storage.init.back) ) )
+				return storage.back;
+			else
+				return storage.index( storage.length - 1 );
+		}
 	}
 	
 	string toString() const {
@@ -202,30 +269,16 @@ struct BasicVector( Storage_ ) {
 			alias BasicVector!( Promotion!(Storage,S) ) Promote;
 		} else static if( is( T S : BasicMatrix!S ) ) {
 			alias BasicVector!( Promotion!(Storage,S) ) Promote;
-		} else static if( isFortranType!T ) {
+		} else static if( isScalar!T ) {
 			alias BasicVector!( Promotion!(Storage,T) ) Promote;
 		}
 	}
 	
 	Storage storage;
-}
 
-@property auto ref storage( S )( ref S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
-	return x;
+private:
+	mixin ArrayErrorMessages;	
 }
-
-@property auto data( S )( S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
-	return x.ptr;
-}
-
-@property const(S)* cdata( S )( S[] x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
-	return x.ptr;
-}
-
-@property auto stride( S )( const(S[]) x ) if( isPrimitiveLiteral!S && closureOf!S != Closure.Matrix ) {
-	return 1;
-}
-
 
 unittest {
 	// TODO: Write tests for Vector.

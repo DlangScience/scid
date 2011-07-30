@@ -11,9 +11,9 @@ import std.exception;
 import scid.storage.external;
 
 template TriangularStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
-	if( isFortranType!(BaseElementType!ElementOrArray) ) {
+	if( isScalar!(BaseElementType!ElementOrArray) ) {
 	
-	static if( isFortranType!ElementOrArray )
+	static if( isScalar!ElementOrArray )
 		alias PackedStorage!( TriangularArrayAdapter!(CowArrayRef!ElementOrArray, triangle, storageOrder) ) TriangularStorage;
 	else
 		alias PackedStorage!( TriangularArrayAdapter!(ElementOrArray, triangle, storageOrder) )             TriangularStorage;
@@ -35,23 +35,21 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	
 	enum triangle     = tri_;
 	enum storageOrder = storageOrder_;
-	enum storageType  = MatrixStorageType.Triangular;
 	enum isRowMajor   = storageOrder == StorageOrder.RowMajor;
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
-	
 	
 	this( A ... )( size_t newSize, A arrayArgs ) {
 		size_  = newSize;
 		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs );
 	}
 	
-	this()( ElementType[] initializer ) {
+	this( E )( E[] initializer ) if( isConvertible( E, ElementType ) ) {
 		auto tri  = (sqrt( initializer.length * 8.0 + 1.0 ) - 1.0 ) / 2.0;
 		
 		enforce( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
 		
 		size_  = cast(size_t) tri;
-		containerRef_ = ContainerRef( initializer );
+		containerRef_ = ContainerRef( to!(ElementType[])(initializer) );
 	}
 	
 	this()( ElementType[][] initializer ) {
@@ -135,7 +133,10 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	alias size minor;
 	
 	template Promote( Other ) {
-		private import scid.storage.generalmat;
+		static if( isScalar!Other ) {
+			alias TriangularArrayAdapter!( Promotion!(ContainerRef,Other), triangle, storageOrder )
+				Promote;
+		}
 	}
 	
 private:

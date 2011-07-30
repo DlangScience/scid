@@ -18,7 +18,7 @@ struct ExternalArray( T, DefaultType_ ) {
 	
 	mixin EmulateRefCounted;
 	
-	this( Allocator )( size_t len, Allocator *allocator )
+	this( Allocator )( size_t len, Allocator allocator )
 			if( isAllocator!Allocator ) {
 		
 		array_ = ( cast(T*) allocator.allocate( len * T.sizeof ) )[ 0 .. len ];
@@ -62,7 +62,7 @@ private:
 	T[]    array_;
 }
 
-struct ExternalMatrix( T, StorageOrder order_ = StorageOrder.ColumnMajor, DefaultType_ ) {
+struct ExternalMatrix( T, StorageOrder order_, DefaultType_ ) {
 	alias T ElementType;
 	alias DefaultType_ MatrixType;
 	alias ArrayTypeOf!MatrixType ArrayType;
@@ -75,7 +75,7 @@ struct ExternalMatrix( T, StorageOrder order_ = StorageOrder.ColumnMajor, Defaul
 	alias ExternalMatrix!(T, transposeStorageOrder!order_, DefaultType_ )
 		Transposed;
 	
-	this( Allocator )( size_t rows, size_t columns, Allocator *allocator )
+	this( Allocator )( size_t rows, size_t columns, Allocator allocator )
 			if( isAllocator!Allocator ) {
 		size_t len = rows * columns;
 		array_ = ( cast(T*) allocator.allocate( len * T.sizeof ) )[ 0 .. len ];
@@ -138,4 +138,3 @@ private:
 		alias rows_ minor_;
 	}
 }
-

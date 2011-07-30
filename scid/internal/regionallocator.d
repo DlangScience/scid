@@ -408,7 +408,7 @@ private:
 public:
 
     this(this) {
-        incrementRefCount();
+        if(initialized) incrementRefCount();
     }
 
     ~this() {

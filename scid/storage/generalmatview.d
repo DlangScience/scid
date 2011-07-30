@@ -8,15 +8,12 @@ import scid.common.meta;
 import scid.matrix, scid.vector;
 import std.algorithm;
 import scid.ops.eval, scid.ops.common;
-
-static import scid.bindings.blas.dblas;
-alias scid.bindings.blas.dblas blas;
-
+import scid.blas;
 
 template GeneralMatrixViewStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
-		if( isFortranType!(BaseElementType!ElementOrMatrix) ) {
+		if( isScalar!(BaseElementType!ElementOrMatrix) ) {
 	
-	static if( isFortranType!ElementOrMatrix )
+	static if( isScalar!ElementOrMatrix )
 		alias BasicGeneralMatrixViewStorage!( CowMatrixRef!(ElementOrMatrix,order_) ) GeneralMatrixViewStorage;
 	else
 		alias BasicGeneralMatrixViewStorage!( ElementOrMatrix ) GeneralMatrixViewStorage;
@@ -59,6 +56,10 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	
 	this( A ... )( A args ) if( A.length > 0 && !is( A[ 0 ] : ContainerRef ) ) {
 		containerRef_ = ContainerRef( args );
+		rows_         = containerRef_.rows;
+		cols_         = containerRef_.columns;
+		leading_      = minor_;
+		firstIndex_   = 0;
 	}
 	
 	void forceRefAssign( ref typeof(this) rhs ) {
@@ -137,7 +138,7 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	alias slice view;
 	
 	void resize( size_t rows, size_t columns, void* ) {
-		assert( rows == rows_ && cols_ == columns, "Matrix size mismatch in assignment to matrix view." );
+		assert( rows == rows_ && cols_ == columns, dimMismatch_( rows, columns ) );
 	}
 	
 	void resize( size_t rows, size_t columns ) {
@@ -147,13 +148,8 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	
 	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
 		if( is( Source M : BasicGeneralMatrixStorage!M ) || is( Source M : BasicGeneralMatrixViewStorage!M ) ) {
-		
-		hlGeCopy!( transposeStorageOrder( Source.storageOrder, tr ), storageOrder )(
-			rows, columns,
-			source.cdata, source.leading,
-			this.data,
-			leading
-		);
+		resize( source.rows, source.columns, null );
+		generalMatrixCopy!tr( source, this );
 	}
 	
 	void popFront()

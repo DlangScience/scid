@@ -11,7 +11,7 @@
   <quiet>0</quiet>
   <verbose>0</verbose>
   <vtls>0</vtls>
-  <symdebug>1</symdebug>
+  <symdebug>2</symdebug>
   <optimize>0</optimize>
   <cpu>0</cpu>
   <isX86_64>0</isX86_64>
@@ -27,7 +27,7 @@
   <useIn>0</useIn>
   <useOut>0</useOut>
   <useArrayBounds>0</useArrayBounds>
-  <noboundscheck>1</noboundscheck>
+  <noboundscheck>0</noboundscheck>
   <useSwitchError>0</useSwitchError>
   <useUnitTests>0</useUnitTests>
   <useInline>0</useInline>
@@ -102,7 +102,7 @@
   <verbose>0</verbose>
   <vtls>0</vtls>
   <symdebug>0</symdebug>
-  <optimize>0</optimize>
+  <optimize>1</optimize>
   <cpu>0</cpu>
   <isX86_64>0</isX86_64>
   <isLinux>0</isLinux>
@@ -117,10 +117,10 @@
   <useIn>0</useIn>
   <useOut>0</useOut>
   <useArrayBounds>0</useArrayBounds>
-  <noboundscheck>0</noboundscheck>
+  <noboundscheck>1</noboundscheck>
   <useSwitchError>0</useSwitchError>
   <useUnitTests>0</useUnitTests>
-  <useInline>0</useInline>
+  <useInline>1</useInline>
   <release>1</release>
   <preservePaths>0</preservePaths>
   <warnings>0</warnings>
@@ -224,6 +224,7 @@
    <File path="storage\symmetric.d" />
    <File path="storage\triangular.d" />
    <File path="storage\external.d" />
+   <File path="storage\diagonalmat.d" />
   </Folder>
   <File path="exception.d" />
   <File path="types.d" />
@@ -233,5 +234,7 @@
   <File path="matvec.d" />
   <File path="demo.d" />
   <File path="storages.d" />
+  <File path="blas.d" />
+  <File path="lapack.d" />
  </Folder>
 </DProject>

@@ -6,7 +6,7 @@ import scid.matvec;
 
 template isBasicContainer( T ) {
 	enum isBasicContainer =
-		isFortranType!(BaseElementType!T) &&
+		isScalar!(BaseElementType!T) &&
 		is( typeof(T.init.data) == BaseElementType!T* ) &&
 		is( typeof(T.init.cdata) == const(BaseElementType!T)* ) &&
 		is( typeof(T.init.ptr) ) &&
@@ -53,16 +53,13 @@ template hasArrayStorageResizing( T ) {
 template hasMatrixDimensions( T ) {
 	enum hasMatrixDimensions =
 		is( typeof(T.init.rows) ) &&
-		is( typeof(T.init.columns) ) &&
-		is( typeof(T.init.minor) ) &&
-		is( typeof(T.init.major) );
+		is( typeof(T.init.columns) );
 }
 
 template isVectorStorage( T ) {
 	enum isVectorStorage =
 		isBasicStorage!T &&
 		hasArrayStorageIndexing!T &&
-		hasArrayStorageResizing!T &&
 		is( typeof((){
 			auto s = T.init.slice( 0, 10 );
 			auto v = T.init.view( 0, 10 );
@@ -74,10 +71,7 @@ template isMatrixStorage( T ) {
 	enum isMatrixStorage =
 		//isBasicStorage!T &&
 		hasMatrixStorageIndexing!T &&
-		hasMatrixStorageResizing!T &&
 		hasMatrixDimensions!T &&
-		is( T.Transposed ) &&
-		is( typeof( storageOrderOf!T ) ) &&
 		is( typeof((){
 			auto s = T.init.slice(0,0,0,0);
 			auto v = T.init.view(0,0,0,0);
@@ -95,11 +89,11 @@ template isArrayContainer( T ) {
 
 template isMatrixContainer( T ) {
 	enum isMatrixContainer =
-		isFortranType!(BaseElementType!T) &&
+		isScalar!(BaseElementType!T) &&
 		hasMatrixDimensions!T;
 }
 		
-version( unittest ) {
+//version( unittest ) {
 	static assert( isArrayContainer!(CowArray!double) );
 	static assert( isMatrixContainer!(CowMatrix!double) );
 	static assert( isVectorStorage!(ArrayStorage!double) );
@@ -110,4 +104,4 @@ version( unittest ) {
 	static assert( isMatrixStorage!(SymmetricStorage!double) );
 	static assert( isMatrixStorage!(TriangularStorage!double) );
 	static assert( isMatrixStorage!(GeneralMatrixViewStorage!double) );
-}
+//}

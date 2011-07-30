@@ -12,28 +12,6 @@ import scid.bindings.blas.blas;
 public import scid.bindings.blas.types;
 import scid.common.fortran;
 
-// debug = blasCalls;
-
-debug( blasCalls ) {
-	import std.stdio, std.range, std.conv;
-	private string stridedToString_( S )( const(S)* ptr, size_t len, size_t stride ) {
-		if( len == 0 )
-			return "[]";
-	
-		auto app = appender!string("[");
-		app.put( to!string(*ptr) );
-		auto e = ptr + len * stride;
-		ptr += stride;
-		for( ; ptr < e ; ptr += stride ) {
-			app.put( ", " );
-			app.put( to!string( *ptr ) );
-		} 
-		app.put(']');
-		
-		return app.data();
-	}
-}
-
 
 /*  This unittest just checks whether the system is correctly
     set up to call BLAS routines.
@@ -153,113 +131,72 @@ void swap(f_int n, f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
 
 /// x := alpha * x
 void scal(f_int n, f_float alpha, f_float *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     sscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 void scal(f_int n, f_double alpha, f_double *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     dscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 void scal(f_int n, f_cfloat alpha, f_cfloat *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     cscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 void scal(f_int n, f_float alpha, f_cfloat *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     csscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 void scal(f_int n, f_cdouble alpha, f_cdouble *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     zscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 void scal(f_int n, f_double alpha, f_cdouble *x, f_int incx) {
-	debug( blasCalls ) write( "scal( ", alpha, ", ", stridedToString_(x, n, incx), " ) => " );
     zdscal_(&n, &alpha, x, &incx);
-	debug( blasCalls ) writeln( stridedToString_(x, n, incx) );
 }
 
 /// y := x
 void copy(f_int n, const f_float *x, f_int incx, f_float *y, f_int incy) {
-	debug( blasCalls ) write( "copy( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     scopy_(&n, cast(f_float*) x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void copy(f_int n, const f_double *x, f_int incx, f_double *y, f_int incy) {
-	debug( blasCalls ) write( "copy( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     dcopy_(&n, cast(f_double*) x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void copy(f_int n, const f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
-	debug( blasCalls ) write( "copy( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     ccopy_(&n, cast(f_cfloat*) x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void copy(f_int n, const f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
-	debug( blasCalls ) write( "copy( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     zcopy_(&n, cast(f_cdouble*) x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 
 /// y := alpha * x + y
 void axpy(f_int n, f_float alpha, const f_float *x, f_int incx, f_float *y, f_int incy) {
-	debug( blasCalls ) write( "axpy( ", alpha, ", ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     saxpy_(&n, &alpha, cast(f_float*)x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void axpy(f_int n, f_double alpha, const f_double *x, f_int incx, f_double *y, f_int incy) {
-	debug( blasCalls ) write( "axpy( ", alpha, ", ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     daxpy_(&n, &alpha, cast(f_double*)x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void axpy(f_int n, f_cfloat alpha, const f_cfloat *x, f_int incx, f_cfloat *y, f_int incy) {
-	debug( blasCalls ) write( "axpy( ", alpha, ", ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     caxpy_(&n, &alpha, cast(f_cfloat*)x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 void axpy(f_int n, f_cdouble alpha, const f_cdouble *x, f_int incx, f_cdouble *y, f_int incy) {
-	debug( blasCalls ) write( "axpy( ", alpha, ", ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     zaxpy_(&n, &alpha, cast(f_cdouble*)x, &incx, y, &incy);
-	debug( blasCalls ) writeln( stridedToString_(y, n, incy) );
 }
 
 
 /// ret := x.T * y
 float_ret_t dot(f_int n, const f_float *x, f_int incx, const f_float *y, f_int incy) {
-	debug( blasCalls ) write( "dot( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
-    auto ret_val = sdot_(&n, cast(f_float*)x, &incx, cast(f_float*)y, &incy);
-	debug( blasCalls ) writeln( ret_val );
-	return ret_val;
+    return sdot_(&n, cast(f_float*)x, &incx, cast(f_float*)y, &incy);
 }
 f_double dot(f_int n, const f_double *x, f_int incx, const f_double *y, f_int incy) {
-	debug( blasCalls ) write( "ddot( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
-    auto ret_val =  ddot_(&n, cast(f_double*)x, &incx, cast(f_double*)y, &incy);
-	debug( blasCalls ) writeln( ret_val );
-	return ret_val;
+    return ddot_(&n, cast(f_double*)x, &incx, cast(f_double*)y, &incy);
 }
 f_double ddot(f_int n, const f_float *sx, f_int incx, const f_float *sy, f_int incy) {
-    debug( blasCalls ) write( "dsdot( ", stridedToString_(sx, n, incx), ", ", stridedToString_(sy, n, incy), " ) => " );
-	auto ret_val =  dsdot_(&n, cast(f_float*)sx, &incx, cast(f_float*)sy, &incy);
-	debug( blasCalls ) writeln( stridedToString_(sy, n, incy) );
-	return ret_val;
+	return dsdot_(&n, cast(f_float*)sx, &incx, cast(f_float*)sy, &incy);
 }
 f_cfloat dotu(f_int n, const f_cfloat *x, f_int incx, const f_cfloat *y, f_int incy) {
-	debug( blasCalls ) write( "dotu( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     f_cfloat ret_val;
     cdotu_(&ret_val, &n, cast(f_cfloat*)x, &incx,cast(f_cfloat*) y, &incy);
-	debug( blasCalls ) writeln( ret_val );
     return ret_val;
-	
 }
+
 f_cdouble dotu(f_int n, const f_cdouble *x, f_int incx, const f_cdouble *y, f_int incy) {
-    debug( blasCalls ) write( "dotu( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
 	f_cdouble ret_val;
     zdotu_(&ret_val, &n, cast(f_cdouble*)x, &incx, cast(f_cdouble*)y, &incy);
-	debug( blasCalls ) writeln( ret_val );
     return ret_val;
 }
 //f_cfloat cdotu_(f_cfloat *ret_val, f_int *n, f_cfloat *x, f_int *incx, f_cfloat *y, f_int *incy);
@@ -267,17 +204,13 @@ f_cdouble dotu(f_int n, const f_cdouble *x, f_int incx, const f_cdouble *y, f_in
 
 /// ret := x.H * y
 f_cfloat dotc(f_int n, const f_cfloat *x, f_int incx, const f_cfloat *y, f_int incy) {
-	debug( blasCalls ) write( "dotc( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     f_cfloat ret_val;
     cdotc_(&ret_val, &n, cast(f_cfloat*)x,  &incx, cast(f_cfloat*)y, &incy);
-	debug( blasCalls ) writeln( ret_val );
     return ret_val;
 }
 f_cdouble dotc(f_int n, const f_cdouble *x, f_int incx, const f_cdouble *y, f_int incy) {
-	debug( blasCalls ) write( "dotc( ", stridedToString_(x, n, incx), ", ", stridedToString_(y, n, incy), " ) => " );
     f_cdouble ret_val;
     zdotc_(&ret_val, &n, cast(f_cdouble*)x, &incx, cast(f_cdouble*)y, &incy);
-	debug( blasCalls ) writeln( ret_val );
     return ret_val;
 }
 //f_cfloat cdotc_(f_cfloat *ret_val, f_int *n, f_cfloat *x, f_int *incx, f_cfloat *y, f_int *incy);
@@ -412,11 +345,11 @@ void symv(char uplo, f_int n, f_double alpha, f_double *A, f_int lda, f_double *
 /** symmetric banded matrix vector multiply
     y := alpha * A * x + beta * y
  */
-void sbmv(char uplo, f_int n, f_int k, f_float alpha, f_float *A, f_int lda, f_float *x, f_int incx, f_float beta, f_float *y, f_int incy) {
-    ssbmv_(&uplo, &n, &k, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void sbmv(char uplo, f_int n, f_int k, f_float alpha, const (f_float) *A, f_int lda, const (f_float) *x, f_int incx, f_float beta, f_float *y, f_int incy) {
+    ssbmv_(&uplo, &n, &k, &alpha, cast(f_float*)A, &lda, cast(f_float*)x, &incx, &beta, y, &incy, 1);
 }
-void sbmv(char uplo, f_int n, f_int k, f_double alpha, f_double *A, f_int lda, f_double *x, f_int incx, f_double beta, f_double *y, f_int incy) {
-    dsbmv_(&uplo, &n, &k, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void sbmv(char uplo, f_int n, f_int k, f_double alpha, const (f_double) *A, f_int lda, const (f_double) *x, f_int incx, f_double beta, f_double *y, f_int incy) {
+    dsbmv_(&uplo, &n, &k, &alpha, cast(f_double*)A, &lda, cast(f_double*)x, &incx, &beta, y, &incy, 1);
 }
 
 /** symmetric packed matrix vector multiply

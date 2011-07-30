@@ -9,7 +9,7 @@ module scid.storage.cowarray;
 
 import scid.internal.assertmessages;
 import scid.storage.arraydata;
-import scid.bindings.blas.dblas;
+import scid.blas;
 import scid.common.meta, scid.common.storagetraits;
 import scid.storage.cowmatrix, scid.matrix;
 import scid.ops.expression;
@@ -26,20 +26,22 @@ struct CowArray( ElementType_ ) {
 	alias ArrayData!ElementType Data;
 	
 	/** Allocate a new array of a given length. Initialize with zero. */
-	this( size_t newLength ) {
-		this( newLength, null );
-		scal( newLength, Zero!ElementType, ptr_, 1 );
+	this()( size_t newLength ) {
+		data_.reset( newLength );
+		ptr_    = data_.ptr;
+		length_ = newLength;
+		blas.scal( newLength, Zero!ElementType, ptr_, 1 );
 	}
 	
 	/** Allocate a new uninitialized array of given length. */
-	this( size_t newLength, void* ) {
+	this()( size_t newLength, void* ) {
 		data_.reset( newLength );
 		ptr_    = data_.ptr;
 		length_ = newLength;
 	}
 	
 	/** Create an array with given data, a pointer in the data and length. */
-	this( Data data, ElementType* ptr, size_t length )
+	this()( Data data, ElementType* ptr, size_t length )
 	in {
 		assert( data.owns( ptr ), "Pointer passed to ctor is not owned by data." );
 		assert( data.owns( ptr + length - 1 ), "Size passed to ctor exceeds that of data." );
@@ -50,14 +52,14 @@ struct CowArray( ElementType_ ) {
 	}
 	
 	/** Allocate a new array and initialize it with the given initializer. */
-	this( ElementType[] initializer ) {
-		data_.reset( initializer );
+	this( E )( E[] initializer ) {
+		data_.reset( to!(ElementType[])(initializer) );
 		ptr_    = data_.ptr;
 		length_ = initializer.length;
 	}
 	
 	/** Create an array which is a copy of an existing one. */
-	this( typeof(this)* other ) {
+	this()( CowArray* other ) {
 		data_   = other.data_;
 		ptr_    = other.ptr_;
 		length_ = other.length_;
@@ -66,7 +68,7 @@ struct CowArray( ElementType_ ) {
 	/** Resize the array and set all the elements to zero. */
 	void resize( size_t len ) {
 		resize( len, null );
-		scal( len, Zero!ElementType, this.ptr_, 1 );
+		blas.scal( len, Zero!ElementType, this.ptr_, 1 );
 	}
 	
 	/** Resize the array and leave the elements uninitialized. */
@@ -200,7 +202,7 @@ struct CowArray( ElementType_ ) {
 	template Promote( T ) {
 		static if( isArrayContainer!T || isMatrixContainer!T ) {
 			alias CowArrayRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
-		} else static if( isFortranType!T ) {
+		} else static if( isScalar!T ) {
 			alias CowArrayRef!(Promotion!(T,ElementType)) Promote;
 		}
 	}

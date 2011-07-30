@@ -21,9 +21,7 @@ template Zero(T)
 {
     static if (isFloatingPoint!T)
         enum T Zero = 0.0;
-    else static if( is( T == cfloat ) )
-        enum T Zero = 0.0f + 0.0fi;
-	else static if( is( T == cdouble ) )
+	else static if( is( T == cdouble ) || is( T == creal ) || is( T == cfloat ) )
 		enum T Zero = 0.0 + 0.0i;
 	else static if( is( T == Complex!float ) )
 		enum T Zero = T(0.0f,0.0f);
@@ -51,8 +49,12 @@ template One(T)
 {
     static if (isFloatingPoint!T)
         enum T One = 1.0;
-    else static if (isComplex!T)
-        enum T One = 1.0 + 0.0i;
+    else static if( is( T == cdouble ) || is( T == creal ) || is( T == cfloat ) )
+		enum T Zero = 1.0 + 0.0i;
+	else static if( is( T == Complex!float ) )
+		enum T Zero = T(1.0f,0.0f);
+	else static if( is( T == Complex!double ) )
+		enum T Zero = T(1.0,0.0);
     else static if (isIntegral!T)
         enum T One = 1;
     else static assert (false, "One: Type has no obvious unit element: "
@@ -69,8 +71,12 @@ template MinusOne(T)
 {
     static if (isFloatingPoint!T)
         enum T MinusOne = -1.0;
-    else static if (isComplex!T)
-        enum T MinusOne = -1.0 + 0.0i;
+    else static if( is( T == cdouble ) || is( T == creal ) || is( T == cfloat ) )
+		enum T Zero = 0.0 - 1.0i;
+	else static if( is( T == Complex!float ) )
+		enum T Zero = T(0.0f,-1.0f);
+	else static if( is( T == Complex!double ) )
+		enum T Zero = T(0.0,-1.0);
     else static if (isIntegral!T)
         enum T MinusOne = -1;
     else static assert (false, "One: Type has no obvious unit element: "

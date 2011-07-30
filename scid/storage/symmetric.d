@@ -1,7 +1,6 @@
 module scid.storage.symmetric;
 
 import scid.internal.assertmessages;
-import scid.bindings.blas.dblas;
 import scid.storage.cowarray;
 import scid.storage.packedmat;
 import scid.matrix, scid.vector;
@@ -13,9 +12,9 @@ import scid.storage.external;
 
 
 template SymmetricStorage( ElementOrArray, MatrixTriangle triangle = MatrixTriangle.Upper, StorageOrder storageOrder = StorageOrder.ColumnMajor )
-	if( isFortranType!(BaseElementType!ElementOrArray) ) {
+	if( isScalar!(BaseElementType!ElementOrArray) ) {
 	
-	static if( isFortranType!ElementOrArray )
+	static if( isScalar!ElementOrArray )
 		alias PackedStorage!( SymmetricArrayAdapter!(CowArrayRef!ElementOrArray, triangle, storageOrder) ) SymmetricStorage;
 	else
 		alias PackedStorage!( SymmetricArrayAdapter!(ElementOrArray, triangle, storageOrder) )             SymmetricStorage;
@@ -149,12 +148,10 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	alias size minor;
 	
 	template Promote( Other ) {
-		private import scid.storage.generalmat;
-		
-		static if( is( Other C : SymmetricArrayAdapter!C ) )
-			alias SymmetricStorage!(Promotion!(ContainerRef, C)) Promote;
-		else
-			alias Promotion!( GeneralMatrixStorage!ElementType, Other ) Promote;
+		static if( isScalar!Other ) {
+			alias SymmetricArrayAdapter!( Promotion!(ContainerRef,Other), triangle, storageOrder )
+				Promote;
+		}
 	}
 	
 private:

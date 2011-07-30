@@ -16,11 +16,11 @@ struct PackedSubMatrixStorage( ContainerRef_, SubMatrixType type_ ) {
 	alias ContainerRef_                                                         ContainerRef;
 	alias BaseElementType!ContainerRef                                          ElementType;
 	alias storageOrderOf!ContainerRef                                           storageOrder;
-	alias typeof(this)                                                       Slice;
-	alias typeof(this)                                                       View;
+	alias typeof(this)                                                          Slice;
+	alias typeof(this)                                                          View;
 	alias Vector!( PackedSubVectorStorage!( ContainerRef, VectorType.Row ) )    RowView;
 	alias Vector!( PackedSubVectorStorage!( ContainerRef, VectorType.Column ) ) ColumnView;
-	alias ColumnView                                                         DiagonalView;
+	alias ColumnView                                                            DiagonalView;
 	
 	alias PackedSubMatrixStorage!( TransposedOf!ContainerRef, type_ ) Transposed;
 	

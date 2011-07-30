@@ -13,7 +13,27 @@ import std.traits;
 import std.typecons;
 
 import scid.common.storagetraits;
+import scid.common.meta;
+import std.conv;
 
+template isConvertible( S, T ) {
+	enum isConvertible = is( typeof(to!T(S)) );
+}
+
+template isScalar( T ) {
+	enum isScalar = !is( T == class ) &&
+		is( typeof((){
+			T x = MinusOne!T;
+			T y = x;
+			T z;
+			
+			if( x == x || x != x ) {
+				x = x;
+				x += x; x -= x; x /= x; x *= x;
+				x = x + x; x = x - x; x = x / x;
+			}
+		}()) );
+}
 
 /** Detect whether T is a complex floating-point type. */
 template isComplex(T)

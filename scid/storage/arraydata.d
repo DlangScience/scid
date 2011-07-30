@@ -10,8 +10,7 @@ module scid.storage.arraydata;
 import core.stdc.stdlib;
 import std.algorithm, std.conv;
 
-import scid.bindings.blas.dblas;
-alias scid.bindings.blas.dblas blas;
+import scid.blas;
 
 // debug = ArrayDataAllocs;
 
