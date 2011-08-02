@@ -7,6 +7,7 @@
 module scid.internal.assertmessages;
 
 import std.string : format;
+import std.range, std.conv;
 
 /** Error messages for array-like structs. */
 mixin template ArrayErrorMessages() {
@@ -71,4 +72,50 @@ mixin template MatrixErrorMessages() {
 	string zeroDimMsg_( size_t r, size_t c ) const {
 		return format( msgPrefix_ ~ "Zero dimension in [%d, %d].", r, c );
 	}
+}
+
+string stridedToString( S )( const(S)* ptr, size_t len, size_t stride ) {
+		if( len == 0 )
+			return "[]";
+	
+		auto app = appender!string("[");
+		app.put( to!string(*ptr) );
+		auto e = ptr + len * stride;
+		ptr += stride;
+		for( ; ptr < e ; ptr += stride ) {
+			app.put( ", " );
+			app.put( to!string( *ptr ) );
+		} 
+		app.put(']');
+		
+		return app.data();
+	}
+	
+string matrixToString( S )( char trans, size_t m, size_t n, const(S)* a, size_t lda )
+in {
+	assert( a );
+} body {
+	if( m == 0 || n == 0 )
+		return "[]";
+		
+	auto app = appender!string("[");
+	if( trans == 'n' ) {
+		app.put( stridedToString( a, n, lda ) );
+		auto e = a + m;
+		for( ++ a; a < e ; ++a ) {
+			app.put( ", " );
+			app.put( stridedToString( a, n, lda ) );
+		}
+		app.put(']');
+	} else {
+		app.put( stridedToString(a, m, 1) );
+		auto e = a + n * lda;
+		for( ++ a; a < e ; a += lda ) {
+			app.put( ", " );
+			app.put( stridedToString( a, m, 1 ) );
+		}
+		app.put(']');
+	}
+		
+	return app.data();
 }

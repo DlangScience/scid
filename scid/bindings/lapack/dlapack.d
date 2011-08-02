@@ -17,6 +17,10 @@ import scid.common.fortran;
 
 /* LAPACK routines */
 
+void laswp( f_int n, f_double *a, f_int lda, f_int k1, f_int k2, f_int *ipiv, f_int incx ) {
+	dlaswp_( &n, a, &lda, &k1, &k2, ipiv, &incx );
+}
+
 //--------------------------------------------------------
 // ---- SIMPLE and DIVIDE AND CONQUER DRIVER routines ----
 //---------------------------------------------------------

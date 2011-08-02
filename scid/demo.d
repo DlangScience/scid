@@ -1,16 +1,21 @@
-module scid.demo;
+module demo;
 
 import scid.matvec;
 import std.stdio;
+import std.string;
+import scid.common.traits, scid.common.meta;
+import std.algorithm;
+import scid.internal.regionallocator;
+import std.math;
+import scid.blas;
+import scid.lapack;
+import std.exception;
+//import scid.ops.fallback, scid.ops.expression;
 
-void main() {
-	auto x = Matrix!double([[1.0, 4, 3], [4.0, 5, 6], [7.0, 8, 9]]);
-	auto v = Vector!double([2.0, 8, 7]);
-	auto expr = x * x;
-	readln();
-}
+import std.string;
 
-// version = demo;
+
+version = demo;
 
 version( demo ) {
 	import scid.matvec;
@@ -132,11 +137,11 @@ version( demo ) {
 		alias TypeTuple!(
 			Matrix!T,
 			//Matrix!(T,StorageOrder.RowMajor),
-			//TriangularMatrix!T,
+			TriangularMatrix!T,
 			//TriangularMatrix!(T, MatrixTriangle.Lower ),
 			//TriangularMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			//TriangularMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor),
-			//SymmetricMatrix!T,
+			SymmetricMatrix!T,
 			// SymmetricMatrix!(T, MatrixTriangle.Lower ),
 			// SymmetricMatrix!(T, MatrixTriangle.Upper, StorageOrder.RowMajor),
 			// SymmetricMatrix!(T, MatrixTriangle.Lower, StorageOrder.RowMajor)
@@ -186,17 +191,16 @@ version( demo ) {
 	import scid.matvec;
 	import std.math;
 	
-	
 	void testMat( M, E )( auto ref M m, size_t r, size_t c, E[] expected ) {
 		debug {
 			enum epsilon = 1e-3;
-			assert( m.rows == r, format("Wrong no. of rows %d vs %d", m.rows, r) );
-			assert( m.columns == c, format("Wrong no. of rows %d vs %d", m.columns, c ) );
+			enforce( m.rows == r, format("Wrong no. of rows %d vs %d", m.rows, r) );
+			enforce( m.columns == c, format("Wrong no. of rows %d vs %d", m.columns, c ) );
 			auto a = m.cdata[ 0 .. expected.length ];
 			auto b = to!(BaseElementType!M[])(expected.dup);
 			b[] -= a[];
 			foreach( i, x ; b ) {
-				assert( abs(x) <= epsilon,
+				enforce( abs(x) <= epsilon,
 				   "Expected " ~ to!string(expected) ~ ", got "~ to!string(a) ~ " (" ~ to!string(i) ~ ", " ~ to!string(abs(x)) ~ ")"  );
 			}
 		}
@@ -204,8 +208,8 @@ version( demo ) {
 	
 	void testVec( V, E )( auto ref V v, E[] expected ) {
 		debug {
-			assert( v.length == expected.length, format("Wrong vector length: %d vs. %d", v.length, expected.length) );
-			assert( v.cdata[ 0 .. expected.length ] == to!(BaseElementType!V)(expected) );
+			enforce( v.length == expected.length, format("Wrong vector length: %d vs. %d", v.length, expected.length) );
+			enforce( v.cdata[ 0 .. expected.length ] == to!(BaseElementType!V)(expected) );
 		}
 	}
 	
@@ -229,11 +233,29 @@ version( demo ) {
 		auto d = eval( s - dSyMat([2800.,3700,4800]) );
 		static assert( is( typeof(d) : dSyMat ) );
 		testMat( d, 2, 2, [85,52,80] );
-		assert( d[1][0] == 52 );
+		enforce( d[1][0] == 52 );
 		
-		auto e = eval( d - b[0..2][1..3]*10 );
-		static assert( is( typeof(e) : dGeMat ) );
-		testMat( e, 2, 2, [ 55, 12, 2, 20 ] );
+		//auto e = eval( d - b[0..2][1..3]*10 );
+		//static assert( is( typeof(e) : dGeMat ) );
+		//testMat( e, 2, 2, [ 55, 12, 2, 20 ] );
+	}
+	
+	void dMatInvTest()() {
+		auto x = Matrix!double([ [ 1, 2, 3 ], [  1, 1, 1 ], [ 2, -1, 1 ] ]);
+		auto y = Matrix!double([ [ 1, 2, 0 ], [ -2, 3, 4 ], [ 0,  2, 1 ] ]);
+		
+		// Thank you Octave...
+		testMat( eval(inv(x)*y), 3, 3,     [  -2.4,  -2.2,   2.6,   2.6,   1.8,  -1.4,   4.2,   3.6,  -3.8 ] );
+		testMat( eval(y*inv(x)), 3, 3,     [  -0.8,   2.6,   0.2,   3.0,  -3.0,   1.0,  -0.6,  -0.8,  -0.6 ] );
+		testMat( eval(inv(x.t)*y), 3, 3,   [   0.0,  -1.0,   1.0,  -0.2,   3.0,  -0.4,  -0.2,   3.0,  -1.4 ] );
+		testMat( eval(y*inv(x.t)), 3, 3,   [   1.6,   4.6,   2.2,   1.8,   1.8,   1.6,  -1.4,  -3.4,  -1.8 ] );
+		testMat( eval(inv(y)*x), 3, 3,     [  -9.0,   5.0,  -8.0,  20.0,  -9.0,  17.0,   9.0,  -3.0,   7.0 ] );
+		testMat( eval(x*inv(y)), 3, 3,     [  13.0,   7.0,  16.0,   6.0,   3.0,   7.0, -21.0, -11.0, -27.0 ] );
+		testMat( eval(inv(y.t)*x), 3, 3,   [  11.0,   5.0, -18.0,   4.0,   1.0,  -5.0,  17.0,   7.0, -27.0 ] );
+		testMat( eval(x*inv(y.t)), 3, 3,   [ -15.0,  -1.0,   0.0,   8.0,   1.0,   1.0, -13.0,  -1.0,  -1.0 ] );
+		
+		testMat( eval(x.t*inv(y.t)), 3, 3, [  -9.0,  20.0,   9.0,   5.0,  -9.0,  -3.0,  -8.0,  17.0,   7.0 ] );
+		testMat( eval(y.t*inv(x.t)), 3, 3, [  -2.4,   2.6,   4.2,  -2.2,   1.8,   3.6,   2.6,  -1.4,  -3.8 ] );
 	}
 	
 	void zMatOpsTest()() {
@@ -256,18 +278,22 @@ version( demo ) {
 		testMat( s, 2, 2, [ 83.760 +  0.000i,  
 		                   -29.360 +  7.040i,
 		                    59.280 +  0.000i ]);
-		assert( abs(s[1][0] + 29.360 + 7.040i) <= 1e-3 );
+		enforce( abs(s[1][0] + 29.360 + 7.040i) <= 1e-3 );
 		
 		auto d = eval( s - zSyMat([80.+0.i,-28,59]) );
 		static assert( is( typeof(d) : zSyMat ) );
 		
 		testMat( d, 2, 2, [ 3.76 + 0.0i, -1.36 + 7.04i, 0.28 + 0.0i ] );
-		assert( abs(d[1][0] + 1.36 + 7.04i) <= 1e-3 );
+		enforce( abs(d[1][0] + 1.36 + 7.04i) <= 1e-3 );
 		
 		
 		auto e = eval( d + b[0..2][1..3]*(10.+0.i) );
 		static assert( is( typeof(e) : zGeMat ) );
 		
 		testMat( e, 2, 2, [ 33.760 +  0.000i, 38.640 - 17.040i, 48.640 - 12.960i, 60.280 - 30.000i] );
+	}
+	
+	void main() {
+		readln();
 	}
 }

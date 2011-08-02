@@ -72,7 +72,7 @@ struct ExternalMatrix( T, StorageOrder order_, DefaultType_ ) {
 	
 	enum isRowMajor = (order_ == StorageOrder.RowMajor);
 	
-	alias ExternalMatrix!(T, transposeStorageOrder!order_, DefaultType_ )
+	alias ExternalMatrix!(T, transposeStorageOrder!order_, TransposedOf!DefaultType_ )
 		Transposed;
 	
 	this( Allocator )( size_t rows, size_t columns, Allocator allocator )

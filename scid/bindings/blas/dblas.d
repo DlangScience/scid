@@ -276,17 +276,17 @@ f_int izamax(f_int n, f_cdouble *x, f_int incx) {
    OR   y = alpha*A.T*x + beta*y
    OR   y = alpha*A.H*x + beta*y,  with A an mxn matrix
 */
-void gemv(char trans, f_int m, f_int n, f_float alpha, f_float *A, f_int lda, f_float *x, f_int incx, f_float beta, f_float *y, f_int incy) {
-    sgemv_(&trans, &m, &n, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void gemv(char trans, f_int m, f_int n, f_float alpha, const f_float *A, f_int lda, const f_float *x, f_int incx, f_float beta, f_float *y, f_int incy) {
+    sgemv_(&trans, &m, &n, &alpha, cast(f_float*)A, &lda, cast(f_float*)x, &incx, &beta, y, &incy, 1);
 }
-void gemv(char trans, f_int m, f_int n, f_double alpha, f_double *A, f_int lda, f_double *x, f_int incx, f_double beta, f_double *y, f_int incy) {
-    dgemv_(&trans, &m, &n, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void gemv(char trans, f_int m, f_int n, f_double alpha, const f_double *A, f_int lda, const f_double *x, f_int incx, f_double beta, f_double *y, f_int incy) {
+    dgemv_(&trans, &m, &n, &alpha, cast(f_double*)A, &lda, cast(f_double*)x, &incx, &beta, y, &incy, 1);
 }
-void gemv(char trans, f_int m, f_int n, f_cfloat alpha, f_cfloat *A, f_int lda, f_cfloat *x, f_int incx, f_cfloat beta, f_cfloat *y, f_int incy) {
-    cgemv_(&trans, &m, &n, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void gemv(char trans, f_int m, f_int n, f_cfloat alpha, const f_cfloat *A, f_int lda, const f_cfloat *x, f_int incx, f_cfloat beta, f_cfloat *y, f_int incy) {
+    cgemv_(&trans, &m, &n, &alpha, cast(f_cfloat*)A, &lda, cast(f_cfloat*)x, &incx, &beta, y, &incy, 1);
 }
-void gemv(char trans, f_int m, f_int n, f_cdouble alpha, f_cdouble *A, f_int lda, f_cdouble *x, f_int incx, f_cdouble beta, f_cdouble *y, f_int incy) {
-    zgemv_(&trans, &m, &n, &alpha, A, &lda, x, &incx, &beta, y, &incy, 1);
+void gemv(char trans, f_int m, f_int n, f_cdouble alpha, const f_cdouble *A, f_int lda, const f_cdouble *x, f_int incx, f_cdouble beta, f_cdouble *y, f_int incy) {
+    zgemv_(&trans, &m, &n, &alpha, cast(f_cdouble*)A, &lda, cast(f_cdouble*)x, &incx, &beta, y, &incy, 1);
 }
 
 /** banded matrix vector multiply
@@ -367,17 +367,17 @@ void spmv(char uplo, f_int n, f_double alpha, f_double *ap, f_double *x, f_int i
     OR  x := A.T * x
     OR  x := A.H * x
  */
-void trmv(char uplo, char trans, char diag, f_int n, f_float *A, f_int lda, f_float *x, f_int incx) {
-    strmv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trmv(char uplo, char trans, char diag, f_int n, const f_float *A, f_int lda, f_float *x, f_int incx) {
+    strmv_(&uplo, &trans, &diag, &n, cast(f_float*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trmv(char uplo, char trans, char diag, f_int n, f_double *A, f_int lda, f_double *x, f_int incx) {
-    dtrmv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trmv(char uplo, char trans, char diag, f_int n, const f_double *A, f_int lda, f_double *x, f_int incx) {
+    dtrmv_(&uplo, &trans, &diag, &n, cast(f_double*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trmv(char uplo, char trans, char diag, f_int n, f_cfloat *A, f_int lda, f_cfloat *x, f_int incx) {
-    ctrmv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trmv(char uplo, char trans, char diag, f_int n, const f_cfloat *A, f_int lda, f_cfloat *x, f_int incx) {
+    ctrmv_(&uplo, &trans, &diag, &n, cast(f_cfloat*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trmv(char uplo, char trans, char diag, f_int n, f_cdouble *A, f_int lda, f_cdouble *x, f_int incx) {
-    ztrmv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trmv(char uplo, char trans, char diag, f_int n, const f_cdouble *A, f_int lda, f_cdouble *x, f_int incx) {
+    ztrmv_(&uplo, &trans, &diag, &n, cast(f_cdouble*)A, &lda, x, &incx, 1, 1, 1);
 }
 
 /** triangular banded matrix vector multiply
@@ -574,33 +574,33 @@ void spr2(char uplo, f_int n, f_double alpha, f_double *x, f_int incx, f_double 
 
 /// matrix matrix multiply
 ///     C := alpha * transa(A) * transb(B) + beta * C
-void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_float alpha, f_float *A, f_int lda, f_float *B, f_int ldb, f_float beta, f_float *C, f_int ldc) {
-    sgemm_(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_float alpha, const f_float *A, f_int lda, const f_float *B, f_int ldb, f_float beta, f_float *C, f_int ldc) {
+    sgemm_(&transa, &transb, &m, &n, &k, &alpha, cast(f_float*)A, &lda, cast(f_float*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_double alpha, f_double *A, f_int lda, f_double *B, f_int ldb, f_double beta, f_double *C, f_int ldc) {
-    dgemm_(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_double alpha, const f_double *A, f_int lda, const f_double *B, f_int ldb, f_double beta, f_double *C, f_int ldc) {
+    dgemm_(&transa, &transb, &m, &n, &k, &alpha, cast(f_double*)A, &lda, cast(f_double*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_cfloat alpha, f_cfloat *A, f_int lda, f_cfloat *B, f_int ldb, f_cfloat beta, f_cfloat *C, f_int ldc) {
-    cgemm_(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_cfloat alpha, const f_cfloat *A, f_int lda, const f_cfloat *B, f_int ldb, f_cfloat beta, f_cfloat *C, f_int ldc) {
+    cgemm_(&transa, &transb, &m, &n, &k, &alpha, cast(f_cfloat*)A, &lda, cast(f_cfloat*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_cdouble alpha, f_cdouble *A, f_int lda, f_cdouble *B, f_int ldb, f_cdouble beta, f_cdouble *C, f_int ldc) {
-    zgemm_(&transa, &transb, &m, &n, &k, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void gemm(char transa, char transb, f_int m, f_int n, f_int k, f_cdouble alpha, const f_cdouble *A, f_int lda, const f_cdouble *B, f_int ldb, f_cdouble beta, f_cdouble *C, f_int ldc) {
+    zgemm_(&transa, &transb, &m, &n, &k, &alpha, cast(f_cdouble*)A, &lda, cast(f_cdouble*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
 
 /// symmetric matrix matrix multiply
 ///     C := alpha * A * B + beta * C
 /// OR  C := alpha * B * A + beta * C,    where A == A.T
-void symm(char side, char uplo, f_int m, f_int n, f_float alpha, f_float *A, f_int lda, f_float *B, f_int ldb, f_float beta, f_float *C, f_int ldc) {
-    ssymm_(&side, &uplo, &m, &n, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void symm(char side, char uplo, f_int m, f_int n, f_float alpha, const f_float *A, f_int lda, const f_float *B, f_int ldb, f_float beta, f_float *C, f_int ldc) {
+    ssymm_(&side, &uplo, &m, &n, &alpha, cast(f_float*)A, &lda, cast(f_float*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void symm(char side, char uplo, f_int m, f_int n, f_double alpha, f_double *A, f_int lda, f_double *B, f_int ldb, f_double beta, f_double *C, f_int ldc) {
-    dsymm_(&side, &uplo, &m, &n, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void symm(char side, char uplo, f_int m, f_int n, f_double alpha, const f_double *A, f_int lda, const f_double *B, f_int ldb, f_double beta, f_double *C, f_int ldc) {
+    dsymm_(&side, &uplo, &m, &n, &alpha, cast(f_double*)A, &lda, cast(f_double*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void symm(char side, char uplo, f_int m, f_int n, f_cfloat alpha, f_cfloat *A, f_int lda, f_cfloat *B, f_int ldb, f_cfloat beta, f_cfloat *C, f_int ldc) {
-    csymm_(&side, &uplo, &m, &n, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void symm(char side, char uplo, f_int m, f_int n, f_cfloat alpha, const f_cfloat *A, f_int lda, const f_cfloat *B, f_int ldb, f_cfloat beta, f_cfloat *C, f_int ldc) {
+    csymm_(&side, &uplo, &m, &n, &alpha, cast(f_cfloat*)A, &lda, cast(f_cfloat*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
-void symm(char side, char uplo, f_int m, f_int n, f_cdouble alpha, f_cdouble *A, f_int lda, f_cdouble *B, f_int ldb, f_cdouble beta, f_cdouble *C, f_int ldc) {
-    zsymm_(&side, &uplo, &m, &n, &alpha, A, &lda, B, &ldb, &beta, C, &ldc, 1, 1);
+void symm(char side, char uplo, f_int m, f_int n, f_cdouble alpha, const f_cdouble *A, f_int lda, const f_cdouble *B, f_int ldb, f_cdouble beta, f_cdouble *C, f_int ldc) {
+    zsymm_(&side, &uplo, &m, &n, &alpha, cast(f_cdouble*)A, &lda, cast(f_cdouble*)B, &ldb, &beta, C, &ldc, 1, 1);
 }
 
 /// hermitian matrix matrix multiply
@@ -684,17 +684,17 @@ void trmm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_cdou
 /// solving triangular matrix with multiple right hand sides
 ///     B := alpha * transa(A.inv) * B
 /// OR  B := alpha * B * transa(A.inv)
-void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_float alpha, f_float *A, f_int lda, f_float *B, f_int ldb) {
-    strsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb, 1, 1, 1, 1);
+void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_float alpha, const f_float *A, f_int lda, f_float *B, f_int ldb) {
+    strsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, cast(f_float*)A, &lda, B, &ldb, 1, 1, 1, 1);
 }
-void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_double alpha, f_double *A, f_int lda, f_double *B, f_int ldb) {
-    dtrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb, 1, 1, 1, 1);
+void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_double alpha, const f_double *A, f_int lda, f_double *B, f_int ldb) {
+    dtrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, cast(f_double*)A, &lda, B, &ldb, 1, 1, 1, 1);
 }
-void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_cfloat alpha, f_cfloat *A, f_int lda, f_cfloat *B, f_int ldb) {
-    ctrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb, 1, 1, 1, 1);
+void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_cfloat alpha, const f_cfloat *A, f_int lda, f_cfloat *B, f_int ldb) {
+    ctrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, cast(f_cfloat*)A, &lda, B, &ldb, 1, 1, 1, 1);
 }
-void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_cdouble alpha, f_cdouble *A, f_int lda, f_cdouble *B, f_int ldb) {
-    ztrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, A, &lda, B, &ldb, 1, 1, 1, 1);
+void trsm(char side, char uplo, char transa, char diag, f_int m, f_int n, f_cdouble alpha, const f_cdouble *A, f_int lda, f_cdouble *B, f_int ldb) {
+    ztrsm_(&side, &uplo, &transa, &diag, &m, &n, &alpha, cast(f_cdouble*)A, &lda, B, &ldb, 1, 1, 1, 1);
 }
 
 /// Test if the characters are equal. (Auxiliary routine in Level 2 and 3 BLAS routines)

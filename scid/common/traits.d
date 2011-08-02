@@ -17,13 +17,15 @@ import scid.common.meta;
 import std.conv;
 
 template isConvertible( S, T ) {
-	enum isConvertible = is( typeof(to!T(S.init)) );
+    enum isConvertible = is( typeof({
+        return to!(T)(S.init);
+    }));
 }
 
 template isScalar( T ) {
 	enum isScalar = !is( T == class ) &&
 		is( typeof((){
-			T x = MinusOne!T;
+			T x;// = MinusOne!T;
 			T y = x;
 			T z;
 			

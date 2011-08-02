@@ -63,6 +63,9 @@ version (FORTRAN_FLOAT_FUNCTIONS_RETURN_DOUBLE) {
 
 /* LAPACK routines */
 
+void dlaswp_( f_int *n, f_double  *a, f_int *lda, f_int *k1, f_int *k2, f_int *ipiv, f_int *incx );
+
+
 //--------------------------------------------------------
 // ---- SIMPLE and DIVIDE AND CONQUER DRIVER routines ----
 //---------------------------------------------------------

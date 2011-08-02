@@ -193,7 +193,7 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	/** Promotions for this type are inherited from GeneralMatrix */
 	private import scid.storage.generalmat;
 	template Promote( Other ) {
-		alias Promotion!( BasicGeneralMatrix!(MatrixTypeOf!ContainerRef), Other ) Promote;
+		alias Promotion!( BasicGeneralMatrixStorage!(MatrixTypeOf!ContainerRef), Other ) Promote;
 	}
 	
 	mixin GeneralMatrixScalingAndAddition;

@@ -121,41 +121,130 @@ mixin template GeneralMatrixScalingAndAddition() {
 		generalMatrixScaling!storageOrder( this.rows, this.columns, alpha, this.data, this.leading );
 	}
 	
-	void solveRight( Transpose trans, Dest )( auto ref Dest dest ) if( isStridedVectorStorage!Dest ) {
-		static if( transposeStorageOrder!(storageOrder, trans) != StorageOrder.ColumnMajor ) {
-			static assert( false, "Non column-major matrix or row vector for SolveVector." );
-		}
-		auto alloc = newRegionAllocator();
-		auto ipiv = alloc.uninitializedArray!(int[])( this.rows );
-		auto cpy = this;
+	void invert() {
+		import scid.lapack;
+		
 		int info;
-		if( dest.stride == 1 )
-			lapack.gesv( cpy.rows, dest.length, cpy.data, cpy.leading, ipiv.ptr, dest.data, dest.length, info );
-		else {
-			static if( is( typeof(eval(dest)) : Dest ) )
-				assert( false, "sv: Stride !=1 in non-view type." );
-			else {
-				auto destValue = eval( dest );
-				assert( destValue.stride == 1 );
-				lapack.gesv( cpy.rows, dest.length, cpy.data, cpy.leading, ipiv.ptr, destValue.data, dest.length, info );
-			}
-		}
-		assert( info <= 0, "sv: Singular matrix in inversion." );
-			
+		size_t n = this.rows;
+		assert( n == this.columns, "Inversion of non-square matrix." );
+		
+		auto alloc = newRegionAllocator();
+		auto ipiv  = alloc.uninitializedArray!( int[] )( n );
+		auto work  = alloc.uninitializedArray!( ElementType[] )( n );
+		
+		lapack.getrf( n, n, this.data, this.leading, ipiv.ptr, info );
+		lapack.getri( n, this.data, this.leading, ipiv.ptr, work.ptr , work.length, info );
+		
+		assert( info == 0, "Inversion of singular matrix." );
 	}
 	
-	void solveRight( Transpose trans, Dest )( auto ref Dest dest ) if( isGeneralMatrixStorage!Dest ) {
-		static if( transposeStorageOrder!(storageOrder, trans) != StorageOrder.ColumnMajor &&
-				   storageOrderOf!Dest == StorageOrder.RowMajor ) {
-			static assert( false, "Non column-major matrix or row vector for SolveVector." );
+	void solveRight( Transpose transM, Side side, Dest )( auto ref Dest dest ) if( isStridedVectorStorage!Dest || isGeneralMatrixStorage!Dest ) {
+		import scid.blas;
+		import scid.lapack;
+		
+		size_t n = this.rows;                                           // check that the matrix is square
+		assert( n == this.columns, "Inversion of non-square matrix." );
+		
+		enum vectorRhs = isStridedVectorStorage!Dest;                   // if we're solving for a vector
+		auto alloc = newRegionAllocator();                              // allocator for all the copies we need to perform
+		auto ipiv = alloc.uninitializedArray!(int[])( n ).ptr;          // array to store the permutation matrix of the LU decomposition
+		auto a = alloc.uninitializedArray!(ElementType[])( n * n ).ptr; // array to copy this matrix's data				
+		int info = 0;                                                   // error number of the LAPACK calls
+		
+		// If the storage orders are different and we need to perform a hermitian transMpose then the result is
+		// the same is taking the conjugate without transMposing.
+		static if( !vectorRhs )
+			enum bool conjugateNoTrans = isComplex!ElementType && transM && storageOrder != storageOrderOf!Dest;
+		else
+			enum bool conjugateNoTrans = false;
+		
+		// copy this matrix's data (don't transpose, we'll use getrs's transpose for performance)
+		static if( conjugateNoTrans )
+			blas.xgecopyc!'n'( n, n, this.cdata, this.leading, a, n );
+		else
+			blas.xgecopy!'n'( n, n, this.cdata, this.leading, a, n );
+		
+		static if( vectorRhs ) {
+			ElementType *b;          // if the rhs is a vector, then make it look like a matrix, by defining
+			enum nrhs = 1;           // the no. of columns (nrhs) and
+			int ldb = dest.length;   // the leading dimension
+			
+			if( dest.stride != 1 ) {
+				// if the destination's stride is != 1, we need to copy it to a temp array.
+				b = alloc.uninitializedArray!(ElementType[])( ldb ).ptr;
+				blas.copy( ldb, dest.cdata, dest.stride, b, 1 );	
+			} else {
+				// if the stride is 1, we can simply use dest's data for b
+				b = dest.data;	
+			}
+		} else {
+			ElementType *b = dest.data; // if the rhs is a matrix simply grab the parameters from it
+			int nrhs = dest.columns;
+			int ldb = dest.leading;
 		}
 		
-		auto ipiv = new int[ this.rows ];
-		auto cpy = this;
-		int info;
-		// gesv( cpy.rows, dest.length, thisCopy.data, cpy.leading, ipiv.ptr, dest.data, dest.leading, info );
-		assert( info <= 0, "sm: Singular matrix in inversion." );
+		// Figure out what kind of transposition we've got (transM == true means it could be hermitian)
+		static if( vectorRhs ) {
+			enum chTrans = transM ? (isComplex!ElementType ? 'C' : 'T') : 'N';
+		} else static if( transposeStorageOrder!(storageOrder, transM) != storageOrderOf!Dest ) {
+			static if( !isComplex!ElementType || conjugateNoTrans )
+				enum chTrans = 'T';
+			else
+				enum chTrans = 'C';
+		} else {
+			enum chTrans = 'N';
+		}
+		
+		enum chSide = (side == Side.Left) ? 'L' : 'R';
+		
+		lapack.getrf( n, n, a, n, ipiv, info );                    // perform LU decomposition
+		lapack.xgetrs!(chTrans, chSide)( n, nrhs, a, n, ipiv, b, ldb, info ); // perform inv-mult
+		
+		assert( info == 0, "Singular matrix in inversion." );
+		
+		static if( vectorRhs ) {
+			// copy the data back to dest if needed
+			if( dest.stride != 1 )
+				blas.copy( ldb, b, 1, dest.data, dest.stride );
+		}
 	}
+	/*
+	void matrixProduct( Transpose transA = Transpose.no, Transpose transB = Transpose.no, A, B )
+			( ElementType alpha, auto ref A a, auto ref B b, ElementType beta ) if( isGeneralMatrixStorage!A && isGeneralMatrixStorage!B ) {
+		import scid.blas;
+		enum orderA = transposeStorageOrder!( storageOrderOf!A, transA );
+		enum orderB = transposeStorageOrder!( storageOrderOf!B, transB );
+		enum orderC = storageOrder;
+		
+		static if( !isComplex!ElementType ) {
+			static if( (orderA != orderC) || (orderB != orderC) )
+				matrixProduct!( transNot!transB, transNot!transA )( alpha, b, a, beta );
+			else {
+				enum chTransA = (orderA != orderB) ^ transA ? 't' : 'n';
+				enum chTransB = (orderB != orderA) ^ transB ? 't' : 'n';
+			
+				static if( !transA )
+					auto m = a.rows, ak = a.columns;
+				else
+					auto m = a.columns, ak = a.rows;
+			
+				static if( !transB )
+					auto n = b.columns, bk = b.rows;
+				else
+					auto n = b.rows, bk = b.columns;
+			
+				assert( ak == bk, format("Inner dimensions do not match in matrix product: %d vs. %d", ak, bk) );
+				if( beta )
+					assert( this.rows == m && this.columns == n, dimMismatch_(m,n,"addition") );
+				else
+					this.resize( m, n, null );
+				assert( a.cdata && b.cdata );
+				blas.gemm( chTransA, chTransB, m, n, ak, alpha, a.cdata, a.leading, b.cdata, b.leading, beta, this.data, this.leading );	
+			}
+		} else {
+			assert( false );
+		}
+	}*/
 }
 
 /** Compute the dot product of a row and a column of possibly transposed matrices. */

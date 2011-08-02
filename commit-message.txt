@@ -1,0 +1,20 @@
+1. Added full support for matrix inversions ONLY for general matrices.
+This was the bulk of this commit, as it was very hard to get right, mostly because I had to work around LAPACK and also provide naive implementations for all the functions I use.
+Expressions are divided into these kinds:
+- X = inv(Y) * Z -> Y is LU decomposed and the problem is reduced to two triangular problems
+- X = inv(Y) * v -> The same as the one above, but simplified due to the fact v is a vector
+- X = inv(T)     -> Y is LU decomposed and the LU inverses are computed using matrix multiplications
+The LU decomposition in the naive implementation uses the Doolittle w/ pivoting algorithm (http://mymathlib.webtrellis.net/matrices/linearsystems/doolittle.html) this is very robust, works on any matrix and has complexity O(n^3).
+The expression X = inv(A) * inv(B) requires a temporary for one of the inversions.
+
+This addition introduced _a lot_ of complexity, and while it works on all unittests I came up with I would still use it with caution.
+
+2. Added naive implementations for lapack.getrs (general-matrix-solve), lapack.trtri (triangular-matrix-inverse), lapack.getri (general-matrix-inverse), lapack.getrf (LU-P decomposition), lapack.gesv (general-matrix-solve with decomposition incorporated), lapack.laswp (permutation-matrix-premultiplication), blas.trmv (triangular-matrix-vector-product), blas.gemv (general-matrix-vector-product). Added a LAPACK-like function xgetrs, that performs a general-matrix-solve with an added side parameter (similar to the side parameter from blas.trsm). This means both inv(A)*B and A*inv(B) can be performed.
+
+3. Changed transposition, side, diagonal etc. parameters from BLAS and LAPACK to template parameters. This allows for much simpler code in the naive implementations since one can place static-ifs inside loops, rather than add multiple copies of the loop for each if-branch.
+
+4. Haven't written a naive implementation for trsm (it's a very frustrating function to implement), but I've added a fallbackSolve function that computes Temp := inv(Y); X := Temp * Z; This way only lapack.trtri is used when using the nodeps flag, which is implemented.
+
+5. Added David's fix for Issue 20 and Issue 21.
+6. Fixed multiple bugs involving complex numbers.
+7. Added more tests for matrix operations based on result obtained from GNU Octave.

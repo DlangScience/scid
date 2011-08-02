@@ -72,7 +72,8 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 			containerRef_ = ContainerRef( rows, columns );
 	}
 	
-	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source ) if( isGeneralMatrixStorage!Source ) {
+	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
+			if( isGeneralMatrixStorage!Source ) {
 		enum srcOrder = transposeStorageOrder!( Source.storageOrder, tr ) ;
 		static if( (!tr || !isComplex!ElementType) && srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!ContainerRef ) ) {
 			containerRef_ = ContainerRef( source.matrix.ptr, source.firstIndex, source.rows, source.columns );

@@ -272,8 +272,10 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 			alias CowArrayRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
 		else static if( isMatrixContainer!T ) {
 			alias CowMatrixRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
-		} else static if( isScalar!T )
+		} else static if( isScalar!T ) {
+			pragma( msg, "okcowmat" );
 			alias CowMatrixRef!(Promotion!(T,ElementType)) Promote;
+		}
 	}
 	
 private:
@@ -304,7 +306,7 @@ private:
 			data_.reset( rows_ * cols_ );
 			auto newp = data_.ptr;
 			
-			blas.xgecopy( 'n', rows_, cols_, oldp, leading_, newp, minor_ );
+			blas.xgecopy!'N'(rows_, cols_, oldp, leading_, newp, minor_ );
 
 			leading_ = minor_;
 		}

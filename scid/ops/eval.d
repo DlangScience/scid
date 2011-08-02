@@ -17,6 +17,7 @@ import scid.ops.common;
 import scid.internal.regionallocator;
 
 import scid.matvec;
+import std.conv;
 
 //debug = EvalCalls;
 //debug = TempAllocation;
@@ -27,6 +28,11 @@ debug( TempAllocation ) {
 
 debug( EvalCalls ) {
 	import std.stdio;	
+}
+
+enum Side {
+	Left,
+	Right
 }
 
 /** Evaluate a leaf expression (a floating point type, BasicVector or BasicMatrix) - simply return it. */
@@ -54,7 +60,7 @@ auto eval(string op_, Lhs, Rhs)( auto ref Expression!(op_, Lhs, Rhs) expr )
 }
 
 /** Evaluate a matrix or vector expression. */
-ExpressionResult!E  eval( E )( auto ref E expr ) if( isExpression!E && E.closure != Closure.Scalar ) {
+ExpressionResult!E eval( E )( auto ref E expr ) if( isExpression!E && E.closure != Closure.Scalar ) {
 	// ExpressionResult gives you the type required to save the result of an expression.
 	typeof(return) result;
 	evalCopy( expr, result );
@@ -62,17 +68,19 @@ ExpressionResult!E  eval( E )( auto ref E expr ) if( isExpression!E && E.closure
 }
 
 /** Evaluate a matrix or vector expression in memory allocated with the specified allocator. */
-auto eval( E, Allocator )( auto ref E expr, Allocator allocator )
-		if( isAllocator!Allocator && isExpression!E && E.closure != Closure.Scalar ) {
+ExpressionResult!(E).Temporary eval( E, Allocator )( auto ref E expr, Allocator allocator )
+		if( isAllocator!Allocator && E.closure != Closure.Scalar ) {
 	// ExpressionResult gives you the type required to save the result of an expression.
 	static if( isVectorClosure!(E.closure) ) {
 		debug( TempAllocation ) writeln("Allocated temporary of size ", expr.length, ".");
-		auto result = (ExpressionResult!E).Temporary( expr.length, allocator );
+		auto result = typeof( return )( expr.length, allocator );
 	} else {
 		debug( TempAllocation ) writeln("Allocated temporary of size (", expr.rows,", ", expr.columns, ").");
-		auto result = (ExpressionResult!E).Temporary( expr.rows, expr.columns, allocator );
+		auto result = typeof( return )( expr.rows, expr.columns, allocator );
 	}
+	
 	evalCopy( expr, result );
+	
 	return result;
 }
 
@@ -162,13 +170,15 @@ void evalCopy( Transpose tr = Transpose.no, Source, Dest )( auto ref Source sour
 			else
 				evalMatrixProduct!( Transpose.no, Transpose.no )( One!T, source.lhs, source.rhs, Zero!T, dest );
 		} else static if( op == Operation.RowMatProd ) {
-			evalMatrixVectorProduct!( Transpose.yes, Transpose.yes )( One!T, source.rhs, source.lhs, Zero!T, dest );
+			evalMatrixVectorProduct!( Transpose.yes, Transpose.no )( One!T, source.rhs, source.lhs, Zero!T, dest );
 		} else static if( op == Operation.MatColProd ) {
 			evalMatrixVectorProduct!( Transpose.no, Transpose.no )( One!T, source.lhs, source.rhs, Zero!T, dest );
+		} else static if( op == Operation.MatInverse ) {
+			evalInverse!tr( One!T, source.lhs, Zero!T, dest );
 		} else { 
 			// can't solve the expression - use a temporary by calling eval
 			RegionAllocator alloc = newRegionAllocator();
-			evalCopy!tr( eval(source, &alloc), dest );
+			evalCopy!tr( eval(source, alloc), dest );
 		}
 	} else {
 		resizeDest();
@@ -230,17 +240,19 @@ void evalScaledAddition( Transpose tr = Transpose.no, Scalar, Source, Dest )( au
 		} else static if( op == Operation.MatMatProd ) {
 			// axpy from a matrix multiplication - fwd to hlMatMult
 			static if( tr )
-				evalMatrixProduct!( Transpose.yes, Transpose.yes )( One!T, source.rhs, source.lhs, One!T, dest );
+				evalMatrixProduct!( Transpose.yes, Transpose.yes )( alpha, source.rhs, source.lhs, One!T, dest );
 			else
-				evalMatrixProduct!( Transpose.no, Transpose.no )( One!T, source.lhs, source.rhs, One!T, dest );
+				evalMatrixProduct!( Transpose.no, Transpose.no )( alpha, source.lhs, source.rhs, One!T, dest );
 		} else static if( op == Operation.RowMatProd ) {
-			evalMatrixVectorProduct!( transNot!tr, transNot!tr )( One!T, source.rhs, source.lhs, One!T, dest );
+			evalMatrixVectorProduct!( transNot!tr, transNot!tr )( alpha, source.rhs, source.lhs, One!T, dest );
 		} else static if( op == Operation.MatColProd ) {
-			evalMatrixVectorProduct!( tr, tr )( One!T, source.lhs, source.rhs, One!T, dest );
+			evalMatrixVectorProduct!( tr, tr )( alpha, source.lhs, source.rhs, One!T, dest );
+		} else static if( op == Operation.MatInverse ) {
+			evalInverse!tr( alpha, source.lhs, One!T, dest );
 		} else {
 			// if we can't solve the expression then use a temporary by calling eval
 			RegionAllocator alloc = newRegionAllocator();
-			evalScaledAddition!tr( alpha, eval(source, &alloc), dest );
+			evalScaledAddition!tr( alpha, eval(source, alloc), dest );
 		}
 	} else
 		fallbackScaledAddition!tr( alpha, source, dest );
@@ -273,32 +285,47 @@ void evalMatrixProduct( Transpose transA = Transpose.no, Transpose transB = Tran
 		} else static if( A.operation == Operation.MatTrans ) {
 			evalMatrixProduct!( transNot!transA, transB )( alpha, a.lhs, b, beta, dest );
 		} else static if( A.operation == Operation.MatInverse ) {
-			if( !beta ) {
-				// dest = vec * alpha; dest = inv(mat.lhs) * dest
+			if( beta == Zero!T ) {
+				// dest = b * alpha; dest = inv(a.lhs) * dest
 				evalCopy!transB( b * alpha, dest );
 				evalSolve!transA( a.lhs, dest );
 			} else {
 				RegionAllocator alloc = newRegionAllocator();	
 				static if( transB )
-					auto tmp = eval( b.t * alpha, &alloc );
+					auto tmp = eval( b.t, alloc );
 				else
-					auto tmp = eval( b * alpha, &alloc );
-				evalSolve!transM( a, tmp );
+					auto tmp = eval( b, alloc );
+				evalSolve!transA( a.lhs, tmp );
 				evalScaling( beta, dest );
 				evalScaledAddition( alpha, tmp, dest );
 			}
 		} else {
-			RegionAllocator alloc = newRegionAllocator();			
-			evalMatrixProduct!( transA, transB )( alpha, eval(a, &alloc), b, beta, dest );
+			auto alloc = newRegionAllocator();			
+			evalMatrixProduct!( transA, transB )( alpha, eval(a, alloc), b, beta, dest );
 		}
 	} else static if( isExpression!B ) {
 		static if( B.operation == Operation.MatScalProd ) {
 			evalMatrixProduct!( transA, transB )( alpha * b.rhs, a, b.lhs, beta, dest ); 
 		} else static if( B.operation == Operation.MatTrans ) {
 			evalMatrixProduct!( transA, transNot!transB )( alpha, a, b.lhs, beta, dest );
+		} else static if( B.operation == Operation.MatInverse ) {
+			if( beta == Zero!T ) {
+				// dest = b * alpha; dest = inv(a.lhs) * dest
+				evalCopy!transA( a * alpha, dest );
+				evalSolve!(transB, Side.Right)( b.lhs, dest );
+			} else {
+				RegionAllocator alloc = newRegionAllocator();	
+				static if( transA )
+					auto tmp = eval( a.t, alloc );
+				else
+					auto tmp = eval( a, alloc );
+				evalSolve!(transB,Side.Right)( b.lhs, tmp );
+				evalScaling( beta, dest );
+				evalScaledAddition( alpha, tmp, dest );
+			}
 		} else {
-			RegionAllocator alloc = newRegionAllocator();
-			evalMatrixProduct!( transA, transB )( alpha, a, eval(b, &alloc), beta, dest );
+			auto alloc = newRegionAllocator();
+			evalMatrixProduct!( transA, transB )( alpha, a, eval(b, alloc), beta, dest );
 		}
 	} else {
 		fallbackMatrixProduct!(transA,transB)( alpha, a, b, beta, dest );
@@ -311,7 +338,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 	enum vecClosure = transposeClosure!( Vec.closure, transV );
 	alias BaseElementType!Alpha T;
 	
-	static assert( vecClosure       == Closure.ColumnVector );
+	// static assert( vecClosure       == Closure.ColumnVector );
 	static assert( closureOf!Alpha  == Closure.Scalar );
 	static assert( closureOf!Beta   == Closure.Scalar );
 	static assert( closureOf!Mat    == Closure.Matrix );
@@ -338,7 +365,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 			evalMatrixVectorProduct!( transM, transNot!transV )( alpha, mat, vec.lhs, beta, dest );
 		} else {
 			RegionAllocator alloc = newRegionAllocator();
-			evalMatrixVectorProduct!( transM, transV )( alpha, mat, eval(vec,&alloc), beta, dest );
+			evalMatrixVectorProduct!( transM, transV )( alpha, mat, eval(vec,alloc), beta, dest );
 		}
 	} else static if( isExpression!Mat ) {
 		static if( Mat.operation == Operation.MatScalProd ) {
@@ -347,22 +374,23 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 			evalMatrixVectorProduct!( transNot!transM, transV )( alpha, mat.lhs, vec, beta, dest );
 		} else static if( Mat.operation == Operation.MatInverse ) {
 			// d = inv(A) * v
-			if( beta != Zero!T ) {
+			if( beta == Zero!T ) {
 				// dest = vec * alpha; dest = inv(mat.lhs) * dest
 				evalCopy!transV( vec * alpha, dest );
 				evalSolve!transM( mat.lhs, dest );
 			} else {
+				auto alloc = newRegionAllocator;
 				static if( transV )
-					auto tmp = eval( vec.t * alpha );
+					auto tmp = eval( vec.t, alloc );
 				else
-					auto tmp = eval( vec * alpha );
-				evalSolve!transM( mat, tmp );
+					auto tmp = eval( vec, alloc );
+				evalSolve!transM( mat.lhs, tmp );
 				evalScaling( beta, dest );
 				evalScaledAddition( alpha, tmp, dest );
 			}
 		} else {
 			RegionAllocator alloc = newRegionAllocator();
-			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat, &alloc), vec, beta, dest );	
+			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat, alloc), vec, beta, dest );	
 		}
 	} else {
 		fallbackMatrixVectorProduct!(transM, transV)( alpha, mat, vec, beta, dest );
@@ -370,7 +398,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 }
 
 /** Solve linear system (D := M^^(-1) * D). */
-void evalSolve( Transpose transM = Transpose.no, Mat, Dest )( auto ref Mat mat, auto ref Dest dest ) {
+void evalSolve( Transpose transM = Transpose.no, Side side = Side.Left, Mat, Dest )( auto ref Mat mat, auto ref Dest dest ) {
 	alias BaseElementType!Mat T;
 	
 	static assert( isLeafExpression!Dest );
@@ -378,34 +406,63 @@ void evalSolve( Transpose transM = Transpose.no, Mat, Dest )( auto ref Mat mat, 
 	debug( EvalCalls )
 		writeln( "-- evalSolve( ", mat.toString, ", ", dest.toString, ")" );
 	
-	static if( __traits( compiles, dest.storage.solve!transM( mat.storage ) ) ) {
-		dest.storage.solve!transM( dest.storage );
-	} else static if( isLeafExpression!Mat || __traits( compiles, mat.storage.solveRight!transM( dest.storage ) ) ) {
-		mat.storage.solveRight!transM( dest.storage );
+	static if( __traits( compiles, dest.storage.solve!( transM, side )( mat.storage ) ) ) {
+		dest.storage.solve!( transM, side )( dest.storage );
+	} else static if(  __traits( compiles, mat.storage.solveRight!( transM, side )( dest.storage ) ) ) {
+		mat.storage.solveRight!(transM, side)( dest.storage );
 	} else static if( isExpression!Mat ) {
 		static if( Mat.operation == Operation.MatScalProd ) {
 			// inv(x*A)*D = inv(A) * (D / x)
 			evalScal( One!T / mat.rhs, dest );
-			evalSolve!transM( mat.lhs, dest );
+			evalSolve!(transM, side)( mat.lhs, dest );
 		} else static if( Mat.operation == Operation.MatTrans ) {
 			// inv(A.t) * D
-			evalSolve!(transNot!transM)( mat.lhs, dest );
+			evalSolve!(transNot!transM,side)( mat.lhs, dest );
 		} else static if( Mat.operation == Operation.MatMatProd ) {
 			static if( !transM ) {
 				// inv(A*B) * D = inv(B) * (inv(A) * D);
-				evalSolve( mat.lhs, dest );
-				evalSolve( mat.rhs, dest );
+				evalSolve!(transM, side)( mat.lhs, dest );
+				evalSolve!(transM, side)( mat.rhs, dest );
 			} else {
 				// inv(A*B).t * D = inv(A).t * (inv(B).t * D);
-				evalSolve!transM( mat.rhs, dest );
-				evalSolve!transM( mat.lhs, dest );
+				evalSolve!(transM, side)( mat.rhs, dest );
+				evalSolve!(transM, side)( mat.lhs, dest );
 			}
 		} else {
 			RegionAllocator alloc = newRegionAllocator();
-			evalSolve!transM( eval(mat, &alloc), dest );
+			evalSolve!( transM, side )( eval(mat, alloc), dest );
 		}
 	} else {
-		fallbackSolve!transM( mat, dest );
+		fallbackSolve!( transM, side )( mat, dest );
+	}
+}
+
+void evalInverse( Transpose transA = Transpose.no, A, Dest, Alpha, Beta )( auto ref Alpha alpha_, auto ref A a, auto ref Beta beta_, auto ref Dest dest ) {
+	alias BaseElementType!A T ;
+	auto alpha = eval( alpha_ );
+	auto beta  = eval( beta_ );
+	
+	void performInversion( Target )( auto ref Target target ) {
+		static if( __traits( compiles, target.invert() ) ) {
+			target.invert();
+		} else {
+			static assert( false, "Fallback inversion is not implemented yet." );
+		}
+	}
+	
+	if( alpha == Zero!T ) {
+		evalScaling( beta, dest );
+		return;
+	} else 	if( beta == Zero!T ) {
+		evalCopy!transA( a, dest );
+		performInversion( dest );
+		evalScaling( alpha, dest );
+	} else {
+		auto alloc = newRegionAllocator();
+		auto tmp  = eval( a / alpha, alloc );
+		performInversion( tmp );
+		evalScaling( beta, dest );
+		evalScaledAddition( One!T, tmp, dest );
 	}
 }
 
@@ -415,8 +472,8 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 	enum aClosure = transposeClosure!(closureOf!A, transA);
 	enum bClosure = transposeClosure!(closureOf!B, transB);
 		
-	static assert( aClosure == Closure.RowVector );
-	static assert( bClosure == Closure.ColumnVector );
+	//static assert( aClosure == Closure.RowVector );
+	//static assert( bClosure == Closure.ColumnVector );
 	debug( EvalCalls )
 		writeln( "-- evalDot( ", a.toString, ", ", b.toString, ")" );
 	static if( __traits( compiles, a.storage.dot!( transXor!(transA,transB) )( b.storage ) ) ) {
@@ -438,7 +495,7 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 			return evalDot!( transNot!transA, transB )( a.lhs, b );
 		}  else {
 			RegionAllocator alloc = newRegionAllocator();
-			return evalDot!(transA,transB)( eval( a, &alloc ), b );
+			return evalDot!(transA,transB)( eval( a, alloc ), b );
 		}
 	} else static if( isExpression!B ) {
 		return evalDot!(transNot!transB,transNot!transA)( b, a );
@@ -458,4 +515,3 @@ template StorageOf( T ) {
     else
         alias T.Storage StorageOf;
 }
-

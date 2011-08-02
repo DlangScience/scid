@@ -239,11 +239,9 @@ template ExpressionResult( E ) {
 	static if( isLeafExpression!E ) {
 		// if we've reached a leaf return it
 		alias E ExpressionResult;
-		
 	} else static if( E.closure == Closure.Scalar ) {
 		// if the node results in a scalar then the result is of the same type as the element type
 		alias E.ElementType ExpressionResult;
-		
 	} else static if( isTransposition!(E.operation) ) {
 		// if the node is a transposition then the result is the Transposed of the child node
 		alias ExpressionResult!(E.Lhs).Transposed ExpressionResult;

@@ -8,10 +8,12 @@ module scid.ops.fallback;
 
 import scid.matvec;
 import scid.common.traits, scid.common.meta;
-import std.conv  : to;
+import std.conv;
 import scid.ops.expression;
 import scid.ops.common;
 import scid.ops.eval;
+import std.string, std.algorithm;
+import scid.internal.regionallocator;
 
 //debug = fallbackCalls;
 
@@ -215,6 +217,108 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 }
 
 /** Solves a linear problem (i.e. sv/sm in BLAS terms). */
-void fallbackSolve( Transpose transM, M, Dest )( auto ref M mat, auto ref Dest dest ) {
-	static assert( false, "Solve is not implemented for " ~ M.stringof ~ " and " ~ Dest.stringof );
+void fallbackSolve( Transpose transM, Side side, M, Dest )( auto ref M mat, auto ref Dest dest ) {
+	auto alloc = newRegionAllocator();
+	
+	static if( transM )
+		auto matInverse = eval( inv( mat.t ), alloc );
+	else
+		auto matInverse = eval( inv( mat ), alloc );
+	
+	static if( side == Side.Left )
+		dest[] = eval( matInverse * dest, alloc );
+	else
+		dest[] = eval( dest * matInverse, alloc );
+}
+
+/** Matrix inversion. */
+void fallbackInverse( M )( ref M mat ) {
+	alias BaseElementType!M T;
+	
+	assert( mat.rows == mat.columns,
+		   format( "Cannot invert non-square matrix with dimensions %d and %d.", mat.rows, mat.columns ) );
+	
+	size_t n = mat.rows;
+	
+	if( n == 1 ) {
+		assert( mat[ 0, 0 ] != Zero!T, "Singular matrix in inversion" );
+		mat[ 0, 0 ] = One!T / mat[ 0, 0 ];
+		return;
+	}
+	
+	T get( size_t i, size_t j ) {
+		//static if( storageOrderOf!M == StorageOrder.ColumnMajor )
+			return mat[ j, i ];
+		//else
+			//return mat[ i, j ];
+	}
+	
+	void set(string op = "/")( T x, size_t i, size_t j ) {
+		//static if( storageOrderOf!M == StorageOrder.ColumnMajor )
+			mixin( "mat[ j, i ] " ~ op ~ "= x;" );
+		//else
+			//mixin( "mat[ i, j ] " ~ op ~ "= x;" );
+	}
+	
+	// normalize first row
+	auto normWith = get(0,0);
+	foreach( i ; 1 .. n )
+		set!"/"( normWith, i, n );
+	/*
+	// LU Factorization
+	foreach( i ; 1 .. n ) {
+		// Column of L
+		foreach( j ; i .. n ) {
+			T sum = Zero!T;
+			foreach( k ; 0 .. i )
+				sum += get( i, k ) * get( k, i );
+			
+			set!"-"( sum, j, i );
+		}
+	
+		if( i == n - 1 )
+			continue;
+		
+		// Row of U
+		foreach( j ; i+1 .. n ) {
+			T sum = Zero!T;
+			foreach( k ; i .. j )
+				sum += get( i, k ) * get( k, j );
+			set( (get(i,j) - sum ) / get( i, i ), i, j );
+		}
+	}
+	
+	// Invert L
+	foreach( i ; 0 .. n ) {
+		foreach( j ; i .. n ) {
+			T x = One!T;
+			if( i != j ) {
+				x = Zero!T;
+				foreach( k ; i .. j )
+					x -= get(j,k) * get(k,i);
+			}
+			set( x / get(j,j), j, i );
+		}
+	}
+	
+	// Invert U
+	foreach( i ; 0 .. n ) {
+		foreach( j ; i .. n ) {
+			if ( i == j ) continue;
+			T sum = Zero!T;
+			foreach ( k ; i .. j )
+				sum +=get(k,j)*( (i==k) ? One!T : get(i,k) );
+			set( -sum, i, j );
+		}
+	}
+	
+	// final inversion
+	foreach( i ; 0 .. n ) {
+		foreach( j ; 0 .. n ) {
+			T sum = Zero!T;
+			foreach( k ; max(i,j) .. n )
+				sum += ( (j==k) ? 1.0 : get( j, k ) ) * get( k, i );
+			set( sum, j, i );
+		}
+	}*/
 }

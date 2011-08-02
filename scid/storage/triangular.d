@@ -40,10 +40,16 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	
 	this( A ... )( size_t newSize, A arrayArgs ) {
 		size_  = newSize;
-		containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs );
+		static if( A.length == 0 || !is( A[ 0 ] : size_t ) ) {
+			containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs );
+		} else {
+			assert( arrayArgs[0] == newSize,
+				format( "Non-square dimensions for triangular matrix (%d,%d).", newSize, arrayArgs[ 0 ] ) );
+			containerRef_ = ContainerRef( newSize * (newSize + 1) / 2, arrayArgs[ 1 .. $ ] );
+		}
 	}
 	
-	this( E )( E[] initializer ) if( isConvertible( E, ElementType ) ) {
+	this( E )( E[] initializer ) if( isConvertible!( E, ElementType ) ) {
 		auto tri  = (sqrt( initializer.length * 8.0 + 1.0 ) - 1.0 ) / 2.0;
 		
 		enforce( tri - cast(int) tri <= 0, msgPrefix_ ~ "Initializer list is not triangular." );
