@@ -12,7 +12,7 @@ import std.algorithm, std.conv;
 
 import scid.blas;
 
-// debug = ArrayDataAllocs;
+//debug = ArrayDataAllocs;
 
 debug( ArrayData ) {
 	debug = ArrayDataAllocs;

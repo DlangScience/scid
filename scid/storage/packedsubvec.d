@@ -35,7 +35,7 @@ struct PackedSubVectorStorage( ContainerRef_, VectorType vtype_ ) {
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );	
+		swap( rhs.containerRef_, containerRef_ );	
 		fixed_  = rhs.fixed_;
 		start_  = rhs.start_;
 		length_ = rhs.length_;
@@ -168,7 +168,7 @@ private:
 		size_t e = realEnd_( end );
 		popFrontN(rhs,  i );
 		for( ; i < e ; ++i ) {
-			static if( tr && isComplex!ElementType )
+			static if( tr && isComplexScalar!ElementType )
 				indexAssign( gconj(rhs.front), i );
 			else
 				indexAssign( rhs.front, i );
@@ -195,7 +195,7 @@ private:
 		size_t e = realEnd_( end );
 		popFrontN( rhs, i );
 		for( ; i < e ; ++i ) {
-			static if( tr && isComplex!ElementType )
+			static if( tr && isComplexScalar!ElementType )
 				indexAssign!"+"( gconj(rhs.front) * alpha, i );
 			else
 				indexAssign!"+"( rhs.front * alpha, i );

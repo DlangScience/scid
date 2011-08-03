@@ -47,7 +47,7 @@ struct PackedSubMatrixStorage( ContainerRef_, SubMatrixType type_ ) {
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		rowStart_ = rhs.rowStart_; rows_ = rhs.rows_;
 		colStart_ = rhs.colStart_; cols_ = rhs.cols_;
 		return this;

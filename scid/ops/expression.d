@@ -50,14 +50,6 @@ enum Closure {
 	Scalar
 }
 
-/** Enumeration to specify whether a matrix/vector is transposed or not. This is used by many functions as a template
-    parameter to specify whether its arguments need to be treated as transposed or not.
-*/
-enum Transpose : bool {
-	no,
-	yes
-}
-
 /** Convinience function to create an expression object. */
 Expression!( op, Unqual!Lhs, Unqual!Rhs ) expression( string op, Lhs, Rhs )( auto ref Lhs lhs, auto ref Rhs rhs ) {
 	static assert( isConvertible!(BaseElementType!Lhs, BaseElementType!Rhs) &&

@@ -95,7 +95,7 @@ struct TriangularArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder 
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		size_  = rhs.size_;
 		return this;
 	}

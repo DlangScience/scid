@@ -17,4 +17,4 @@ This addition introduced _a lot_ of complexity, and while it works on all unitte
 
 5. Added David's fix for Issue 20 and Issue 21.
 6. Fixed multiple bugs involving complex numbers.
-7. Added more tests for matrix operations based on result obtained from GNU Octave.
+7. Added more tests for matrix operations based on results obtained from GNU Octave.

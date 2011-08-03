@@ -12,7 +12,6 @@ public import scid.bindings.blas.types;
 
 
 
-
 version (FORTRAN_FLOAT_FUNCTIONS_RETURN_DOUBLE) {
     alias f_double float_ret_t;
 } else {

@@ -45,9 +45,9 @@ void fallbackMatrixProduct( Transpose transA, Transpose transB, A, B, E, Dest )
 		
 		
 	void doElement( size_t i, size_t j ) {
-		E dot = rowColumnDot!( transA, transB )(a, i, b, j);	
-		dot *= alpha; dot += beta * dest[i, j];
-		dest[ i, j ] = dot;	
+		E dot = rowColumnDot!( transA, transB )(a, i, b, j);
+		dot *= alpha; if( beta ) dot += beta * dest[i, j];
+		dest[ i, j ] = dot;
 	}
 		
 	static if( Dest.storageOrder == StorageOrder.RowMajor ) {
@@ -75,7 +75,7 @@ auto fallbackDot( Transpose transA, Transpose transB, A, B )( ref A a, ref B b )
 	auto r = Zero!T;
 		
 	foreach( i ; 0 .. n ) {
-		static if( !isComplex!T || (transA == transB) )
+		static if( !isComplexScalar!T || (transA == transB) )
 			r += a[ i ] * b[ i ];
 		else static if(  transA && !transB )
 			r += gconj( a[ i ] ) * b[ i ];
@@ -83,7 +83,7 @@ auto fallbackDot( Transpose transA, Transpose transB, A, B )( ref A a, ref B b )
 			r += a[ i ] * gconj( b[ i ] );
 	}
 		
-	static if( transA && transB && isComplex!T )
+	static if( transA && transB && isComplexScalar!T )
 		r = gconj( r );
 		
 	debug( fallbackCalls ) writeln( r );
@@ -189,7 +189,7 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 		assert( source.length == dest.length, "Length mismatch in fallback vector addition." );
 		auto n = dest.length;
 		for( size_t i = 0 ; i < n ; ++ i ) {
-			static if( tr && isComplex!(BaseElementType!Source) ) {
+			static if( tr && isComplexScalar!(BaseElementType!Source) ) {
 				dest[ i ] += gconj(source[ i ]) * alphaValue;
 			} else {
 				dest[ i ] += source[ i ] * alphaValue;

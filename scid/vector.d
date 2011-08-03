@@ -2,11 +2,11 @@ module scid.vector;
 
 import scid.storage.array;
 import scid.storage.arrayview;
+import scid.storage.external;
+import scid.storage.cowarray;
 import scid.common.traits;
 import scid.common.meta;
-import scid.ops.expression;
 import scid.ops.eval;
-import scid.matrix;
 
 import std.traits, std.range, std.algorithm, std.conv;
 
@@ -35,6 +35,26 @@ template StridedVectorView( ElementOrStorage, VectorType vectorType = VectorType
 		if( isScalar!(BaseElementType!ElementOrStorage) ) {
 	
 	alias BasicVector!( StridedArrayViewStorage!( ElementOrStorage, vectorType ) ).View StridedVectorView;
+}
+
+template ExternalVectorView( ElementOrContainer, VectorType vectorType = VectorType.Column )
+		if( isScalar!( BaseElementType!ElementOrContainer ) ) {
+	
+	static if( isScalar!ElementOrContainer ) {
+		alias BasicVector!(
+			ArrayViewStorage!(
+				ExternalArray!( ElementOrContainer, CowArrayRef!ElementOrContainer ),
+				vectorType
+			)
+		) ExternalVectorView;
+	} else {
+		alias BasicVector!(
+			ArrayViewStorage!(
+				ExternalArray!( BaseElementType!ElementOrContainer, ElementOrContainer ),
+				vectorType
+			)
+		) ExternalVectorView;
+	}
 }
 
 auto vectorWithStorage( S )( auto ref S storage ) {
@@ -94,7 +114,7 @@ struct BasicVector( Storage_ ) {
 	}
 	
 	this( A )( BasicVector!A other ) {
-		static if( is( A : Storage ) ) move( other.storage, storage );
+		static if( is( A : Storage ) ) storage = other.storage;
 		else                           this[] = other;
 	}
 	
@@ -115,7 +135,7 @@ struct BasicVector( Storage_ ) {
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		move( rhs.storage, storage );
+		rhs.storage = storage;
 		return this;
 	}
 	
@@ -265,10 +285,10 @@ struct BasicVector( Storage_ ) {
 	else                                         mixin Operand!( Closure.RowVector    );
 	
 	template Promote( T ) {
-		static if( is( T S : BasicVector!S ) ) {
-			alias BasicVector!( Promotion!(Storage,S) ) Promote;
-		} else static if( is( T S : BasicMatrix!S ) ) {
-			alias BasicVector!( Promotion!(Storage,S) ) Promote;
+		static if( isVector!T ) {
+			alias BasicVector!( Promotion!(Storage,T.Storage) ) Promote;
+		} else static if( isMatrix!T ) {
+			alias BasicVector!( Promotion!(Storage,T.Storage) ) Promote;
 		} else static if( isScalar!T ) {
 			alias BasicVector!( Promotion!(Storage,T) ) Promote;
 		}

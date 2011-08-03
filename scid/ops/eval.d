@@ -16,7 +16,6 @@ import scid.ops.common;
 
 import scid.internal.regionallocator;
 
-import scid.matvec;
 import std.conv;
 
 //debug = EvalCalls;
@@ -33,6 +32,14 @@ debug( EvalCalls ) {
 enum Side {
 	Left,
 	Right
+}
+
+/** Enumeration to specify whether a matrix/vector is transposed or not. This is used by many functions as a template
+    parameter to specify whether its arguments need to be treated as transposed or not.
+*/
+enum Transpose : bool {
+	no,
+	yes
 }
 
 /** Evaluate a leaf expression (a floating point type, BasicVector or BasicMatrix) - simply return it. */
@@ -70,17 +77,36 @@ ExpressionResult!E eval( E )( auto ref E expr ) if( isExpression!E && E.closure 
 /** Evaluate a matrix or vector expression in memory allocated with the specified allocator. */
 ExpressionResult!(E).Temporary eval( E, Allocator )( auto ref E expr, Allocator allocator )
 		if( isAllocator!Allocator && E.closure != Closure.Scalar ) {
-	// ExpressionResult gives you the type required to save the result of an expression.
 	static if( isVectorClosure!(E.closure) ) {
 		debug( TempAllocation ) writeln("Allocated temporary of size ", expr.length, ".");
-		auto result = typeof( return )( expr.length, allocator );
+		auto result = typeof( return )( expr.length, allocator, null );
 	} else {
 		debug( TempAllocation ) writeln("Allocated temporary of size (", expr.rows,", ", expr.columns, ").");
-		auto result = typeof( return )( expr.rows, expr.columns, allocator );
+		auto result = typeof( return )( expr.rows, expr.columns, allocator, null );
 	}
 	
 	evalCopy( expr, result );
 	
+	return result;
+}
+
+/** Evaluate a matrix or vector expression and save the result in the provided array. */
+ExpressionResult!(E).Temporary eval( E, T )( auto ref E expr, T[] array )
+		if( E.closure != Closure.Scalar && is(BaseElementType!E : T) ) {
+	
+	static if( isVectorClosure!(E.closure) )
+		auto result = typeof( return )( array );
+	else {
+		import scid.matrix;
+		static if( storageOrderOf!Temp == StorageOrder.RowMajor )
+			auto major = expr.rows;
+		else
+			auto major = expr.columns;
+		
+		auto result = typeof( return )( major, array );
+	}
+	
+	evalCopy( expr, result );
 	return result;
 }
 
@@ -393,6 +419,7 @@ void evalMatrixVectorProduct( Transpose transM, Transpose transV, Alpha, Beta, M
 			evalMatrixVectorProduct!( transM, transV )( alpha, eval(mat, alloc), vec, beta, dest );	
 		}
 	} else {
+		
 		fallbackMatrixVectorProduct!(transM, transV)( alpha, mat, vec, beta, dest );
 	}
 }
@@ -418,16 +445,17 @@ void evalSolve( Transpose transM = Transpose.no, Side side = Side.Left, Mat, Des
 		} else static if( Mat.operation == Operation.MatTrans ) {
 			// inv(A.t) * D
 			evalSolve!(transNot!transM,side)( mat.lhs, dest );
-		} else static if( Mat.operation == Operation.MatMatProd ) {
-			static if( !transM ) {
-				// inv(A*B) * D = inv(B) * (inv(A) * D);
-				evalSolve!(transM, side)( mat.lhs, dest );
-				evalSolve!(transM, side)( mat.rhs, dest );
-			} else {
-				// inv(A*B).t * D = inv(A).t * (inv(B).t * D);
-				evalSolve!(transM, side)( mat.rhs, dest );
-				evalSolve!(transM, side)( mat.lhs, dest );
-			}
+		// This doesn't work on non-square matricess, will need to find a solution.
+		//} else static if( Mat.operation == Operation.MatMatProd ) {
+		//	static if( !transM ) {
+		//		// inv(A*B) * D = inv(B) * (inv(A) * D);
+		//		evalSolve!(transM, side)( mat.lhs, dest );
+		//		evalSolve!(transM, side)( mat.rhs, dest );
+		//	} else {
+		//		// inv(A*B).t * D = inv(A).t * (inv(B).t * D);
+		//		evalSolve!(transM, side)( mat.rhs, dest );
+		//		evalSolve!(transM, side)( mat.lhs, dest );
+		//	}
 		} else {
 			RegionAllocator alloc = newRegionAllocator();
 			evalSolve!( transM, side )( eval(mat, alloc), dest );
@@ -478,13 +506,13 @@ auto evalDot( Transpose transA = Transpose.no, Transpose transB = Transpose.no, 
 		writeln( "-- evalDot( ", a.toString, ", ", b.toString, ")" );
 	static if( __traits( compiles, a.storage.dot!( transXor!(transA,transB) )( b.storage ) ) ) {
 		auto r = a.storage.dot!( transXor!(transA,transB) )( b.storage );
-		static if( transB && isComplex!T )
+		static if( transB && isComplexScalar!T )
 			return gconj( r );
 		else
 			return r;
 	} else static if( __traits( compiles, b.storage.dot!( transXor!(transA,transB) )( a.storage ) ) ) {
 		auto r = b.storage.dot!( transXor!(transA,transB) )( a.storage );
-		static if( transA && isComplex!T )
+		static if( transA && isComplexScalar!T )
 			return gconj( r );
 		else
 			return r;

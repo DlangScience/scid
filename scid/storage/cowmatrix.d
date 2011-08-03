@@ -158,7 +158,7 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 	
 	/** Assignment has copy semantics. The actual copy is only performed on modification of the copy however. */
 	ref typeof( this ) opAssign( CowMatrix rhs ) {
-		data_    = move( rhs.data_ );
+		swap( data_,  rhs.data_ );
 		ptr_     = rhs.ptr_;
 		rows_    = rhs.rows_;
 		cols_    = rhs.cols_;
@@ -273,7 +273,6 @@ struct CowMatrix( ElementType_, StorageOrder storageOrder_ = StorageOrder.Column
 		else static if( isMatrixContainer!T ) {
 			alias CowMatrixRef!(Promotion!(BaseElementType!T,ElementType)) Promote;
 		} else static if( isScalar!T ) {
-			pragma( msg, "okcowmat" );
 			alias CowMatrixRef!(Promotion!(T,ElementType)) Promote;
 		}
 	}

@@ -1,10 +1,13 @@
 module scid.storage.external;
 
 import scid.common.traits;
+import scid.common.meta;
 import scid.matrix;
 import scid.ops.common;   
 import std.string, std.array;
 import std.exception;
+import std.conv;
+import scid.blas;
 
 mixin template EmulateRefCounted() {
 	static struct RefCounted {
@@ -18,18 +21,37 @@ struct ExternalArray( T, DefaultType_ ) {
 	
 	mixin EmulateRefCounted;
 	
+	this( Allocator )( size_t len, Allocator allocator, void* )
+			if( isAllocator!Allocator ) {
+		
+		array_ = allocator.uninitializedArray!(T[])( len );
+		enforce( array_, "ExternalArray: Allocator returned null." );
+	}
+	
 	this( Allocator )( size_t len, Allocator allocator )
 			if( isAllocator!Allocator ) {
 		
-		array_ = ( cast(T*) allocator.allocate( len * T.sizeof ) )[ 0 .. len ];
+		array_ = allocator.uninitializedArray!(T[])( len );
 		enforce( array_, "ExternalArray: Allocator returned null." );
+		blas.scal( array_.length, Zero!T, array_.ptr, 1 );
+	}
+	
+	this( E, Allocator )( E[] initializer, Allocator allocator )
+			if( isAllocator!Allocator && isConvertible!(E,T) ) {
+		
+		array_ = allocator.uninitializedArray!(T[])( initializer.length );
+		
+		enforce( array_, "ExternalArray: Allocator returned null." );
+				
+		foreach( i ; 0 .. array_.length )
+			array_[ i ] = to!T( initializer[ i ] );
+		
+		
 	}
 	
 	this()( T[] data )
 	in {
 		assert( !data.empty, "ExternalArray: Null/empty data." );
-		assert( data.length % stride == 0,
-			format("ExternalArray: Length of data (%d) is not divisible by the stride (%d).", data.length, stride ) );
 	} body {
 		array_  = data;
 	}
@@ -75,19 +97,42 @@ struct ExternalMatrix( T, StorageOrder order_, DefaultType_ ) {
 	alias ExternalMatrix!(T, transposeStorageOrder!order_, TransposedOf!DefaultType_ )
 		Transposed;
 	
-	this( Allocator )( size_t rows, size_t columns, Allocator allocator )
+	this( Allocator )( size_t rows, size_t columns, Allocator allocator, void* )
 			if( isAllocator!Allocator ) {
-		size_t len = rows * columns;
-		array_ = ( cast(T*) allocator.allocate( len * T.sizeof ) )[ 0 .. len ];
+		array_ = allocator.uninitializedArray!(T[])( rows * columns );
 		enforce( array_, "ExternalMatrix: Allocator returned null." );
 		rows_ = rows;
 		cols_ = columns;
 	}
 	
+	this( Allocator )( size_t rows, size_t columns, Allocator allocator )
+			if( isAllocator!Allocator ) {
+		array_ = allocator.uninitializedArray!(T[])( rows * columns );
+		blas.scal( array_.length, Zero!T, array_.ptr, 1 );
+		enforce( array_, "ExternalMatrix: Allocator returned null." );
+		rows_ = rows;
+		cols_ = columns;
+	}
+	
+	this( E, Allocator )( E[][] initializer, Allocator allocator ) if( isAllocator!Allocator && isConvertible!(E, ElementType) ) {
+		if( initializer.length == 0 || initializer[0].length == 0)
+			return;
+		
+		rows_ = initializer.length;
+		cols_ = initializer[0].length;
+		size_t len = rows_ * cols_;
+		array_ = ( cast(T*) allocator.allocate( len * T.sizeof ) )[ 0 .. len ];
+		enforce( array_, "ExternalMatrix: Allocator returned null." );
+		
+		foreach( i ; 0 .. rows )
+			foreach( j ; 0.. columns )
+				indexAssign( to!ElementType(initializer[i][j]), i, j );
+	}
+	
 	this()( size_t major, T[] data )
 	in {
 		assert( major > 0, "ExternalMatrix: Zero dimension." );
-		assert( data.length % major, "ExternalMatrix: Invalid major dimension for given data." );
+		assert( data.length % major == 0 , format("ExternalMatrix: Invalid major dimension for given data (%d, %d).", major, data.length) );
 	} body {
 		array_ = data;
 		major_ = major;

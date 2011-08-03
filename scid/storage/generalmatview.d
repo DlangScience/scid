@@ -67,7 +67,7 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	}
 	
 	ref typeof( this ) opAssign( typeof( this ) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		firstIndex_ = rhs.firstIndex_;
 		rows_       = rhs.rows_;
 		cols_       = rhs.cols_;
@@ -147,7 +147,7 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	}
 	
 	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
-		if( is( Source M : BasicGeneralMatrixStorage!M ) || is( Source M : BasicGeneralMatrixViewStorage!M ) ) {
+		if( isGeneralMatrixStorage!Source ) {
 		resize( source.rows, source.columns, null );
 		generalMatrixCopy!tr( source, this );
 	}

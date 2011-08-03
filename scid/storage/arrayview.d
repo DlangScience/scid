@@ -131,7 +131,7 @@ struct BasicArrayViewStorage( ContainerRef_, ArrayViewType strided_, VectorType 
 	ref typeof( this ) opAssign( typeof( this ) rhs ) {
 		firstIndex_ = rhs.firstIndex;
 		length_     = rhs.length_;
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		static if( isStrided )
 			stride_ = rhs.stride_;
 		return this;

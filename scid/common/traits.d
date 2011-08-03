@@ -16,6 +16,49 @@ import scid.common.storagetraits;
 import scid.common.meta;
 import std.conv;
 
+template isMatrix( T ) {
+	static if( is( typeof( T.init[0,0]           ) ) &&
+			   is( typeof( T.init[0..1][0..1]    ) ) &&
+			   is( typeof( T.init.storage        ) ) &&
+			   is( typeof( T.init.view(0,0,0,0)  ) ) &&
+			   is( typeof( T.init.slice(0,0,0,0) ) ) &&
+			   is( typeof( T.init.row(0)         ) ) &&
+			   is( typeof( T.init.column(0)      ) ) &&
+			   is( T.Transposed ) &&
+			   is( T.ElementType ) &&
+			   is( T.Storage ) )
+		enum isMatrix = true;
+	else	   
+		enum isMatrix = false;
+}
+
+template isVector( T ) {
+	static if( is( typeof( T.init[0]         ) ) &&
+			   is( typeof( T.init[0..1]      ) ) &&
+			   is( typeof( T.init.storage    ) ) &&
+			   is( typeof( T.init.view(0,0)  ) ) &&
+			   is( typeof( T.init.slice(0,0) ) ) &&
+			   is( typeof( T.init.row(0)     ) ) &&
+			   is( typeof( T.init.column(0)  ) ) &&
+			   is( T.Transposed ) &&
+			   is( T.ElementType ) &&
+			   is( T.Storage ) )
+		enum isMatrix = true;
+	else	   
+		enum isMatrix = false;
+}
+
+/** Gets the Transposed type of a given Matrix/Vector storage. If the given type is ref-counted then the result will
+    be ref-counted as well.
+*/
+template TransposedOf( T ) {
+	static if( is( T.Transposed ) )
+		alias T.Transposed TransposedOf;
+	else static if( is( T E : RefCounted!(E,x), uint x ) ) {
+		alias RefCounted!(TransposedOf!E,cast(RefCountedAutoInitialize)x) TransposedOf;
+	} else static assert( false, T.stringof ~ " has no transpose." );
+}
+
 template isConvertible( S, T ) {
     enum isConvertible = is( typeof({
         return to!(T)(S.init);
@@ -38,18 +81,18 @@ template isScalar( T ) {
 }
 
 /** Detect whether T is a complex floating-point type. */
-template isComplex(T)
+template isComplexScalar(T)
 {
-    enum bool isComplex = is(T==cfloat) || is(T==cdouble) || is(T==creal)
+    enum bool isComplexScalar = is(T==cfloat) || is(T==cdouble) || is(T==creal)
         || is(T==Complex!float) || is(T==Complex!double) || is(T==Complex!real);
 }
 
 version(unittest)
 {
-    static assert (isComplex!cdouble);
-    static assert (isComplex!(Complex!double));
-    static assert (!isComplex!double);
-    static assert (!isComplex!int);
+    static assert (isComplexScalar!cdouble);
+    static assert (isComplexScalar!(Complex!double));
+    static assert (!isComplexScalar!double);
+    static assert (!isComplexScalar!int);
 }
 
 /** Some containers might defer to a different container type to be used when an expression involving views gets
@@ -155,12 +198,12 @@ template isLeafExpression( T ) {
 /** Detect whether T is a FORTRAN-compatible floating-point type.
     The FORTRAN-compatible types are: float, double, cfloat, cdouble.
 */
-template isFortranType(T) if (!isComplex!T)
+template isFortranType(T) if (!isComplexScalar!T)
 {
     enum bool isFortranType = is(T==float) || is(T==double);
 }
 
-template isFortranType(T) if (isComplex!T)
+template isFortranType(T) if (isComplexScalar!T)
 {
     enum bool isFortranType = isFortranType!(typeof(T.re));
 }

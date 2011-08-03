@@ -7,8 +7,8 @@ import std.traits;
 import std.algorithm;
 import std.conv, std.string;
 import std.ascii;
-// debug = blasCalls;
-version = nodeps;
+//debug = blasCalls;
+//version = nodeps;
 
 debug( blasCalls ) {
 	import std.stdio;
@@ -77,7 +77,7 @@ struct blas {
 			writeln( stridedToString(y, n, incy) );
 	}
 	
-	static T dot( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( !isComplex!T ) {
+	static T dot( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( !isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dot( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -92,7 +92,7 @@ struct blas {
 		return r;
 	}
 	
-	static T dotu( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplex!T ) {
+	static T dotu( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dotu( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -107,7 +107,7 @@ struct blas {
 		return r;
 	}
 	
-	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplex!T ) {
+	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dotc( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -208,12 +208,12 @@ struct blas {
 	// Extended BLAS, stuff I needed and wasn't implemented by BLAS.
 	
 	// x := conj( x )
-	static T xconj( T )( T x ) if( isComplex!T ) {
+	static T xconj( T )( T x ) if( isComplexScalar!T ) {
 		return naive_.xconj( x );
 	}
 	
 	// x := x.H
-	static void xcopyc( T )( int n, T* x, int incx ) if( isComplex!T ) {
+	static void xcopyc( T )( int n, T* x, int incx ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xcopyc( ", stridedToString(x, n, incx), " ) => " );
 		
@@ -224,7 +224,7 @@ struct blas {
 	}
 	
 	// y := x.H
-	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplex!T ) {
+	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xcopyc( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -235,7 +235,7 @@ struct blas {
 	}
 	
 	// y := alpha*x.H + y
-	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplex!T ) {
+	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xaxpyc( ", alpha, ", ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -292,7 +292,7 @@ private struct naive_ {
 	private static bool checkMatrix( T )( char trans, int m, int n, const T* a, int lda ) {
 		if( trans == 'T' || trans == 'C' )
 			std.algorithm.swap( m, n );
-		assert(trans == 'T' || (trans == 'C' && isComplex!(Unqual!T))  || trans == 'N',
+		assert(trans == 'T' || (trans == 'C' && isComplexScalar!(Unqual!T))  || trans == 'N',
 			   "Invalid transposition character '" ~ trans ~ "' for '" ~ T.stringof ~ ".");
 		assert( a != null, "Null matrix." );
 		assert( lda >= m, format("Leading dimension less than minor dimension: %d vs %d",lda,m) );
@@ -407,7 +407,7 @@ private struct naive_ {
 	}
 	
 	static T dot( bool forceComplex = false, T )( int n, const(T)* x, int incx, const(T)* y, int incy )
-				if( !isComplex!T || forceComplex ) {
+				if( !isComplexScalar!T || forceComplex ) {
 		debug( blasCalls ) reportNaive_();
 				
 		assert( checkVector( y, incy )	);
@@ -440,7 +440,7 @@ private struct naive_ {
 		alias dot!(true,T) dotu;
 	}
 	
-	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplex!T ) {
+	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		assert( checkVector( y, incy )	);
@@ -544,7 +544,7 @@ private struct naive_ {
 		enum diag = cast(char)toUpper( diag_ );
 		
 		static assert( uplo == 'U' || uplo == 'L' );
-		static assert( trans == 'N' || trans == 'T' || ( trans == 'C' && isComplex!T ) );
+		static assert( trans == 'N' || trans == 'T' || ( trans == 'C' && isComplexScalar!T ) );
 		static assert( diag == 'U' || diag == 'N' );
 		assert( n >= 0 );
 		assert( lda >= max(1, n) );
@@ -617,7 +617,7 @@ private struct naive_ {
 
 	// Extended
 	// x := conj( x )
-	static T xconj( T )( T x ) if( isComplex!(Unqual!T) ) {
+	static T xconj( T )( T x ) if( isComplexScalar!(Unqual!T) ) {
 		static if( is( T E : Complex!E ) )
 			return x.conj;
 		else
@@ -625,7 +625,7 @@ private struct naive_ {
 	}
 	
 	// x := x.H
-	static void xcopyc( T )( int n, T* x, int incx ) if( isComplex!T ) {
+	static void xcopyc( T )( int n, T* x, int incx ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n )
@@ -650,7 +650,7 @@ private struct naive_ {
 	}
 	
 	// y := x.H
-	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplex!T ) {
+	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n )
@@ -675,7 +675,7 @@ private struct naive_ {
 	}
 	
 	// y := alpha*x.H + y
-	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplex!T ) {
+	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n || alpha == Zero!T )
@@ -706,7 +706,7 @@ private struct naive_ {
 	// B := A    or
 	// B := A.T  or
 	// B := A.H    , for A and B mxn matrices
-	static void xgecopy( char transA_, bool forceConjugate=false, T )( int m, int n, const(T)* a, int lda, T* b, int ldb ) if( isComplex!T || !forceConjugate ) {
+	static void xgecopy( char transA_, bool forceConjugate=false, T )( int m, int n, const(T)* a, int lda, T* b, int ldb ) if( isComplexScalar!T || !forceConjugate ) {
 		//debug( blasCalls ) reportNaive_();
 		
 		enum transA = cast(char)toUpper( transA_ );
@@ -748,7 +748,7 @@ private struct naive_ {
 				++ a; b += ldb;
 			}
 		} else {
-			static if( !isComplex!(Unqual!T) ) {
+			static if( !isComplexScalar!(Unqual!T) ) {
 				assert( false,
 					"'" ~ transA ~ "', invalid value for 'transA' in matrix of type '" ~ T.stringof ~ "' copy." );
 			} else {
@@ -767,7 +767,7 @@ private struct naive_ {
 	// B := alpha*A   + B  or
 	// B := alpha*A.T + B  or
 	// B := alpha*A.H + B, for A and B mxn matrices
-	static void xgeaxpy( char transA_, bool forceConjugate=false,  T )( int m, int n, T alpha, const(T)* a, int lda, T* b, int ldb ) if( isComplex!T || !forceConjugate ) {
+	static void xgeaxpy( char transA_, bool forceConjugate=false,  T )( int m, int n, T alpha, const(T)* a, int lda, T* b, int ldb ) if( isComplexScalar!T || !forceConjugate ) {
 		//debug( blasCalls ) reportNaive_();
 		
 		enum transA = cast(char)toUpper( transA_ );
@@ -809,7 +809,7 @@ private struct naive_ {
 				++ a; b += ldb;
 			}
 		} else {
-			static if( !isComplex!(Unqual!T) ) {
+			static if( !isComplexScalar!(Unqual!T) ) {
 				assert( false,
 					"'" ~ transA ~ "', invalid value for 'transA' in matrix of type '" ~ T.stringof ~ "' copy." );
 			} else {

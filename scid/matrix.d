@@ -1,13 +1,15 @@
 module scid.matrix;
 
 import scid.internal.assertmessages;
-import scid.ops.eval, scid.ops.common;
+import scid.ops.common;
 import scid.storage.generalmat;
+import scid.storage.generalmatview;
 import scid.storage.triangular;
 import scid.storage.symmetric;
 import scid.storage.diagonalmat;
+import scid.storage.cowmatrix;
+import scid.storage.external;
 import scid.common.traits;
-import scid.vector;
 
 import std.algorithm, std.range, std.conv;
 
@@ -77,14 +79,28 @@ template DiagonalMatrix( ElementOrArray )
 	alias BasicMatrix!( DiagonalMatrixStorage!(ElementOrArray ) ) DiagonalMatrix;
 }
 
-template isMatrix( T ) {
-	static if( is( typeof( T.init[0,0]          ) ) &&
-			   is( typeof( T.init[0..1][0..1]   ) ) &&
-			   is( typeof( T.init.storage       ) ) &&
-			   is( typeof( T.init.view(0,0,0,0) ) ) )
-		enum isMatrix = true;
-	else	   
-		enum isMatrix = false;
+template ExternalMatrixView( ElementOrContainer, StorageOrder order_ = StorageOrder.ColumnMajor )
+		if( isScalar!( BaseElementType!ElementOrContainer ) ) {
+	
+	static if( isScalar!ElementOrContainer ) {
+		alias BasicMatrix!(
+			BasicGeneralMatrixViewStorage!(
+				ExternalMatrix!( ElementOrContainer, order_,
+					CowMatrixRef!( ElementOrContainer, order_ )
+				)
+			)
+		) ExternalMatrixView;
+	} else {
+		alias BasicMatrix!(
+			BasicGeneralMatrixViewStorage!(
+				ExternalMatrix!(
+					BaseElementType!ElementOrContainer,
+					storageOrderOf!ElementOrContainer,
+					ElementOrContainer
+				)
+			)
+		) ExternalMatrixView;
+	}
 }
 
 struct BasicMatrix( Storage_ ) {
@@ -153,10 +169,8 @@ struct BasicMatrix( Storage_ ) {
 	template Promote( T ) {
 		static if( isScalar!T )	
 			alias BasicMatrix!( Promotion!(Storage,T) ) Promote;
-		else static if( is( T S : BasicVector!S ) ) {
-			alias BasicVector!( Promotion!(Storage,S) ) Promote;
-		} else static if( is( T S : BasicMatrix!S ) ) {
-			alias BasicMatrix!( Promotion!(Storage,S) ) Promote;
+		else static if( isMatrix!T ) {
+			alias BasicMatrix!( Promotion!(Storage,T.Storage) ) Promote;
 		}
 	}
 	
@@ -166,7 +180,7 @@ struct BasicMatrix( Storage_ ) {
 	}
 	
 	/** Create a new matrix as a copy of a matrix with the same or a different storage type. */
-	this( A )( BasicMatrix!(A, vectorType) other ) {
+	this( A )( BasicMatrix!A other ) {
 		static if( is( A : Storage ) ) storage = other.storage;
 		else                           storage.copy( other.storage );
 	}
@@ -178,7 +192,7 @@ struct BasicMatrix( Storage_ ) {
 	
 	/** Create a new matrix from a given storage. */
 	this()( Storage stor ) {
-		move( stor, storage );
+		storage = stor;
 	}
 	
 	/** Element access. Forwarded to the storage.index method. */

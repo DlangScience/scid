@@ -82,7 +82,7 @@ struct CowArray( ElementType_ ) {
 	
 	/** Assignment has copy semantics. The actual copy is only performed on modification of the copy however. */
 	ref typeof(this) opAssign( CowArray rhs ) {
-		move( rhs.data_, data_ );
+		swap( rhs.data_, data_ );
 		ptr_    = rhs.ptr_;
 		length_ = rhs.length_;
 		return this;

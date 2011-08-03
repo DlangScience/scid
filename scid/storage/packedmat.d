@@ -38,7 +38,7 @@ struct PackedStorage( ContainerRef_ ) {
 	}
 		
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		return this;
 	}
 	
@@ -102,6 +102,11 @@ struct PackedStorage( ContainerRef_ ) {
 		
 		// workaround for alias this problems {
 		auto size()    const { return containerRef_.size; }
+		
+		/** Get the size of the array that data/cdata point to. */
+		size_t sizeOfData() const {
+			return packedArrayLength( size );
+		}
 		
 		alias size rows;
 		alias size columns;

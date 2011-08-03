@@ -5,7 +5,7 @@ import std.algorithm, std.math;
 import std.ascii, std.exception;
 
 //debug = lapackCalls;
-version = nodeps;
+//version = nodeps;
 
 debug( lapackCalls ) {
 	import std.stdio;

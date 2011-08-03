@@ -9,7 +9,7 @@
   <oneobj>0</oneobj>
   <trace>0</trace>
   <quiet>0</quiet>
-  <verbose>0</verbose>
+  <verbose>1</verbose>
   <vtls>0</vtls>
   <symdebug>2</symdebug>
   <optimize>0</optimize>
@@ -99,7 +99,7 @@
   <oneobj>0</oneobj>
   <trace>0</trace>
   <quiet>0</quiet>
-  <verbose>0</verbose>
+  <verbose>1</verbose>
   <vtls>0</vtls>
   <symdebug>0</symdebug>
   <optimize>1</optimize>
@@ -123,8 +123,8 @@
   <useInline>1</useInline>
   <release>1</release>
   <preservePaths>0</preservePaths>
-  <warnings>0</warnings>
-  <infowarnings>0</infowarnings>
+  <warnings>1</warnings>
+  <infowarnings>1</infowarnings>
   <pic>0</pic>
   <cov>0</cov>
   <nofloat>0</nofloat>

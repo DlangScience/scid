@@ -40,7 +40,7 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	enum isUpper      = triangle     == MatrixTriangle.Upper;
 	
 	/** Is the matrix hermitian? */
-	enum isHermitian = isComplex!ElementType;
+	enum isHermitian = isComplexScalar!ElementType;
 	
 	static if( isHermitian )
 		enum storageType  = MatrixStorageType.Hermitian;
@@ -104,7 +104,7 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		size_  = rhs.size_;
 		return this;
 	}

@@ -7,14 +7,16 @@
 
 module scid.ops.common;
 
-public import scid.ops.expression;
+public import scid.ops.eval;
 
 import std.complex;
 import std.math;
+import scid.ops.expression;
+import scid.vector;
+import scid.matrix;
+
 import std.typecons;
 
-import scid.matvec;
-import scid.ops.eval;
 import scid.common.traits;
 
 import scid.blas;
@@ -34,17 +36,6 @@ template transNot( Transpose tr )             { enum transNot = cast(Transpose) 
 
 /** Performs exclusive or on Transpose values. */
 template transXor( Transpose a, Transpose b ) { enum transXor = cast(Transpose) (a ^ b); }
-
-/** Gets the Transposed type of a given Matrix/Vector storage. If the given type is ref-counted then the result will
-    be ref-counted as well.
-*/
-template TransposedOf( T ) {
-	static if( is( T.Transposed ) )
-		alias T.Transposed TransposedOf;
-	else static if( is( T E : RefCounted!(E,x), uint x ) ) {
-		alias RefCounted!(TransposedOf!E,cast(RefCountedAutoInitialize)x) TransposedOf;
-	} else static assert( false, T.stringof ~ " has no transpose." );
-}
 
 /** Transposes a closure (only affects RowVector <-> ColumnVector) with a given Transpose value. */
 template transposeClosure( Closure A, Transpose transposed = Transpose.yes ) {
@@ -80,7 +71,7 @@ template transposeStorageOrder( StorageOrder S, Transpose transposed = Transpose
     element type is complex.
 */
 void vectorTranspose( Transpose trans, V )( ref V vec ) {
-	static if( trans && isComplex!(BaseElementType!V) ) {
+	static if( trans && isComplexScalar!(BaseElementType!V) ) {
 		auto n = vec.length;
 		foreach( i ; 0 .. n )
 			vec[ i ] = gconj( vec[ i ] );
@@ -154,7 +145,7 @@ mixin template GeneralMatrixScalingAndAddition() {
 		// If the storage orders are different and we need to perform a hermitian transMpose then the result is
 		// the same is taking the conjugate without transMposing.
 		static if( !vectorRhs )
-			enum bool conjugateNoTrans = isComplex!ElementType && transM && storageOrder != storageOrderOf!Dest;
+			enum bool conjugateNoTrans = isComplexScalar!ElementType && transM && storageOrder != storageOrderOf!Dest;
 		else
 			enum bool conjugateNoTrans = false;
 		
@@ -185,9 +176,9 @@ mixin template GeneralMatrixScalingAndAddition() {
 		
 		// Figure out what kind of transposition we've got (transM == true means it could be hermitian)
 		static if( vectorRhs ) {
-			enum chTrans = transM ? (isComplex!ElementType ? 'C' : 'T') : 'N';
+			enum chTrans = transM ? (isComplexScalar!ElementType ? 'C' : 'T') : 'N';
 		} else static if( transposeStorageOrder!(storageOrder, transM) != storageOrderOf!Dest ) {
-			static if( !isComplex!ElementType || conjugateNoTrans )
+			static if( !isComplexScalar!ElementType || conjugateNoTrans )
 				enum chTrans = 'T';
 			else
 				enum chTrans = 'C';
@@ -216,7 +207,7 @@ mixin template GeneralMatrixScalingAndAddition() {
 		enum orderB = transposeStorageOrder!( storageOrderOf!B, transB );
 		enum orderC = storageOrder;
 		
-		static if( !isComplex!ElementType ) {
+		static if( !isComplexScalar!ElementType ) {
 			static if( (orderA != orderC) || (orderB != orderC) )
 				matrixProduct!( transNot!transB, transNot!transA )( alpha, b, a, beta );
 			else {
@@ -263,7 +254,7 @@ auto rowColumnDot( Transpose transA = Transpose.no, Transpose transB = Transpose
 /** Specialized copy for strided vector storage types. */
 void stridedCopy( Transpose tr, Source, Dest )( auto ref Source source, auto ref Dest dest ) if( isStridedVectorStorage!(Source,BaseElementType!Dest) && isStridedVectorStorage!Dest ) {
 	dest.resize( source.length, null );
-	static if( isComplex!(BaseElementType!Source) && tr ) {
+	static if( isComplexScalar!(BaseElementType!Source) && tr ) {
 		blas.xcopyc( dest.length, source.cdata, source.stride, dest.data, dest.stride );
 	} else
 		blas.copy( dest.length, source.cdata, source.stride, dest.data, dest.stride );
@@ -273,7 +264,7 @@ void stridedCopy( Transpose tr, Source, Dest )( auto ref Source source, auto ref
 /** Specialized scaled addition (axpy) for strided vector storage types. */
 void stridedScaledAddition( Transpose tr, Scalar, Source, Dest )( Scalar alpha, ref Source source, auto ref Dest dest ) if( isStridedVectorStorage!(Source,Scalar) && is( Scalar : BaseElementType!Dest ) ) {
 	assert( source.length == dest.length, "Length mismatch in strided addition." );
-	static if( isComplex!(BaseElementType!Source) && tr )
+	static if( isComplexScalar!(BaseElementType!Source) && tr )
 		blas.xaxpyc( dest.length, alpha, source.cdata, source.stride, dest.data, dest.stride );
 	else
 		blas.axpy( dest.length, alpha, source.cdata, source.stride, dest.data, dest.stride );
@@ -287,7 +278,7 @@ void stridedScaling( Scalar, Dest )( Scalar alpha, auto ref Dest dest ) if( isSt
 /** Specialized dot for strided vector storage types. */
 auto stridedDot( Transpose transA, A, B )( auto ref A a, auto ref B b ) if( isStridedVectorStorage!(A,BaseElementType!B) && isStridedVectorStorage!B ) {
 	assert( a.length == b.length, "Length mismatch in strided dot." );
-	static if( !isComplex!(BaseElementType!A) )
+	static if( !isComplexScalar!(BaseElementType!A) )
 		auto r = blas.dot( a.length, a.cdata, a.stride, b.cdata, b.stride );	
 	else static if( transA )
 		auto r = blas.dotc( a.length, a.cdata, a.stride, b.cdata, b.stride );
@@ -323,8 +314,8 @@ void generalMatrixCopy( Transpose tr, S, D )( auto ref S source, auto ref D dest
 	alias transposeStorageOrder!(storageOrderOf!S, tr) srcOrder;
 	alias storageOrderOf!D dstOrder;
 	
-	static if( !isComplex!T ) {
-		blas.xgecopy( (srcOrder == dstOrder) ? 't' : 'n',
+	static if( !isComplexScalar!T ) {
+		blas.xgecopy!( (srcOrder == dstOrder) ? 't' : 'n')(
 			dest.rows,
 			dest.columns,
 			source.cdata,
@@ -332,27 +323,27 @@ void generalMatrixCopy( Transpose tr, S, D )( auto ref S source, auto ref D dest
 			dest.data,
 			dest.leading
 		);
-	} else static if( isComplex!T ) {
+	} else static if( isComplexScalar!T ) {
 		static if( srcOrder == dstOrder ) {
 			static if( tr ) {
-				blas.xgecopyc( 'n', dest.rows, dest.columns,
+				blas.xgecopyc!'n'( dest.rows, dest.columns,
 					source.cdata, source.leading,
 					dest.data,    dest.leading
 				);
 			} else {
-				blas.xgecopy( 'n', dest.rows, dest.columns,
+				blas.xgecopy!'n'( dest.rows, dest.columns,
 					source.cdata, source.leading,
 					dest.data,    dest.leading
 				);
 			}
 		} else {
 			static if( tr ) {
-				blas.xgecopy( 'c', dest.rows, dest.columns,
+				blas.xgecopy!'c'( dest.rows, dest.columns,
 					source.cdata, source.leading,
 					dest.data,    dest.leading
 				);
 			} else {
-				blas.xgecopy( 't', dest.rows, dest.columns,
+				blas.xgecopy!'t'( dest.rows, dest.columns,
 					source.cdata, source.leading,
 					dest.data,    dest.leading
 				);
@@ -366,13 +357,13 @@ void generalMatrixScaledAddition( Transpose tr, S, D, E )( T alpha, auto ref S s
 	alias transposeStorageOrder!(storageOrderOf!S, tr) srcOrder;
 	alias storageOrderOf!D dstOrder;
 	
-	static if( !isComplex!T ) {
+	static if( !isComplexScalar!T ) {
 		blas.xgeaxpy( (srcOrder == dstOrder) ? 't' : 'n',
 			dest.rows, dest.columns, alpha,
 			source.cdata, source.leading,
 			dest.data, dest.leading
 		);
-	} else static if( isComplex!T ) {
+	} else static if( isComplexScalar!T ) {
 		static if( srcOrder == dstOrder ) {
 			static if( tr ) {
 				blas.xgeaxpyc( 'n', dest.rows, dest.columns, alpha,

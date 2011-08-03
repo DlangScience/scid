@@ -149,7 +149,7 @@ struct BasicDiagonalMatrixStorage( ContainerRef_, DiagonalMatrixStorageType type
 		auto end   = min( rows_, cols_ );
 		foreach( i ; start .. end ) {
 			auto e = src.index( i, i );
-			static if( isComplex!ElementType && tr )
+			static if( isComplexScalar!ElementType && tr )
 				e = gconj( e );
 			containerRef_.indexAssign( e, i );
 		}
@@ -162,7 +162,7 @@ struct BasicDiagonalMatrixStorage( ContainerRef_, DiagonalMatrixStorageType type
 		auto end   = min( rows_, cols_ );
 		foreach( i ; start .. end ) {
 			auto e = containerRef_.index( i );
-			static if( isComplex!ElementType && tr )
+			static if( isComplexScalar!ElementType && tr )
 				e = gconj( e );
 			dest.indexAssign( e, i,i );
 		}
@@ -178,7 +178,7 @@ struct BasicDiagonalMatrixStorage( ContainerRef_, DiagonalMatrixStorageType type
 		auto end   = min( rows_, cols_ );
 		foreach( i ; start .. end ) {
 			auto e = source.index( i, i );
-			static if( isComplex!ElementType && tr )
+			static if( isComplexScalar!ElementType && tr )
 				e = gconj( e );
 			containerRef_.indexAssign!"+"( e * alpha, i );
 		}
@@ -191,7 +191,7 @@ struct BasicDiagonalMatrixStorage( ContainerRef_, DiagonalMatrixStorageType type
 		auto end   = min( rows_, cols_ );
 		foreach( i ; start .. end ) {
 			auto e = containerRef_.index( i );
-			static if( isComplex!ElementType && tr )
+			static if( isComplexScalar!ElementType && tr )
 				e = gconj( e );
 			dest.indexAssign!"+"( e * alpha, i,i );
 		}
@@ -398,7 +398,7 @@ private:
 		
 	ElementType nonZero_( Transpose tr = Transpose.no )() const {
 		auto r = containerRef_.index( realIndex_ );
-		static if( isComplex!ElementType && tr )
+		static if( isComplexScalar!ElementType && tr )
 			return gconj( r );
 		else
 			return r;
@@ -408,7 +408,7 @@ private:
 		if( !hasNonZero_() )
 			return;
 		
-		static if( isComplex!ElementType && tr )
+		static if( isComplexScalar!ElementType && tr )
 			what = gconj( what );
 		containerRef_.indexAssign!"+"( alpha * what, realIndex_ );	
 	}
@@ -417,7 +417,7 @@ private:
 		if( !hasNonZero_() )
 			return;
 		
-		static if( isComplex!ElementType && tr )
+		static if( isComplexScalar!ElementType && tr )
 			what = gconj( what );
 		containerRef_.indexAssign( what, realIndex_ );	
 	}

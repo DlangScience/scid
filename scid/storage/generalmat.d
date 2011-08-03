@@ -75,9 +75,9 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	void copy( Transpose tr = Transpose.no, Source )( auto ref Source source )
 			if( isGeneralMatrixStorage!Source ) {
 		enum srcOrder = transposeStorageOrder!( Source.storageOrder, tr ) ;
-		static if( (!tr || !isComplex!ElementType) && srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!ContainerRef ) ) {
+		static if( (!tr || !isComplexScalar!ElementType) && srcOrder == storageOrder && is( Source : BasicGeneralMatrixViewStorage!ContainerRef ) ) {
 			containerRef_ = ContainerRef( source.matrix.ptr, source.firstIndex, source.rows, source.columns );
-		} else static if( (!tr || !isComplex!ElementType) && srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
+		} else static if( (!tr || !isComplexScalar!ElementType) && srcOrder == storageOrder && is( Source : typeof( this ) ) ) {
 			containerRef_ = ContainerRef( source.containerRef_.ptr );
 		} else {
 			resize( source.rows, source.columns, null );
@@ -90,7 +90,7 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		move( rhs.containerRef_, containerRef_ );
+		swap( rhs.containerRef_, containerRef_ );
 		return this;
 	}
 	
@@ -154,6 +154,11 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 		size_t    major()   const { return isInitd_() ? containerRef_.major  : 0;    }
 		size_t    minor()   const { return isInitd_() ? containerRef_.minor  : 0;    }
 		size_t    leading() const { return isInitd_() ? containerRef_.leading: 0;    }
+		
+		/** Get the size of the array that data/cdata point to. */
+		size_t sizeOfData() const {
+			return this.major * this.leading;
+		}
 		
 		MajorView front() {
 			return typeof(return)( containerRef_, 0, minor );
