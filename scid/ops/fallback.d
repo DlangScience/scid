@@ -209,9 +209,13 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 				static if( tr ) evalScaledAddition!tr( alpha, source.column(i), dest.row( i ) );
 				else            evalScaledAddition( alpha, source.row(i),    dest.row( i ) );
 		} else {
-			for( auto i = 0; i < n ; ++ i )
+			for( auto i = 0; i < n ; ++ i ) {
+				import std.stdio;
+				
 				static if( tr ) evalScaledAddition!tr( alpha, source.row(i),    dest.column( i ) );
 				else            evalScaledAddition( alpha, source.column(i), dest.column( i ) );
+				
+			}
 		}
 	} else static assert( false );		
 }

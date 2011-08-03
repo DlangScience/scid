@@ -473,8 +473,8 @@ struct BasicMatrix( Storage_ ) {
 		BasicMatrix m_;
 		size_t  start_, end_;
 		
-		this( ref BasicMatrix mat, size_t start, size_t end ) {
-			m_.forceRefAssign( mat );
+		this( BasicMatrix mat, size_t start, size_t end ) {
+			m_.storage.forceRefAssign( mat.storage );
 			start_ = start; end_ = end;
 		}
 		

@@ -57,22 +57,6 @@ template ExternalVectorView( ElementOrContainer, VectorType vectorType = VectorT
 	}
 }
 
-auto vectorWithStorage( S )( auto ref S storage ) {
-	return BasicVector!S( storage );	
-}
-
-template isVector( T ) {
-	static if( is( typeof( T.init[0]          ) ) &&
-			   is( typeof( T.init[0..1]       ) ) &&
-			   is( typeof( T.init.storage     ) ) &&
-			   is( typeof( T.init.view(0,0)   ) ) &&
-			   is( typeof( T.init.view(0,0,1) ) ) &&
-			   isInputRange!T )
-		enum isVector = true;
-	else
-		enum isVector = false;
-}
-
 template signOfOp( string op, T ) {
 	static if( op == "+" )
 		enum T signOfOp = One!T;

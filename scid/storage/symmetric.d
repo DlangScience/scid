@@ -104,7 +104,7 @@ struct SymmetricArrayAdapter( ContainerRef_, MatrixTriangle tri_, StorageOrder s
 	}
 	
 	ref typeof( this ) opAssign( typeof(this) rhs ) {
-		swap( rhs.containerRef_, containerRef_ );
+		containerRef_ = rhs.containerRef_;
 		size_  = rhs.size_;
 		return this;
 	}

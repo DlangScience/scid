@@ -86,7 +86,7 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	}
 	
 	void forceRefAssign( ref typeof( this ) rhs ) {
-		containerRef_ = rhs.matrix;
+		containerRef_ = rhs.containerRef_;
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
@@ -146,7 +146,6 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	void popBack()  { containerRef_.popBack(); }
 	
 	@property {
-		ContainerRef matrix()     { return containerRef_; }
 		bool      empty()   const { return isInitd_() ? containerRef_.empty  : true; }
 		size_t    length()  const { return isInitd_() ? containerRef_.major  : 0;    }
 		size_t    rows()    const { return isInitd_() ? containerRef_.rows   : 0;    }

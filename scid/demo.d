@@ -1,7 +1,5 @@
 module scid.demo;
 
-// version = demo;
-
 version( demo ) {
 	import scid.matvec;
 	import std.stdio, std.conv;	
@@ -220,9 +218,9 @@ version( demo ) {
 		testMat( d, 2, 2, [85,52,80] );
 		enforce( d[1][0] == 52 );
 		
-		//auto e = eval( d - b[0..2][1..3]*10 );
-		//static assert( is( typeof(e) : dGeMat ) );
-		//testMat( e, 2, 2, [ 55, 12, 2, 20 ] );
+		auto e = eval( d - b[0..2][1..3]*10 );
+		static assert( is( typeof(e) : dGeMat ) );
+		testMat( e, 2, 2, [ 55, 12, 2, 20 ] );
 	}
 	
 	void dMatInvTest()() {
@@ -263,13 +261,17 @@ version( demo ) {
 		testMat( s, 2, 2, [ 83.760 +  0.000i,  
 		                   -29.360 +  7.040i,
 		                    59.280 +  0.000i ]);
-		enforce( abs(s[1][0] + 29.360 + 7.040i) <= 1e-3 );
+		
+		
+		enforce( abs(s[1][0] - (-29.360 - 7.040i)) <= 1e-3 );
 		
 		auto d = eval( s - zSyMat([80.+0.i,-28,59]) );
 		static assert( is( typeof(d) : zSyMat ) );
 		
 		testMat( d, 2, 2, [ 3.76 + 0.0i, -1.36 + 7.04i, 0.28 + 0.0i ] );
-		enforce( abs(d[1][0] + 1.36 + 7.04i) <= 1e-3 );
+		
+		
+		enforce( abs(d[1][0] - (-1.36 - 7.04i)) <= 1e-3 );
 		
 		
 		auto e = eval( d + b[0..2][1..3]*(10.+0.i) );
@@ -329,18 +331,19 @@ version( demo ) {
 		auto vec = Vector!double([ 1., 2. ] );
 		
 		// Evaluate the expression and save the result into array.
-		auto v = eval(vec+mat.column(0), array[ 0 .. 2 ]);
+		auto v = eval(mat*vec, array[ 0 .. 2 ]);
 		
 		// The array is now equal to the result of the operation.
-		assert( array[ 0 .. 2 ] == [ 2., 5. ] );
+		enforce( array[ 0 .. 2 ] == [ 5., 11. ] );
 		
 		// As an added bonus, eval() returns an external view to the array.
 		static assert( is( typeof( v ) : ExternalVectorView!double ) );
 		v[] *= 2.0;
-		assert( array[ 0 .. 2 ] == [ 4., 10. ] );
+		enforce( array[ 0 .. 2 ] == [ 10., 22. ] );
 	}
 	
 	void main() {
 		externalViews();
 	}
 }
+

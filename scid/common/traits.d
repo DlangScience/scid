@@ -18,7 +18,7 @@ import std.conv;
 
 template isMatrix( T ) {
 	static if( is( typeof( T.init[0,0]           ) ) &&
-			   is( typeof( T.init[0..1][0..1]    ) ) &&
+			   //is( typeof( T.init[0..1][0..1]    ) ) &&
 			   is( typeof( T.init.storage        ) ) &&
 			   is( typeof( T.init.view(0,0,0,0)  ) ) &&
 			   is( typeof( T.init.slice(0,0,0,0) ) ) &&
@@ -38,14 +38,11 @@ template isVector( T ) {
 			   is( typeof( T.init.storage    ) ) &&
 			   is( typeof( T.init.view(0,0)  ) ) &&
 			   is( typeof( T.init.slice(0,0) ) ) &&
-			   is( typeof( T.init.row(0)     ) ) &&
-			   is( typeof( T.init.column(0)  ) ) &&
-			   is( T.Transposed ) &&
 			   is( T.ElementType ) &&
 			   is( T.Storage ) )
-		enum isMatrix = true;
+		enum isVector = true;
 	else	   
-		enum isMatrix = false;
+		enum isVector = false;
 }
 
 /** Gets the Transposed type of a given Matrix/Vector storage. If the given type is ref-counted then the result will
