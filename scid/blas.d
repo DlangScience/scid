@@ -24,13 +24,16 @@ version( nodeps ) {
 	private alias scid.bindings.blas.dblas blas_;
 }
 
+// This is just to save typing since conversions from size_t to int for BLAS are all over the place.
+int toi(size_t x) { return to!int(x); }
+
 struct blas {
-	static void swap( T )( int n, T* x, int incx, T* y, int incy ) {
+	static void swap( T )( size_t n, T* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls )
 			writef( "swap( %s, %s ) ", stridedToString( x, n, incx ), stridedToString( y, n, incy ) );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.swap( n, x, incx, y, incy );
+			blas_.swap( toi(n), x, toi(incx), y, toi(incy) );
 		else
 			naive_.swap( n, x, incx, y, incy );
 		
@@ -38,12 +41,12 @@ struct blas {
 			writefln( "=> ( %s, %s )", stridedToString( x, n, incx ), stridedToString( y, n, incy ) );
 	}
 	
-	static void scal( T )( int n, T alpha, T* x, int incx ) {
+	static void scal( T )( size_t n, T alpha, T* x, size_t incx ) {
 		debug( blasCalls )
 			write( "scal( ", alpha, ", ", stridedToString(x, n, incx), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.scal( n, alpha, x, incx );
+			blas_.scal( toi(n), alpha, x, toi(incx) );
 		else
 			naive_.scal( n, alpha, x, incx );
 		
@@ -51,12 +54,12 @@ struct blas {
 			writeln( stridedToString(x, n, incx) );
 	}
 	
-	static void copy( T )( uint n, const(T)* x, int incx, T* y, int incy ) {
+	static void copy( T )( size_t n, const(T)* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls )
 			write( "copy( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.copy( n, x, incx, y, incy );
+			blas_.copy( toi(n), x, toi(incx), y, toi(incy) );
 		else
 			naive_.copy( n, x, incx, y, incy );
 		
@@ -64,12 +67,12 @@ struct blas {
 			writeln( stridedToString(y, n, incy) );
 	}
 	
-	static void axpy( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) {
+	static void axpy( T )( size_t n, T alpha, const(T)* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls )
 			write( "axpy( ", alpha, ", ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.axpy( n, alpha, x, incx, y, incy );
+			blas_.axpy( toi(n), alpha, x, toi(incx), y, toi(incy) );
 		else
 			naive_.axpy( n, alpha, x, incx, y, incy );
 		
@@ -77,12 +80,12 @@ struct blas {
 			writeln( stridedToString(y, n, incy) );
 	}
 	
-	static T dot( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( !isComplexScalar!T ) {
+	static T dot( T )( size_t n, const(T)* x, size_t incx, const(T)* y, size_t incy ) if( !isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dot( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			auto r = blas_.dot( n, x, incx, y, incy );
+			auto r = blas_.dot( toi(n), x, toi(incx), y, toi(incy) );
 		else
 			auto r = naive_.dot( n, x, incx, y, incy );
 		
@@ -92,12 +95,12 @@ struct blas {
 		return r;
 	}
 	
-	static T dotu( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
+	static T dotu( T )( size_t n, const(T)* x, size_t incx, const(T)* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dotu( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			auto r = blas_.dotu( n, x, incx, y, incy );
+			auto r = blas_.dotu( toi(n), x, toi(incx), y, toi(incy) );
 		else
 			auto r = naive_.dot!true( n, x, incx, y, incy );
 		
@@ -107,12 +110,12 @@ struct blas {
 		return r;
 	}
 	
-	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
+	static T dotc( T )( size_t n, const(T)* x, size_t incx, const(T)* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "dotc( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			auto r = blas_.dotc( n, x, incx, y, incy );
+			auto r = blas_.dotc( toi(n), x, toi(incx), y, toi(incy) );
 		else
 			auto r = naive_.dotc( n, x, incx, y, incy );
 		
@@ -122,12 +125,12 @@ struct blas {
 		return r;
 	}
 	
-	static T nrm2( T )( int n, const(T)* x, int incx ) {
+	static T nrm2( T )( size_t n, const(T)* x, size_t incx ) {
 		debug( blasCalls )
 			write( "nrm2( ", stridedToString(x, n, incx), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			auto r = blas_.nrm2( n, x, incx );
+			auto r = blas_.nrm2( toi(n), x, toi(incx) );
 		else
 			auto r = naive_.nrm2( n, x, incx );
 		
@@ -135,12 +138,12 @@ struct blas {
 			writeln( r );
 	}
 	
-	static void gemv( char trans, T )( int m, int n, T alpha, const(T)* a, int lda, const(T)* x, int incx, T beta, T *y, int incy ) {
+	static void gemv( char trans, T )( size_t m, size_t n, T alpha, const(T)* a, size_t lda, const(T)* x, size_t incx, T beta, T *y, size_t incy ) {
 		debug( blasCalls )
 			writef( "gemv( %s, %s ) ", matrixToString(trans,m,n,a, lda), stridedToString( x, n, incx ) );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.gemv( trans, m, n, alpha, a, lda, x, incx, beta, y, incy );
+			blas_.gemv( trans, toi(m), toi(n), alpha, a, toi(lda), x, toi(incx), beta, y, toi(incy) );
 		else
 			naive_.gemv!trans( m, n, alpha, a, lda, x, incx, beta, y, incy );
 		
@@ -148,12 +151,12 @@ struct blas {
 			writeln("=> ", stridedToString( x, n, incx ) );
 	}
 	
-	static void trmv( char uplo, char trans, char diag, T )( int n, const(T)* a, int lda, T* x, int incx ) {
+	static void trmv( char uplo, char trans, char diag, T )( size_t n, const(T)* a, size_t lda, T* x, size_t incx ) {
 		debug( blasCalls )
 			writef( "trmv( %s, %s, %s, %s ) ", uplo, diag, matrixToString(trans,n,n,a, lda), stridedToString( x, n, incx ) );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.trmv( uplo, trans, diag, n, a, lda, x, incx );
+			blas_.trmv( uplo, trans, diag, toi(n), a, toi(lda), x, toi(incx) );
 		else
 			naive_.trmv!( uplo, trans, diag )( n, a, lda, x, incx );
 		
@@ -161,12 +164,12 @@ struct blas {
 			writeln( "=> ", stridedToString( x, n, incx ) );
 	}
 	
-	static void sbmv( char uplo, T )( int n, int k, T alpha, const(T)* a, int lda, const(T)* x, int incx, T beta, T *y, int incy ) {
+	static void sbmv( char uplo, T )( size_t n, size_t k, T alpha, const(T)* a, size_t lda, const(T)* x, size_t incx, T beta, T *y, size_t incy ) {
 		debug( blasCalls )
 			write( "sbmv( ", uplo, ", ", n, ", ", k, ", ", alpha, ", ", stridedToString(a,n,1), ", ", stridedToString(x,n,incx), ", ", stridedToString(y,n,incy), " ) => " );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.sbmv( uplo, n, k, alpha, a, lda, x, incx, beta, y, incy );
+			blas_.sbmv( uplo, toi(n), toi(k), alpha, a, toi(lda), x, toi(incx), beta, y, toi(incy) );
 		else
 			static assert( false );
 			
@@ -174,14 +177,14 @@ struct blas {
 			writeln( stridedToString(y,n,incy) );
 	}
 	
-	static void gemm( char transa, char transb, T )( int m, int n, int k, T alpha, const(T)* a, int lda, const(T) *b, int ldb, T beta, T *c, int ldc ) {
+	static void gemm( char transa, char transb, T )( size_t m, size_t n, size_t k, T alpha, const(T)* a, size_t lda, const(T) *b, size_t ldb, T beta, T *c, size_t ldc ) {
 		debug( blasCalls )
 			writef( "gemm( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s ) =>",
 				  transa, transb, m, n, k, alpha, matrixToString( transa, m, k, a, lda ),
 				  matrixToString( transb, k, n, b, ldb ), beta, matrixToString( 'N', m, n, c, ldc ) );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.gemm( transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc );
+			blas_.gemm( transa, transb, toi(m), toi(n), toi(k), alpha, a, toi(lda), b, toi(ldb), beta, c, toi(ldc) );
 		else
 			static assert( false, "There is no naive implementation of gemm available." );
 		
@@ -191,12 +194,12 @@ struct blas {
 	
 	// Level 3
 	
-	static void trsm( char side, char uplo, char transa, char diag, T )( int m, int n, T alpha, const(T)* a, int lda, T* b, int ldb ) {
+	static void trsm( char side, char uplo, char transa, char diag, T )( size_t m, size_t n, T alpha, const(T)* a, size_t lda, T* b, size_t ldb ) {
 		debug( blasCalls )
 			writef( "trsm( %s, %s, %s, %s, %s ) ", side, uplo, diag, matrixToString(transa, m, n, a, lda), matrixToString( 'n', m, n, b, ldb ) );
 		
 		static if( isFortranType!T && !forceNaive )
-			blas_.trsm( side, uplo, transa, diag, m, n, alpha, a, lda, b, ldb );
+			blas_.trsm( side, uplo, transa, diag, toi(m), toi(n), alpha, a, toi(lda), b, toi(ldb) );
 		else
 			naive_.trsm!( side, uplo, transa, diag )( m, n, alpha, a, lda, b, ldb );
 			//static assert( false, "There is no naive implementation of trsm available." );
@@ -213,7 +216,7 @@ struct blas {
 	}
 	
 	// x := x.H
-	static void xcopyc( T )( int n, T* x, int incx ) if( isComplexScalar!T ) {
+	static void xcopyc( T )( size_t n, T* x, size_t incx ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xcopyc( ", stridedToString(x, n, incx), " ) => " );
 		
@@ -224,7 +227,7 @@ struct blas {
 	}
 	
 	// y := x.H
-	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
+	static void xcopyc( T )( size_t n, const(T)* x, size_t incx, T* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xcopyc( ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -235,7 +238,7 @@ struct blas {
 	}
 	
 	// y := alpha*x.H + y
-	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
+	static void xaxpyc( T )( size_t n, T alpha, const(T)* x, size_t incx, T* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls )
 			write( "xaxpyc( ", alpha, ", ", stridedToString(x, n, incx), ", ", stridedToString(y, n, incy), " ) => " );
 		
@@ -249,7 +252,7 @@ struct blas {
 	// B := A    or
 	// B := A.T  or
 	// B := A.H, for A and B mxn matrices
-	static void xgecopy( char transA, T )( int m, int n, const(T)* a, int lda, T* b, int ldb ) {
+	static void xgecopy( char transA, T )( size_t m, size_t n, const(T)* a, size_t lda, T* b, size_t ldb ) {
 		debug( blasCalls ) {
 			writeln();
 			writeln( "xgecopy( ", matrixToString(transA,m,n,a,lda), ", ", matrixToString('N',m,n,a,ldb), " ) => ..." );
@@ -267,7 +270,7 @@ struct blas {
 	// General matrix copy
 	// B := conj(A)   or
 	// B := conj(A.T), for A and B mxn matrices
-	static void xgecopyc( T, char transA )( int m, int n, const(T)* a, int lda, T* b, int ldb ) {
+	static void xgecopyc( T, char transA )( size_t m, size_t n, const(T)* a, size_t lda, T* b, size_t ldb ) {
 		debug( blasCalls ) {
 			writeln();
 			writeln( "xgecopyc( ", matrixToString(transA,m,n,a,lda), ", ", matrixToString('N',m,n,a,ldb), " ) => ..." );
@@ -289,7 +292,7 @@ private struct naive_ {
 			write( "<n> " );
 	}
 	
-	private static bool checkMatrix( T )( char trans, int m, int n, const T* a, int lda ) {
+	private static bool checkMatrix( T )( char trans, size_t m, size_t n, const T* a, size_t lda ) {
 		if( trans == 'T' || trans == 'C' )
 			std.algorithm.swap( m, n );
 		assert(trans == 'T' || (trans == 'C' && isComplexScalar!(Unqual!T))  || trans == 'N',
@@ -299,14 +302,14 @@ private struct naive_ {
 		return true;
 	}
 	
-	private static bool checkVector( T )( T* x, int incx ) {
+	private static bool checkVector( T )( T* x, size_t incx ) {
 		assert( incx != 0 );
 		assert( x != null );
 		return true;
 	}
 	
 	// LEVEL 1
-	static void swap( T )( int n, T* x, int incx, T* y, int incy ) {
+	static void swap( T )( size_t n, T* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n )
@@ -333,7 +336,7 @@ private struct naive_ {
 		}
 	}
 	
-	static void scal( T )( int n, T alpha, T* x, int incx ) {
+	static void scal( T )( size_t n, T alpha, T* x, size_t incx ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n || alpha == One!T )
@@ -362,7 +365,7 @@ private struct naive_ {
 		}
 	}
 	
-	static void copy( T )( int n, const(T)* x, int incx, T* y, int incy ) {
+	static void copy( T )( size_t n, const(T)* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n )
@@ -383,7 +386,7 @@ private struct naive_ {
 		}
 	}
 	
-	static void axpy( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) {
+	static void axpy( T )( size_t n, T alpha, const(T)* x, size_t incx, T* y, size_t incy ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( alpha == Zero!T || !n )
@@ -406,7 +409,7 @@ private struct naive_ {
 		}
 	}
 	
-	static T dot( bool forceComplex = false, T )( int n, const(T)* x, int incx, const(T)* y, int incy )
+	static T dot( bool forceComplex = false, T )( size_t n, const(T)* x, size_t incx, const(T)* y, size_t incy )
 				if( !isComplexScalar!T || forceComplex ) {
 		debug( blasCalls ) reportNaive_();
 				
@@ -440,7 +443,7 @@ private struct naive_ {
 		alias dot!(true,T) dotu;
 	}
 	
-	static T dotc( T )( int n, const(T)* x, int incx, const(T)* y, int incy ) if( isComplexScalar!T ) {
+	static T dotc( T )( size_t n, const(T)* x, size_t incx, const(T)* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		assert( checkVector( y, incy )	);
@@ -471,7 +474,7 @@ private struct naive_ {
 		return r;
 	}
 	
-	static T nrm2( T )( int n, const(T)* x, int incx ) {
+	static T nrm2( T )( size_t n, const(T)* x, size_t incx ) {
 		debug( blasCalls ) reportNaive_();
 		
 		assert( checkVector( x, incx )	);
@@ -499,7 +502,7 @@ private struct naive_ {
 	}
 	
 	// LEVEL 2
-	static void gemv( char trans_, T )( int leny, int lenx, T alpha, const(T)* a, int lda, const(T)* x, int incx, T beta, T *y, int incy ) {
+	static void gemv( char trans_, T )( size_t leny, size_t lenx, T alpha, const(T)* a, size_t lda, const(T)* x, size_t incx, T beta, T *y, size_t incy ) {
 		enum trans = cast(char)toUpper( trans_ );
 		
 		debug( blasCalls ) reportNaive_();
@@ -538,7 +541,7 @@ private struct naive_ {
 		}
 	}
 	
-	static void trmv( char uplo_, char trans_, char diag_, T)( int n, const(T)* a, int lda, T* x, int incx ) {
+	static void trmv( char uplo_, char trans_, char diag_, T)( size_t n, const(T)* a, size_t lda, T* x, size_t incx ) {
 		enum uplo = cast(char)toUpper( uplo_ );
 		enum trans = cast(char)toUpper( trans_ );
 		enum diag = cast(char)toUpper( diag_ );
@@ -581,11 +584,11 @@ private struct naive_ {
 			 }
 		} else {
 			// Lower No-Transpose or Upper Transposed
-			for( int j = n - 1; j >= 0 ; -- j ) {
+			for( int j = toi(n) - 1; j >= 0 ; -- j ) {
 				T xj = x[ j * incx ];
 				static if( trans == 'N' ) {
 					if( xj != Zero!T ) {
-						for( int i = n - 1 ; i > j ; -- i )
+						for( int i = toi(n) - 1 ; i > j ; -- i )
 							x[ i * incx ] += xj * a[ j * lda + i ];
 						
 						static if( diag == 'N' )
@@ -606,7 +609,7 @@ private struct naive_ {
 	
 	// Level 3
 	
-	static void trsm( char side_, char uplo_, char trans_, char diag_,T )( int m, int n, T alpha, const(T)* a, int lda, T* b, int ldb ) {
+	static void trsm( char side_, char uplo_, char trans_, char diag_,T )( size_t m, size_t n, T alpha, const(T)* a, size_t lda, T* b, size_t ldb ) {
 		enum side = cast(char)toUpper(side_);
 		enum uplo = cast(char)toUpper(uplo_);
 		enum trans = cast(char)toUpper(trans_);
@@ -650,7 +653,7 @@ private struct naive_ {
 	}
 	
 	// y := x.H
-	static void xcopyc( T )( int n, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
+	static void xcopyc( T )( size_t n, const(T)* x, size_t incx, T* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n )
@@ -675,7 +678,7 @@ private struct naive_ {
 	}
 	
 	// y := alpha*x.H + y
-	static void xaxpyc( T )( int n, T alpha, const(T)* x, int incx, T* y, int incy ) if( isComplexScalar!T ) {
+	static void xaxpyc( T )( size_t n, T alpha, const(T)* x, size_t incx, T* y, size_t incy ) if( isComplexScalar!T ) {
 		debug( blasCalls ) reportNaive_();
 		
 		if( !n || alpha == Zero!T )
@@ -706,7 +709,7 @@ private struct naive_ {
 	// B := A    or
 	// B := A.T  or
 	// B := A.H    , for A and B mxn matrices
-	static void xgecopy( char transA_, bool forceConjugate=false, T )( int m, int n, const(T)* a, int lda, T* b, int ldb ) if( isComplexScalar!T || !forceConjugate ) {
+	static void xgecopy( char transA_, bool forceConjugate=false, T )( size_t m, size_t n, const(T)* a, size_t lda, T* b, size_t ldb ) if( isComplexScalar!T || !forceConjugate ) {
 		//debug( blasCalls ) reportNaive_();
 		
 		enum transA = cast(char)toUpper( transA_ );
@@ -744,7 +747,7 @@ private struct naive_ {
 			n *= ldb;
 			auto be = b + n;
 			while( b != be ) {
-				blas.copy( m, a, lda, b, 1 );
+				blas.copy( toi(m), a, toi(lda), b, 1 );
 				++ a; b += ldb;
 			}
 		} else {
@@ -767,7 +770,7 @@ private struct naive_ {
 	// B := alpha*A   + B  or
 	// B := alpha*A.T + B  or
 	// B := alpha*A.H + B, for A and B mxn matrices
-	static void xgeaxpy( char transA_, bool forceConjugate=false,  T )( int m, int n, T alpha, const(T)* a, int lda, T* b, int ldb ) if( isComplexScalar!T || !forceConjugate ) {
+	static void xgeaxpy( char transA_, bool forceConjugate=false,  T )( size_t m, size_t n, T alpha, const(T)* a, size_t lda, T* b, size_t ldb ) if( isComplexScalar!T || !forceConjugate ) {
 		//debug( blasCalls ) reportNaive_();
 		
 		enum transA = cast(char)toUpper( transA_ );
