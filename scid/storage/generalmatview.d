@@ -67,11 +67,11 @@ struct BasicGeneralMatrixViewStorage( ContainerRef_ ) {
 	}
 	
 	ref typeof( this ) opAssign( typeof( this ) rhs ) {
-		swap( rhs.containerRef_, containerRef_ );
-		firstIndex_ = rhs.firstIndex_;
-		rows_       = rhs.rows_;
-		cols_       = rhs.cols_;
-		leading_    = rhs.leading_;
+		containerRef_  = rhs.containerRef_;
+		firstIndex_    = rhs.firstIndex_;
+		rows_          = rhs.rows_;
+		cols_          = rhs.cols_;
+		leading_       = rhs.leading_;
 		return this;
 	}
 	

@@ -342,8 +342,18 @@ version( demo ) {
 		enforce( array[ 0 .. 2 ] == [ 10., 22. ] );
 	}
 	
+	
+	
 	void main() {
-		externalViews();
+		Vector!double v;
+		foo( v );
+		writeln( v[ 0 ] );
+		readln();
+	}
+	
+	void foo( V )( ref V vec ) {
+		vec = V( 5, null );
+		writeln( vec.length );
+		vec[ 0 ] = 6;
 	}
 }
-

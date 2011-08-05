@@ -9,7 +9,7 @@
   <oneobj>0</oneobj>
   <trace>0</trace>
   <quiet>0</quiet>
-  <verbose>1</verbose>
+  <verbose>0</verbose>
   <vtls>0</vtls>
   <symdebug>2</symdebug>
   <optimize>0</optimize>
@@ -225,6 +225,7 @@
    <File path="storage\triangular.d" />
    <File path="storage\external.d" />
    <File path="storage\diagonalmat.d" />
+   <File path="storage\triangularview.d" />
   </Folder>
   <File path="exception.d" />
   <File path="types.d" />

@@ -77,7 +77,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	    This ensures copy semantics on assignment.
 	*/
 	this( this ) {
-		if( containerRef_.RefCounted.isInitialized() )
+		if( isInitd_() )
 			containerRef_ = ContainerRef( containerRef_.ptr );
 	}
 	
@@ -89,7 +89,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 		
 	/** Implements copy on assignment semnatics. */
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		swap( rhs.containerRef_, containerRef_ );
+		move( rhs.containerRef_, containerRef_ );
 		return this;
 	}
 	
@@ -251,7 +251,7 @@ private:
 	
 	// Constructor for slice()
 	this()( ContainerRef containerRef ) {
-		swap( containerRef, containerRef_ );	
+		move( containerRef, containerRef_ );	
 	}
 	
 	// The wrapped reference.

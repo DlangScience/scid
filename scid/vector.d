@@ -119,7 +119,7 @@ struct BasicVector( Storage_ ) {
 	}
 	
 	ref typeof(this) opAssign( typeof(this) rhs ) {
-		rhs.storage = storage;
+		move( rhs.storage, storage );
 		return this;
 	}
 	

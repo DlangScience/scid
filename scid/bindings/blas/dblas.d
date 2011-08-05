@@ -421,17 +421,17 @@ void tpmv(char uplo, char trans, char diag, f_int n, f_cdouble *ap, f_cdouble *x
     OR  x := A.inv.T * x
     OR  x := A.inv.H * x
  */
-void trsv(char uplo, char trans, char diag, f_int n, f_float *A, f_int lda, f_float *x, f_int incx) {
-    strsv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trsv(char uplo, char trans, char diag, f_int n, const f_float *A, f_int lda, f_float *x, f_int incx) {
+    strsv_(&uplo, &trans, &diag, &n, cast(f_float*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trsv(char uplo, char trans, char diag, f_int n, f_double *A, f_int lda, f_double *x, f_int incx) {
-    dtrsv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trsv(char uplo, char trans, char diag, f_int n, const f_double *A, f_int lda, f_double *x, f_int incx) {
+    dtrsv_(&uplo, &trans, &diag, &n, cast(f_double*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trsv(char uplo, char trans, char diag, f_int n, f_cfloat *A, f_int lda, f_cfloat *x, f_int incx) {
-    ctrsv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trsv(char uplo, char trans, char diag, f_int n, const f_cfloat *A, f_int lda, f_cfloat *x, f_int incx) {
+    ctrsv_(&uplo, &trans, &diag, &n, cast(f_cfloat*)A, &lda, x, &incx, 1, 1, 1);
 }
-void trsv(char uplo, char trans, char diag, f_int n, f_cdouble *A, f_int lda, f_cdouble *x, f_int incx) {
-    ztrsv_(&uplo, &trans, &diag, &n, A, &lda, x, &incx, 1, 1, 1);
+void trsv(char uplo, char trans, char diag, f_int n, const f_cdouble *A, f_int lda, f_cdouble *x, f_int incx) {
+    ztrsv_(&uplo, &trans, &diag, &n, cast(f_cdouble*)A, &lda, x, &incx, 1, 1, 1);
 }
 
 /** solving triangular banded matrix problems
