@@ -437,7 +437,7 @@ public:
     /**
     Obtains a copy of the last created $(D RegionAllocator) instance.
     */
-    RegionAllocator lastCreatedInstance() @property {
+    static RegionAllocator lastCreatedInstance() @property {
         auto stateRef = getState();
         if(stateRef.regionIndex == size_t.max) {
             regionInit();
