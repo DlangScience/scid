@@ -15,7 +15,7 @@ import scid.ops.eval;
 import std.string, std.algorithm;
 import scid.internal.regionallocator;
 
-//debug = fallbackCalls;
+// debug = fallbackCalls;
 
 debug( fallbackCalls ) {
 	import std.stdio : write, writeln, stdout;
@@ -186,7 +186,7 @@ void fallbackScaledAddition( Transpose srcTrans, Scalar, Source, Dest )
 			auto dummy = dest.data;
 			write( "fbaxpy",(tr?".t":""), "( ",  alphaValue, ", ", source.toString(), ", ", dest.toString(), " ) => " );
 		}
-		assert( source.length == dest.length, "Length mismatch in fallback vector addition." );
+		assert( source.length == dest.length, format("Length mismatch in fallback vector addition: %d vs. %d", source.length, dest.length ) );
 		auto n = dest.length;
 		for( size_t i = 0 ; i < n ; ++ i ) {
 			static if( tr && isComplexScalar!(BaseElementType!Source) ) {
@@ -233,6 +233,68 @@ void fallbackSolve( Transpose transM, Side side, M, Dest )( auto ref M mat, auto
 		dest[] = eval( matInverse * dest, alloc );
 	else
 		dest[] = eval( dest * matInverse, alloc );
+}
+
+/** Add a single value to all the elements of dest. */
+void fallbackScalarAddition( Value, Beta, Dest )( Value value_, Beta beta_, auto ref Dest dest ) {
+	alias BaseElemntType!Dest T;
+	static assert( isConvertible!( Value, T ) );
+	static assert( isConvertible!( Beta, T ) );
+	
+	T value = to!T( value_ );
+	T beta  = to!T( beta_ ) ;
+	
+	if( !value_ ) {
+		evalScaling( beta, dest );
+		return;
+	}
+	
+	static if( isVectorClosure!(cloureOf!Dest) ) {
+		if( beta_ ) {
+			T temp;
+			foreach( i ; 0 .. dest.length ) {
+				temp = dest[ i ]; temp *= beta; temp += value;
+				dest[ i ] = temp;
+			}
+		} else {
+			foreach( i ; 0 .. dest.length )
+				dest[ i ] = value;
+		}
+	} else static if( closureOf!Dest == Closure.Matrix ) {
+		enum order = storageOrderOf!Dest;
+		if( beta_ ) {
+			T temp;
+			static if( order == StorageOrder.RowMajor ) {
+				foreach( i ; 0 .. dest.rows ) {
+					foreach( j ; 0 .. dest.columns ) {
+						temp = dest[ i, j ]; temp *= beta; temp += value;
+						dest[ i, j ] = temp;
+					}
+				}
+			} else {
+				foreach( j ; 0 .. dest.columns ) {
+					foreach( i ; 0 .. dest.rows ) {
+						temp = dest[ i, j ]; temp *= beta; temp += value;
+						dest[ i, j ] = temp;
+					}
+				}
+			}
+		} else {
+			static if( order == StorageOrder.RowMajor ) {
+				foreach( i ; 0 .. dest.rows ) {
+					foreach( j ; 0 .. dest.columns ) {
+						dest[ i, j ] = value;
+					}
+				}
+			} else {
+				foreach( j ; 0 .. dest.columns ) {
+					foreach( i ; 0 .. dest.rows ) {
+						dest[ i, j ] = value;
+					}
+				}
+			}
+		}	
+	}
 }
 
 /** Matrix inversion. */

@@ -9,6 +9,7 @@ import scid.storage.symmetric;
 import scid.storage.diagonalmat;
 import scid.storage.cowmatrix;
 import scid.storage.external;
+import scid.storage.constant;
 import scid.common.traits;
 
 import std.algorithm, std.range, std.conv;
@@ -167,9 +168,9 @@ struct BasicMatrix( Storage_ ) {
 	      - Promotes scalars to matrices of the promotion of the storage and the scalar type.
 	*/
 	template Promote( T ) {
-		static if( isScalar!T )	
+		static if( isScalar!T ) {
 			alias BasicMatrix!( Promotion!(Storage,T) ) Promote;
-		else static if( isMatrix!T ) {
+		} else static if( isMatrix!T ) {
 			alias BasicMatrix!( Promotion!(Storage,T.Storage) ) Promote;
 		}
 	}
@@ -244,9 +245,9 @@ struct BasicMatrix( Storage_ ) {
 	    Otherwise forward to storage.column(i)[ start .. end ].
 	*/
 	auto columnSlice( size_t i, size_t start, size_t end ) {
-		static if( is(typeof(storage.columnSlice( i, start, end ))) )
+		static if( is(typeof(storage.columnSlice( i, start, end ))) ) {
 			return storage.columnSlice( i, start, end );
-		else
+		} else
 			return storage.column(i)[ start .. end ];
 	}
 	
@@ -269,8 +270,33 @@ struct BasicMatrix( Storage_ ) {
 	void opSliceAssign(Rhs)( auto ref Rhs rhs ) {
 		static if( is( Rhs E : E[][] ) && isConvertible!(E, ElementType) )
 			evalCopy( BasicMatrix( rhs ), this );
-		else
+		else static if( closureOf!Rhs == Closure.Scalar )
+			evalCopy( relatedConstant( rhs, this ), this );
+		else 
 			evalCopy( rhs, this );	
+	}
+	
+	/// ditto
+	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" || op == "*" || op == "/" ) {
+		enum scalarRhs = closureOf!Rhs == Closure.Scalar;
+	
+		static if( op == "+" ) {
+			static if( scalarRhs ) evalScaledAddition( One!ElementType, relatedConstant(rhs, this), this );
+			else                   evalScaledAddition( One!ElementType, rhs, this );
+		} else static if( op == "-" ) {
+			static if( scalarRhs ) evalScaledAddition( One!ElementType, relatedConstant(-rhs, this), this );
+			else                   evalScaledAddition( MinusOne!ElementType, rhs, this );
+		} else static if( op == "*" ) {
+			static if( closureOf!Rhs == Closure.Matrix )
+				this[] = this * rhs;
+			else {
+				static assert( scalarRhs, "Matrix multiplication with invalid type " ~ Rhs.stringof );
+				evalScaling( rhs, this );
+			}
+		} else /* static if ( op == "/" ) */ {
+			static assert( isConvertible!(Rhs, ElementType), "Matrix division with invalid type " ~ Rhs.stringof );
+			evalScaling( One!ElementType / to!ElementType(rhs), this );
+		}
 	}
 	
 	/** Resize the matrix and leave the memory uninitialized. If not resizeable simply check that the dimensions are
@@ -294,25 +320,6 @@ struct BasicMatrix( Storage_ ) {
 		} else {
 			this.resize( newRows, newColumns, null );
 			evalScaling( Zero!ElementType, this );
-		}
-	}
-	
-	/// ditto
-	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" || op == "*" || op == "/" ) {
-		static if( op == "+" ) {
-			evalScaledAddition( One!ElementType, rhs, this );
-		} else static if( op == "-" ) {
-			evalScaledAddition( MinusOne!ElementType, rhs, this );
-		} else static if( op == "*" ) {
-			static if( closureOf!Rhs == Closure.Matrix )
-				this[] = this * rhs;
-			else {
-				static assert( isConvertible!(Rhs, ElementType), "Matrix multiplication with invalid type " ~ Rhs.stringof );
-				evalScaling( to!ElementType(rhs), this );
-			}
-		} else /* static if ( op == "/" ) */ {
-			static assert( isConvertible!(Rhs, ElementType), "Matrix division with invalid type " ~ Rhs.stringof );
-			evalScaling( One!ElementType / to!ElementType(rhs), this );
 		}
 	}
 	
@@ -473,7 +480,7 @@ struct BasicMatrix( Storage_ ) {
 		BasicMatrix m_;
 		size_t  start_, end_;
 		
-		this( BasicMatrix mat, size_t start, size_t end ) {
+		this( ref BasicMatrix mat, size_t start, size_t end ) {
 			m_.storage.forceRefAssign( mat.storage );
 			start_ = start; end_ = end;
 		}

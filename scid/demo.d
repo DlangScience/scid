@@ -8,6 +8,7 @@ version( demo ) {
 	import scid.common.traits, scid.common.meta;
 	import scid.internal.regionallocator, scid.storages;
 	import std.range, std.exception;
+	import std.string, std.math;
 	
 	void basicExpressions()() {
 		writeln();
@@ -164,15 +165,16 @@ version( demo ) {
 					lhs[0][] += lhs[][0].t;
 					lhs[][0] -= lhs[1][].t;
 					
-					lhs[1..3][1..3] *= rhs[0..2][0..2];
+					lhs[] += z;
+					lhs[] -= z;
+					lhs[] = z;
+					lhs[] = (lhs + z)*(lhs - lhs[0][]*lhs[][0]);
 					
+					lhs[1..3][1..3] *= rhs[0..2][0..2];
 				}
 			}
 		}
 	}
-	import std.string;
-	import scid.matvec;
-	import std.math;
 	
 	void testMat( M, E )( auto ref M m, size_t r, size_t c, E[] expected ) {
 		debug {
@@ -342,18 +344,6 @@ version( demo ) {
 		enforce( array[ 0 .. 2 ] == [ 10., 22. ] );
 	}
 	
-	
-	
 	void main() {
-		Vector!double v;
-		foo( v );
-		writeln( v[ 0 ] );
-		readln();
-	}
-	
-	void foo( V )( ref V vec ) {
-		vec = V( 5, null );
-		writeln( vec.length );
-		vec[ 0 ] = 6;
 	}
 }

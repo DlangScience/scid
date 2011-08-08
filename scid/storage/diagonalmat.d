@@ -171,7 +171,7 @@ struct BasicDiagonalMatrixStorage( ContainerRef_, DiagonalMatrixStorageType type
 	void scale( ElementType alpha ) {
 		if( isInitd_() )
 			blas.scal( containerRef_.length, alpha, containerRef_.data , 1 );
-	}	
+	}
 	
 	void scaledAddition( Transpose tr = Transpose.no, Source )( ElementType alpha, auto ref Source source ) {
 		auto start = max( rowStart_, colStart_ );

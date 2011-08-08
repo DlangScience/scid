@@ -11,6 +11,7 @@ import scid.vector;
 import scid.storage.cowarray;
 import scid.storage.arrayview;
 import scid.storage.external;
+import scid.storage.constant;
 
 import scid.common.storagetraits;
 import std.algorithm;
@@ -156,7 +157,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	    copy() is specialized to forward the call to the container to allow for copy-on-write implementations
 	    of the container.
 	*/
-	void copy( Transpose tr, Source )( auto ref Source rhs ) if( isStridedVectorStorage!(Source,ElementType) ) {
+	void copy( Transpose tr = Transpose.no, Source )( auto ref Source rhs ) if( isStridedVectorStorage!(Source,ElementType) ) {
 		static if( (!isComplexScalar!ElementType || !tr) && is( Source : ArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = ContainerRef( rhs.containerRef_.ptr );	
@@ -229,7 +230,7 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	
 	/** Promotions for this storage. */
 	template Promote( Other ) {
-		static if( isVectorStorage!Other || isMatrixStorage!Other ) {
+		static if( isVectorStorage!Other || isMatrixStorage!Other || is( Other : ConstantStorage!( ElementType, this.vectorType ) ) ) {
 			alias BasicArrayStorage!( Promotion!(Other.ContainerRef,ContainerRef), vectorType ) Promote;
 		} else static if( isScalar!Other ) {
 			alias BasicArrayStorage!( Promotion!(ContainerRef, Other), vectorType ) Promote;

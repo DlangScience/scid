@@ -4,6 +4,7 @@ import scid.storage.array;
 import scid.storage.arrayview;
 import scid.storage.external;
 import scid.storage.cowarray;
+import scid.storage.constant;
 import scid.common.traits;
 import scid.common.meta;
 import scid.ops.eval;
@@ -55,13 +56,6 @@ template ExternalVectorView( ElementOrContainer, VectorType vectorType = VectorT
 			)
 		) ExternalVectorView;
 	}
-}
-
-template signOfOp( string op, T ) {
-	static if( op == "+" )
-		enum T signOfOp = One!T;
-	else static if( op == "-" )
-		enum T signOfOp = MinusOne!T;
 }
 
 struct BasicVector( Storage_ ) {
@@ -168,18 +162,26 @@ struct BasicVector( Storage_ ) {
 	void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
 		static if( is( Rhs E : E[] ) && isConvertible( E, ElementType  ) )
 			evalCopy( BasicVector(rhs), this );
+		else static if( closureOf!Rhs == Closure.Scalar )
+			evalCopy( relatedConstant( rhs, this ), this );
 		else
 			evalCopy( rhs, this );
 		
 	}
 	
 	void opSliceAssign( Rhs )( Rhs rhs, size_t start, size_t end ) {
-		auto v = view( start, end );
-		v[] = rhs;
+		view( start, end )[] = rhs;
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( op == "+" || op == "-" ) {
-		evalScaledAddition( signOfOp!(op,ElementType), rhs, this );
+		enum scalarRhs = closureOf!Rhs == Closure.Scalar;
+		static if( op == "+" ) {
+			static if( scalarRhs ) evalScaledAddition( One!ElementType, relatedConstant(rhs, this), this );
+			else                   evalScaledAddition( One!ElementType, rhs, this );
+		} else static if( op == "-" ) {
+			static if( scalarRhs ) evalScaledAddition( One!ElementType, relatedConstant(-rhs, this), this );
+			else                   evalScaledAddition( MinusOne!ElementType, rhs, this );
+		}
 	}
 	
 	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs ) if( (op == "*" || op == "/") && isConvertible!(Rhs,ElementType) ) {
@@ -188,17 +190,8 @@ struct BasicVector( Storage_ ) {
 		evalScaling( to!ElementType(rhs), this );
 	}
 	
-	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if( op == "+" || op == "-" ) {
-		auto v = view( start, end );
-		evalScaledAddition( signOfOp!(op,ElementType), rhs, v );
-	}
-	
-	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) if( (op == "*" || op == "/") && isConvertible!(Rhs,ElementType) ) {
-		auto v = view( start, end );
-		auto s = to!ElementType(rhs);
-		static if( op == "/" )
-			s = One!ElementType / s;
-		evalScaling( s, v );
+	void opSliceOpAssign( string op, Rhs )( auto ref Rhs rhs, size_t start, size_t end ) {
+		mixin( "view( start, end )[] " ~ op ~ "= rhs;" );
 	}
 	
 	View view( size_t start, size_t end ) {

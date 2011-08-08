@@ -226,6 +226,7 @@
    <File path="storage\external.d" />
    <File path="storage\diagonalmat.d" />
    <File path="storage\triangularview.d" />
+   <File path="storage\constant.d" />
   </Folder>
   <File path="exception.d" />
   <File path="types.d" />

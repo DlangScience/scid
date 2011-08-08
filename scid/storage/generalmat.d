@@ -8,7 +8,9 @@ import scid.matrix;
 import scid.vector;
 import scid.ops.eval, scid.ops.common;
 import std.algorithm;
+
 import scid.storage.external;
+import scid.storage.constant;
 
 
 template GeneralMatrixStorage( ElementOrMatrix, StorageOrder order_ = StorageOrder.ColumnMajor )
@@ -172,9 +174,10 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	
 	/** Promotions for this type */
 	private import scid.storage.array;
+	private import scid.storage.constant;
 	template Promote( Other ) {
-		static if( isMatrixStorage!Other ) {
-			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef,Other.ContainerRef) ) Promote;
+		static if( isMatrixStorage!Other /*|| is( Other : ConstantStorage!( ElementType, this.storageOrder ) )*/ ) {
+			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef, Other.ContainerRef) ) Promote;
 		} else static if( isScalar!Other ) {
 			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef, Other ) ) Promote;
 		}

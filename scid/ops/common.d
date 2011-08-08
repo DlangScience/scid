@@ -129,7 +129,7 @@ mixin template GeneralMatrixScalingAndAddition() {
 		assert( info == 0, "Inversion of singular matrix." );
 	}
 	
-	void solveRight( Transpose transM, Side side, Dest )( auto ref Dest dest ) if( isStridedVectorStorage!Dest || isGeneralMatrixStorage!Dest ) {
+	void solveRight( Transpose transM = Transpose.no, Side side, Dest )( auto ref Dest dest ) if( isStridedVectorStorage!Dest || isGeneralMatrixStorage!Dest ) {
 		import scid.blas;
 		import scid.lapack;
 		

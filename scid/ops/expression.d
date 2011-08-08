@@ -208,7 +208,7 @@ template Operand( Closure closure_ ) {
 			return expression!"*"( this, expression!"/"(One!ElementType, newRhs) );
 		}
 	
-		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "*" || op == "+" ) {
+		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "*" ) {
 			return expression!op( this, newRhs );
 		}
 		
@@ -217,8 +217,21 @@ template Operand( Closure closure_ ) {
 		}
 		
 		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs ) if( op == "-" ) {
-			return expression!"+"( this, expression!"*"(newRhs, MinusOne!ElementType) );
+			return this + newRhs * MinusOne!ElementType;
 		}
+		
+		auto opBinary( string op, NewRhs )( auto ref NewRhs newRhs_ ) if( op == "+" ) {
+			static if( closureOf!NewRhs == Closure.Scalar ) {
+				import scid.storage.constant;
+				import scid.ops.eval;
+				auto newRhs = relatedConstant( eval(newRhs_), this );
+			} else
+				alias newRhs_ newRhs;
+			
+			return expression!"+"( this, newRhs );
+		}
+		
+		
 	}
 	
 	auto opUnary( string op )() if( op == "-" ) {
