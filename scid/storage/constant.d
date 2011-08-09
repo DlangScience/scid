@@ -133,11 +133,11 @@ struct ConstantStorage( T, alias OrderOrVectorType ) {
 	}
 	
 	auto row( size_t ) {
-		return Vector!(ConstantStorage!(T, VectorType.Row))( value, columns );
+		return BasicVector!(ConstantStorage!(T, VectorType.Row))( value, columns );
 	}
 	
 	auto column( size_t ) {
-		return Vector!(ConstantStorage!(T, VectorType.Column))( value, rows );
+		return BasicVector!(ConstantStorage!(T, VectorType.Column))( value, rows );
 	}
 	
 	private void commonOp_( string op, Dest )( ElementType v, auto ref Dest lhs ) {

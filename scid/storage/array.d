@@ -158,10 +158,10 @@ struct BasicArrayStorage( ContainerRef_, VectorType vectorType_ = VectorType.Col
 	    of the container.
 	*/
 	void copy( Transpose tr = Transpose.no, Source )( auto ref Source rhs ) if( isStridedVectorStorage!(Source,ElementType) ) {
-		static if( (!isComplexScalar!ElementType || !tr) && is( Source : ArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
+		static if( (!isComplexScalar!ElementType || !tr) && is( Source : BasicArrayStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = ContainerRef( rhs.containerRef_.ptr );	
-		} else static if( (!isComplexScalar!ElementType || !tr) && is( Source : ArrayViewStorage!( ContainerRef, transposeVectorType!(vectorType,tr) ) ) ) {
+		} else static if( (!isComplexScalar!ElementType || !tr) && is( Source : BasicArrayViewStorage!( ContainerRef, ArrayViewType.Interval, transposeVectorType!(vectorType,tr) ) ) ) {
 			containerRef_.RefCounted.ensureInitialized();
 			this.containerRef_ = rhs.array.slice( rhs.firstIndex, rhs.firstIndex + rhs.length );	
 		} else {
