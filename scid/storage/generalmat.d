@@ -176,10 +176,10 @@ struct BasicGeneralMatrixStorage( ContainerRef_ ) {
 	private import scid.storage.array;
 	private import scid.storage.constant;
 	template Promote( Other ) {
-		static if( isMatrixStorage!Other /*|| is( Other : ConstantStorage!( ElementType, this.storageOrder ) )*/ ) {
-			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef, Other.ContainerRef) ) Promote;
+		static if( isMatrixStorage!Other || is( Other : ConstantStorage!( ElementType, this.storageOrder ) ) ) {
+			alias BasicGeneralMatrixStorage!( Promotion!(ContainerRef, Other.ContainerRef) ) Promote;
 		} else static if( isScalar!Other ) {
-			alias BasicGeneralMatrixStorage!( Promotion!((typeof(this)).ContainerRef, Other ) ) Promote;
+			alias BasicGeneralMatrixStorage!( Promotion!(ContainerRef, Other ) ) Promote;
 		}
 	}
 	

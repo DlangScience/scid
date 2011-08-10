@@ -99,7 +99,7 @@
   <oneobj>0</oneobj>
   <trace>0</trace>
   <quiet>0</quiet>
-  <verbose>0</verbose>
+  <verbose>1</verbose>
   <vtls>0</vtls>
   <symdebug>0</symdebug>
   <optimize>1</optimize>

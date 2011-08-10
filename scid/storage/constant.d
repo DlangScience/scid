@@ -142,7 +142,6 @@ struct ConstantStorage( T, alias OrderOrVectorType ) {
 	
 	private void commonOp_( string op, Dest )( ElementType v, auto ref Dest lhs ) {
 		static if( isStridedVectorStorage!Dest ) {
-			pragma( msg, "SV" );
 			if(	lhs.stride == 1 ) {
 				mixin( "lhs.data[ 0 .. lhs.length ] " ~ op ~ " v;");
 			} else {

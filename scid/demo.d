@@ -345,6 +345,6 @@ version( demo ) {
 	}
 	
 	void main() {
-		
+		opTest();
 	}
 }

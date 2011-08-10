@@ -28,7 +28,6 @@ template hasArrayStorageIndexing( T ) {
 		//is( typeof( T.init.indexAssign( BaseElementType!T.init, 0 ) )  );// &&
 		//is( typeof( T.init.indexAssign!"+"( BaseElementType!T.init, 0 ) )  ) &&
 		//is( typeof( T.init.indexAssign!"*"( BaseElementType!T.init, 0 ) )  );
-	pragma( msg, typeof( T.init.index(0) ) );
 	//pragma( msg, BaseElementType!T );
 }
 
