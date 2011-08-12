@@ -71,7 +71,7 @@ auto fallbackDot( Transpose transA, Transpose transB, A, B )( ref A a, ref B b )
 		string bStr = b.toString() ~ (transB ? ".t" : "");
 		write( "fb_dot( ", aStr , ", ", bStr, " ) => " );
 	}
-	int n = a.length;
+	auto n = a.length;
 	auto r = Zero!T;
 		
 	foreach( i ; 0 .. n ) {
