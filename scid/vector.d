@@ -160,9 +160,16 @@ struct BasicVector( Storage_ ) {
 	}
 
 	void opSliceAssign( Rhs )( auto ref Rhs rhs ) {
-		static if( is( Rhs E : E[] ) && isConvertible!( E, ElementType  ) )
-			evalCopy( BasicVector(rhs), this );
-		else static if( closureOf!Rhs == Closure.Scalar )
+		static if( is( Rhs E : E[] ) && isConvertible!( E, ElementType  ) ) {
+		    auto external = ExternalVectorView!E( rhs );
+		    
+		    static if( __traits(compiles, evalCopy( external, this ) ) ) {
+                evalCopy( external, this );
+		    } else {
+                evalCopy( external.t , this );
+		    }
+		    
+		} else static if( closureOf!Rhs == Closure.Scalar )
 			evalCopy( relatedConstant( rhs, this ), this );
 		else
 			evalCopy( rhs, this );

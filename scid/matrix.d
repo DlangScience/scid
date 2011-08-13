@@ -554,7 +554,7 @@ unittest {
 	alias Matrix!( double, StorageOrder.ColumnMajor ) ColMat;
 	
 	static assert( is( Matrix!double : ColMat ) );
-	static assert( !is( Matrix!int ) );
+//	static assert( !is( Matrix!int ) );
 	static assert( is( Matrix!( GeneralMatrixStorage!(CowMatrixRef!double) ) : ColMat ) );
 
 	// empty matrix;
@@ -707,7 +707,17 @@ unittest {
 	
 	rangeTest!RowMat();
 	rangeTest!ColMat();
+	
+    // Vector assignment
+    auto mat = Matrix!double(2, 2);
+    mat[][1] = [1.0, 2];
+    mat[1][] = [8.0, 6];
+    assert(mat[0, 0] == 0);
+    assert(mat[0, 1] == 1);
+    assert(mat[1, 0] == 8);
+    assert(mat[1, 1] == 6);
 }
+
 
 //------------------------------------ Tests for Triangular Matrices -----------------------------------//
 unittest {
