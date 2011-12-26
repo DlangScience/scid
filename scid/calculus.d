@@ -1023,7 +1023,7 @@ class IntegrationException : Exception
     }
 
 
-    override string toString() const
+    override string toString()
     {
         return super.toString()
             ~ (extra.length > 0 ? "\n"~extra : "")

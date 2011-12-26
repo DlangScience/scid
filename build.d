@@ -1,4 +1,4 @@
-#!/usr/local/bin/rdmd --shebang
+#!/usr/bin/env dmd -run
 
 /** Build system for SciD
 
@@ -106,6 +106,7 @@ void buildHeaders()
     foreach (s; sources)
     {
         immutable d = std.path.join(headerDir, dirname(s));
+        stderr.writefln("%s + %s = %s", headerDir, dirname(s), d);
         ensureDir(d);
 
         immutable diName = basename(s, ".d")~".di";
@@ -167,7 +168,7 @@ void buildClean()
     {
         if (!exists(path)) return;
         writeln("Removing: ", path);
-        if (isdir(path)) rmdirRecurse(path);
+        if (isDir(path)) rmdirRecurse(path);
         else std.file.remove(path);
     }
 
@@ -188,7 +189,7 @@ string[] getSources()
     if (sources == null)
     {
         foreach (string f; dirEntries(srcDir, SpanMode.depth))
-            if (isfile(f) && getExt(f) == "d") sources ~= f;
+            if (isFile(f) && getExt(f) == "d") sources ~= f;
     }
     return sources;
 }
@@ -196,7 +197,7 @@ string[] getSources()
 
 void ensureDir(string dir)
 {
-    if (exists(dir)) enforce(isdir(dir), "Not a directory: "~dir);
+    if (exists(dir)) enforce(isDir(dir), "Not a directory: "~dir);
     else mkdirRecurse(dir);
 }
 

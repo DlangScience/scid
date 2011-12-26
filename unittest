@@ -1,3 +1,2 @@
 #!/bin/sh
 rdmd --force -w -d -unittest -L-lgfortran -L-lblas -L-llapack $@ unittests.d
-rm unittests.d.deps

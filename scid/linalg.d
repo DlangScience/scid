@@ -418,7 +418,7 @@ body
 
 template DetType(MatrixT)
 {
-    static if (isComplex!(BaseElementType!MatrixT))
+    static if (scid.core.traits.isComplex!(BaseElementType!MatrixT))
         alias creal DetType;
     else
         alias real DetType;
@@ -520,7 +520,7 @@ EigenvalueType!(ElementT)[] eigenvalues_ (ElementT) (MatrixView!ElementT m)
     static assert (isFortranType!ElementT,
         "eigenvalues: Not a FORTRAN-compatible type: "~T.stringof);
 
-    static if (isComplex!ElementT)
+    static if (scid.core.traits.isComplex!ElementT)
         return eigenvaluesComplex_!ElementT(m, null);
     else
         return eigenvaluesReal_!ElementT(m, null);
@@ -530,7 +530,7 @@ EigenvalueType!(ElementT)[] eigenvalues_ (ElementT) (MatrixView!ElementT m)
 ComplexT[] eigenvalues_ (ElementT, ComplexT)
     (MatrixView!ElementT m, ComplexT[] buffer)
 {
-    static assert (isComplex!ComplexT,
+    static assert (scid.core.traits.isComplex!ComplexT,
         "eigenvalues: Not a complex type: "~ComplexT.stringof);
     static assert (is(ElementT == ComplexT)
         || is(ElementT == typeof(ComplexT.re)),
@@ -540,7 +540,7 @@ ComplexT[] eigenvalues_ (ElementT, ComplexT)
     static assert (isFortranType!ComplexT,
         "eigenvalues: Not a FORTRAN-compatible type: "~T.stringof);
 
-    static if (isComplex!ElementT)
+    static if (scid.core.traits.isComplex!ElementT)
     {
         return eigenvaluesComplex_(m, buffer);
     }
@@ -628,7 +628,7 @@ body
 
 private T[] eigenvaluesComplex_ (T)
     (MatrixView!(T) m, T[] buffer)
-    if (isComplex!T)
+    if (scid.core.traits.isComplex!T)
 in
 {
     assert (m.rows == m.cols, "eigenvalues: Matrix must be square");
@@ -847,7 +847,8 @@ class EigenvalueException(T) : Exception
     Currently only defined for general real matrices.
 */
 void invert(T, Storage stor)(MatrixView!(T, stor) m)
-    if (isFortranType!T  &&  !isComplex!T  &&  stor == Storage.General)
+    if (isFortranType!T  &&  !scid.core.traits.isComplex!T
+        &&  stor == Storage.General)
 in
 {
     assert (m.rows == m.cols, "invert: can only invert square matrices");
