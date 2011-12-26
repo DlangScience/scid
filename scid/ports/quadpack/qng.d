@@ -1,3 +1,7 @@
+// This code has been mechanically translated from the original FORTRAN
+// code at http://netlib.org/quadpack.
+// An idiomatic D port can be found in scid.internal.calculus.integrate_qng.
+
 /** This module is deprecated in favour of scid.internal.calculus.integrate_qng.
 
     Authors:    Lars Tandle Kyllingstad

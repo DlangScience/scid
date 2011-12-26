@@ -1,3 +1,6 @@
+// This code has been mechanically translated from the original FORTRAN
+// code at http://netlib.org/napack.
+
 /** Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0

@@ -1,6 +1,9 @@
+// This code has been mechanically translated from the original FORTRAN
+// code at http://netlib.org/minpack.
+
 /** Authors:    Lars Tandle Kyllingstad
     Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
-    License:    Boost Licence 1.0 
+    License:    Boost Licence 1.0
 */
 module scid.ports.minpack.r1updt;
 
