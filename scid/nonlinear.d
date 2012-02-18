@@ -105,7 +105,7 @@ body
         }
         assert (fTest.length == m, "findRoot: The number of "
             ~"equations must be equal to the number of variables");
-    };
+    }
 
     immutable int n = toInt(guess.length);
     immutable int wslen = (n*(3*n + 15))/2;
