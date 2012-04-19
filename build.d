@@ -22,6 +22,13 @@
     ---
     rdmd build html
     ---
+
+    Any command line arguments beyond the first one will be passed
+    on to the compiler.  For example, to enable optimisations and
+    inlining when building the library, run
+    ---
+    rdmd build lib -O -inline
+    ---
 */
 import std.algorithm, std.array, std.exception, std.file, std.path, std.process,
     std.stdio, std.string, std.zip;
@@ -63,10 +70,19 @@ body
 {
     try
     {
-        if (args.length == 1)           { buildLib(); buildHeaders(); }
-        else if (args[1] == "lib")      buildLib();
-        else if (args[1] == "headers")  buildHeaders();
-        else if (args[1] == "html")     buildHTML();
+        if (args.length <= 1)
+        {
+            buildLib(null);
+            buildHeaders(null);
+        }
+        else if (args[1][0] == '-')
+        {
+            buildLib(args[1 .. $]);
+            buildHeaders(args[1 .. $]);
+        }
+        else if (args[1] == "lib")      buildLib(args[2 .. $]);
+        else if (args[1] == "headers")  buildHeaders(args[2 .. $]);
+        else if (args[1] == "html")     buildHTML(args[2 .. $]);
         else if (args[1] == "clean")    buildClean();
         else enforce(false, "Unknown command: " ~ args[1]);
         return 0;
@@ -81,7 +97,7 @@ body
 
 
 /** Build the library file. */
-void buildLib()
+void buildLib(string[] extraOptions)
 {
     ensureDir(libDir);
     auto sources = getSources();
@@ -91,7 +107,8 @@ void buildLib()
 
     immutable buildCmd = "dmd "
         ~std.string.join(sources, " ")
-        ~" -lib -od"~libDir~" -of"~libFile;
+        ~" -lib -od"~libDir~" -of"~libFile
+        ~" "~std.string.join(extraOptions, " ");
     writeln(buildCmd);
     enforce(system(buildCmd) == 0, "Error building library");
 }
@@ -99,7 +116,7 @@ void buildLib()
 
 
 /** Generate header files. */
-void buildHeaders()
+void buildHeaders(string[] extraOptions)
 {
     ensureDir(headerDir);
     auto sources = getSources();
@@ -110,7 +127,8 @@ void buildHeaders()
         ensureDir(d);
 
         immutable diName = baseName(s, ".d")~".di";
-        immutable cmd = "dmd "~s~" -c -o- -H -Hd"~d~" -Hf"~diName;
+        immutable cmd = "dmd "~s~" -c -o- -H -Hd"~d~" -Hf"~diName
+                        ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
         enforce(system(cmd) == 0, "Error making header file: "~diName);
     }
@@ -119,7 +137,7 @@ void buildHeaders()
 
 
 /** Build documentation. */
-void buildHTML()
+void buildHTML(string[] extraOptions)
 {
     auto sources = getSources();
     sort(sources);
@@ -153,7 +171,8 @@ void buildHTML()
     {
         immutable cmd =
             "dmd "~sources[i]~" "~candyDdoc~" "~modulesDdoc
-            ~" -c -o- -D -Dd"~htmlDir~" -Df"~htmlFiles[i];
+            ~" -c -o- -D -Dd"~htmlDir~" -Df"~htmlFiles[i]
+            ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
         enforce(system(cmd) == 0, "Error making HTML file: "~htmlFiles[i]);
     }
