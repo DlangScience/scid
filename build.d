@@ -30,8 +30,8 @@
     rdmd build lib -O -inline
     ---
 */
-import std.algorithm, std.array, std.exception, std.file, std.path, std.process,
-    std.stdio, std.string, std.zip;
+import std.algorithm, std.array, std.exception, std.file, std.getopt, std.path,
+       std.process, std.stdio, std.string, std.zip;
 
 
 
@@ -68,21 +68,28 @@ int main(string[] args)
 in { assert (args.length > 0); }
 body
 {
+    bool gdc;
+    string compiler = "dmd";
+
+    getopt(args, std.getopt.config.passThrough, "gdc", &gdc);
+    if(gdc)
+        compiler = "gdmd";
+
     try
     {
         if (args.length <= 1)
         {
-            buildLib(null);
-            buildHeaders(null);
+            buildLib(compiler, null);
+            buildHeaders(compiler, null);
         }
         else if (args[1][0] == '-')
         {
-            buildLib(args[1 .. $]);
-            buildHeaders(args[1 .. $]);
+            buildLib(compiler, args[1 .. $]);
+            buildHeaders(compiler, args[1 .. $]);
         }
-        else if (args[1] == "lib")      buildLib(args[2 .. $]);
-        else if (args[1] == "headers")  buildHeaders(args[2 .. $]);
-        else if (args[1] == "html")     buildHTML(args[2 .. $]);
+        else if (args[1] == "lib")      buildLib(compiler, args[2 .. $]);
+        else if (args[1] == "headers")  buildHeaders(compiler, args[2 .. $]);
+        else if (args[1] == "html")     buildHTML(compiler, args[2 .. $]);
         else if (args[1] == "clean")    buildClean();
         else enforce(false, "Unknown command: " ~ args[1]);
         return 0;
@@ -97,7 +104,7 @@ body
 
 
 /** Build the library file. */
-void buildLib(string[] extraOptions)
+void buildLib(string compiler, string[] extraOptions)
 {
     ensureDir(libDir);
     auto sources = getSources();
@@ -105,7 +112,7 @@ void buildLib(string[] extraOptions)
     version (Posix)     immutable libFile = "lib"~libName~".a";
     version (Windows)   immutable libFile = libName~".lib";
 
-    immutable buildCmd = "dmd "
+    immutable buildCmd = compiler ~ " "
         ~std.string.join(sources, " ")
         ~" -lib -od"~libDir~" -of"~libFile
         ~" "~std.string.join(extraOptions, " ");
@@ -116,7 +123,7 @@ void buildLib(string[] extraOptions)
 
 
 /** Generate header files. */
-void buildHeaders(string[] extraOptions)
+void buildHeaders(string compiler, string[] extraOptions)
 {
     ensureDir(headerDir);
     auto sources = getSources();
@@ -127,7 +134,7 @@ void buildHeaders(string[] extraOptions)
         ensureDir(d);
 
         immutable diName = baseName(s, ".d")~".di";
-        immutable cmd = "dmd "~s~" -c -o- -H -Hd"~d~" -Hf"~diName
+        immutable cmd = compiler~" "~s~" -c -o- -H -Hd"~d~" -Hf"~diName
                         ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
         enforce(system(cmd) == 0, "Error making header file: "~diName);
@@ -137,7 +144,7 @@ void buildHeaders(string[] extraOptions)
 
 
 /** Build documentation. */
-void buildHTML(string[] extraOptions)
+void buildHTML(string compiler, string[] extraOptions)
 {
     auto sources = getSources();
     sort(sources);
@@ -170,7 +177,7 @@ void buildHTML(string[] extraOptions)
     foreach (i; 0 .. sources.length)
     {
         immutable cmd =
-            "dmd "~sources[i]~" "~candyDdoc~" "~modulesDdoc
+            compiler~" "~sources[i]~" "~candyDdoc~" "~modulesDdoc
             ~" -c -o- -D -Dd"~htmlDir~" -Df"~htmlFiles[i]
             ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
