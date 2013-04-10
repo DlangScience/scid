@@ -103,18 +103,14 @@ unittest
 
 /** Evaluates to true if the following compiles:
     ---
-    F f;
-    ArgT x;
-    RetT y = f(x);
+    RetT ret = F.init(ArgT.init);
     ---
 */
 template isUnaryFunction(F, RetT, ArgT)
 {
     enum isUnaryFunction = __traits(compiles,
     {
-        F f;
-        ArgT x;
-        RetT y = f(x);
+        RetT ret = F.init(ArgT.init);
     });
 }
 
@@ -133,18 +129,14 @@ unittest
 
 /** Evaluates to true if the following compiles:
     ---
-    F f;
-    ArgT x;
-    f(x);       // no return type check
+    F.init(ArgT.init); // No return type check.
     ---
 */
 template isUnaryFunction(F, ArgT)
 {
     enum isUnaryFunction = __traits(compiles,
     {
-        F f;
-        ArgT x;
-        f(x);
+        F.init(ArgT.init);
     });
 }
 
