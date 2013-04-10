@@ -1333,15 +1333,11 @@ unittest
             function takes a second vector parameter, this is assumed to
             be a buffer for the return value, and will be used as such.
 
+        m = The number of functions in $(D f).
+
         x = The point at which to take the derivative.
 
         scale = A "characteristic scale" over which the function changes.
-            (optional)
-
-        m = The number of functions in $(D f). If this is negative, as it
-            is by default, the function will be called once just to
-            determine the length of the returned vector. Providing this
-            number is therefore a simple way of speeding up this routine.
             (optional)
 
         buffer = A buffer of length at least $(I m)*$(I n), for storing the calculated
@@ -1363,7 +1359,7 @@ unittest
         return r;
     }
 
-    auto j = jacobian(&f, p);
+    auto j = jacobian(&f, 2, p);
 
     // However, if we need to perform this operation many times,
     // we may want to speed things up a bit. To avoid unnecessary
@@ -1376,7 +1372,7 @@ unittest
         return r[0 .. 2];
     }
 
-    auto jFaster = jacobian(&g, p);
+    auto jFaster = jacobian(&g, 2, p);
     ---
 
     See_also:
@@ -1384,8 +1380,8 @@ unittest
         $(LINK2 http://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant,Jacobian matrix and determinant).
     ))
 */
-MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
-    int m=-1, Real[] buffer=null)
+MatrixView!Real jacobian (Real, Func) (scope Func f, int m, Real[] x,
+    real scale=1.0, Real[] buffer=null)
 {
     mixin (newFrame);
 
@@ -1394,13 +1390,9 @@ MatrixView!Real jacobian (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     static assert (isVectorField!(Func, Real),
         "jacobian: Invalid function type ("~Func.stringof~"), or "
        ~"function type doesn't match parameter type ("~Real.stringof~")");
-
-    // Do we have to evaluate the function once just to determine how
-    // long the f-vector is? (That would be stupid.)
-    if (m < 0)  m = toInt(f(x).length);
+    assert (m > 0);
 
     immutable size_t n = x.length;
-
     buffer.length = m*n;
     auto jaco = MatrixView!Real(buffer, m, n);
 
@@ -1464,8 +1456,8 @@ unittest
 
     double[] x = [ 1.0, 2.0 ];
     double[4] buffer;
-    auto j1 = jacobian(&f, x);
-    auto j2 = jacobian(&f, x, 1.0, 2, buffer);
+    auto j1 = jacobian(&f, 2, x);
+    auto j2 = jacobian(&f, 2, x, 1.0, buffer);
 
     double e = 1e-6;
     check (approxEqual(j1[0,0], 2.0, e) && approxEqual(j1[0,1],  1.0, e)
@@ -1510,8 +1502,8 @@ unittest
     auto jFastest = jacobian2(&g, p, 1.0, gp, buffer, workspace);
     ---
 */
-MatrixView!Real jacobian2 (Real, Func) (scope Func f, Real[] x, real scale=1.0,
-    Real[] fx=null, Real[] buffer=null)
+MatrixView!Real jacobian2 (Real, Func) (scope Func f, int m, Real[] x,
+    real scale=1.0, Real[] fx=null, Real[] buffer=null)
 {
     mixin (newFrame);
 
@@ -1520,19 +1512,26 @@ MatrixView!Real jacobian2 (Real, Func) (scope Func f, Real[] x, real scale=1.0,
     static assert (isVectorField!(Func, Real),
         "jacobian2: Invalid function type ("~Func.stringof~"), or "
        ~"function type doesn't match parameter type ("~Real.stringof~")");
+    assert (m > 0);
 
-    // Calculate f(x) if it's not provided.
-    if (fx.length == 0)  fx = f(x);
-
-    // Determine dimensions.
-    immutable size_t m = fx.length;
     immutable size_t n = x.length;
-
     buffer.length = m*n;
     auto jaco = MatrixView!Real(buffer, m, n);
 
     // Allocate workspace.
     auto fxph = newStack!Real(m);
+
+    // Calculate f(x) if it's not provided.
+    if (fx.length == 0)
+    {
+        static if (isBufferVectorField!(Func, Real))
+        {
+            fx = newStack!Real(m);
+            fx = f(x, fx);
+        }
+        else fx = f(x);
+    }
+    else assert (fx.length == m);
 
     // Determine step length.
     scale = scale == 0.0 ? 1.0 : abs(scale);
@@ -1591,10 +1590,10 @@ unittest
 
     // Central difference
     real e = 1e-10;
-    auto j = jacobian(&f, p);
+    auto j = jacobian(&f, 4, p);
     check (approxEqual(j.array, answer, e, e));
 
-    j = jacobian(&f, p, 1.0, 4, buffer);
+    j = jacobian(&f, 4, p, 1.0, buffer);
     check (approxEqual(j.array, answer, e, e));
 
 
@@ -1602,11 +1601,11 @@ unittest
     e = 1e-6;
 
     // Forward difference
-    j = jacobian2(&f, p);
+    j = jacobian2(&f, 4, p);
     check (approxEqual(j.array, answer, e, e));
 
     // Backward difference
-    j = jacobian2(&f, p, -1.0, f(p), buffer);
+    j = jacobian2(&f, 4, p, -1.0, f(p), buffer);
     check (approxEqual(j.array, answer, e, e));
 }
 
