@@ -84,7 +84,7 @@ body
 
 unittest
 {
-    check(matchDigits(1.0, 1.0, 15)); 
+    check(matchDigits(1.0, 1.0, 15));
     check(matchDigits(0.1234567, 0.1234568, 6));
     check(!matchDigits(0.1234567, 0.1234568, 7));
 

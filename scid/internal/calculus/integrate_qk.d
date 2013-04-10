@@ -87,7 +87,7 @@ Result!Real qk(GaussKronrod rule, Func, Real = ReturnType!Func)
     Real error = abs((kronrodResult - gaussResult) * halfLength);
     if (fVariance != 0  &&  error != 0)
         error = fVariance * fmin(1, (200*error/fVariance)^^1.5);
-    if (absResult > Real.min/(50 * Real.epsilon))
+    if (absResult > Real.min_normal/(50 * Real.epsilon))
         error = fmax(Real.epsilon * 50 * absResult, error);
 
     return typeof(return)(result, error);

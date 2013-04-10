@@ -230,7 +230,7 @@ void qawse(Real, Func)(Func f, Real a, Real b, Real alfa, Real beta,
 //
 //***first executable statement  dqawse
       epmach = Real.epsilon;
-      uflow = Real.min;
+      uflow = Real.min_normal;
 //
 //           test on validity of parameters
 //           ------------------------------

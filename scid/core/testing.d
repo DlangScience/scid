@@ -7,7 +7,7 @@
 module scid.core.testing;
 
 import std.algorithm: max;
-import std.math: abs;
+import std.math;
 import std.stdio;
 import std.string;
 
