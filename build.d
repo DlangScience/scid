@@ -129,15 +129,13 @@ void buildHeaders(string compiler, string[] extraOptions)
     auto sources = getSources();
     foreach (s; sources)
     {
-        immutable d = buildPath(headerDir, dirName(s));
-        stderr.writefln("%s + %s = %s", headerDir, dirName(s), d);
-        ensureDir(d);
+        immutable diPath = buildPath(headerDir, s).setExtension(".di");
+        ensureDir(dirName(diPath));
 
-        immutable diName = baseName(s, ".d")~".di";
-        immutable cmd = compiler~" "~s~" -c -o- -H -Hd"~d~" -Hf"~diName
+        immutable cmd = compiler~" "~s~" -c -o- -H -Hf"~diPath
                         ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
-        enforce(system(cmd) == 0, "Error making header file: "~diName);
+        enforce(system(cmd) == 0, "Error making header file: "~baseName(diPath));
     }
 }
 
