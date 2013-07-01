@@ -107,23 +107,24 @@ struct Result(V, E=V)
 
 
     /** Get a string representation of the result. */
-    string toString
-        (void delegate(const(char)[]) sink = null, string formatSpec = "%s")
+    void toString(void delegate(const(char)[]) sink, string formatSpec = "%s")
         const
     {
-        if (sink == null)
-        {
-            char[] buf;
-            buf.reserve(100);
-            toString((const(char)[] s) { buf ~= s; }, formatSpec);
-            return cast(string) buf;
-        }
-
         formattedWrite(sink, formatSpec, value);
         sink("\u00B1");
         formattedWrite(sink, formatSpec, error);
-        return null;
     }
+
+    /// ditto
+    string toString(string formatSpec = "%s") const
+    {
+        char[] buf;
+        buf.reserve(100);
+        void app(const(char)[] s) { buf ~= s; }
+        toString(&app, formatSpec);
+        return cast(string) buf;
+    }
+
 }
 
 
@@ -165,7 +166,7 @@ unittest
     check (r1.toString() == "1±0.1");
 
     auto r2 = Result!double(0.123456789, 0.00123456789);
-    check (r2.toString(null, "%.8e") == "1.23456789e-01±1.23456789e-03");
+    check (r2.toString("%.8e") == "1.23456789e-01±1.23456789e-03");
 }
 
 
