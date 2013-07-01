@@ -124,7 +124,7 @@ bool matchDigits(L, R)
         else
         {
             // lhs is a range, rhs is a number.
-            for (; !lhs.empty; lhs.popFront)
+            for (; !lhs.empty; lhs.popFront())
             {
                 if (!matchDigits(lhs.front, rhs, significantDigits, maxAbsDiff))
                     return false;

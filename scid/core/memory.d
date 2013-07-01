@@ -312,7 +312,7 @@ public:
      * lookup.  Also used internally.*/
     static State getState() nothrow {
         State stateCopy = state;
-        return (stateCopy is null) ? stateInit : stateCopy;
+        return (stateCopy is null) ? stateInit() : stateCopy;
     }
 
     /**Initializes a frame, i.e. marks the current allocation position.
@@ -320,7 +320,7 @@ public:
      * freed when frameFree() is called.  Returns a reference to the
      * State class in case the caller wants to cache it for speed.*/
     static State frameInit() nothrow {
-        return frameInit(getState);
+        return frameInit(getState());
     }
 
     /**Same as frameInit() but uses stateCopy cached on stack by caller
@@ -336,7 +336,7 @@ public:
     /**Frees all memory allocated by TempAlloc since the last call to
      * frameInit().*/
     static void frameFree() nothrow {
-        frameFree(getState);
+        frameFree(getState());
     }
 
     /**Same as frameFree() but uses stateCopy cached on stack by caller
@@ -365,7 +365,7 @@ public:
      * Do not store the only reference to a GC-allocated object in
      * TempAlloc-allocated memory.*/
     static void* malloc(size_t nbytes) nothrow {
-        return malloc(nbytes, getState);
+        return malloc(nbytes, getState());
     }
 
     /**Same as malloc() but uses stateCopy cached on stack by caller
@@ -381,7 +381,7 @@ public:
                 ret = ntMalloc(nbytes, GC.BlkAttr.NO_SCAN);
             } else if (nfree > 0) {
                 inUse.push(Block(used, space));
-                space = freelist.pop;
+                space = freelist.pop();
                 used = nbytes;
                 nfree--;
                 nblocks++;
@@ -403,7 +403,7 @@ public:
      * there's no need to pass a pointer in.  All bookkeeping for figuring
      * out what to free is done internally.*/
     static void free() nothrow {
-        free(getState);
+        free(getState());
     }
 
     /**Same as free() but uses stateCopy cached on stack by caller
@@ -421,7 +421,7 @@ public:
             used = (cast(size_t) lastPos) - (cast(size_t) space);
             if (nblocks > 1 && used == 0) {
                 freelist.push(space);
-                Block newHead = inUse.pop;
+                Block newHead = inUse.pop();
                 space = newHead.space;
                 used = newHead.used;
                 nblocks--;
@@ -429,7 +429,7 @@ public:
 
                 if (nfree >= nblocks * 2) {
                     foreach(i; 0..nfree / 2) {
-                        ntFree(freelist.pop);
+                        ntFree(freelist.pop());
                         nfree--;
                     }
                 }
@@ -517,7 +517,7 @@ if(isInputRange!(T) && (isArray!(T) || !isReferenceType!(ElementType!(T)))) {
         rangeCopy(ret, data);
         return ret;
     } else {
-        auto state = TempAlloc.getState;
+        auto state = TempAlloc.getState();
         auto startPtr = TempAlloc(0, state);
         size_t bytesCopied = 0;
 
@@ -566,7 +566,7 @@ if(isInputRange!(T) && (isArray!(T) || !isReferenceType!(ElementType!(T)))) {
 Unqual!(ElementType!(T))[] tempdup(T)(T data)
 if(isInputRange!(T) && !(isArray!(T) || !isReferenceType!(ElementType!(T)))) {
     auto ret = toArray(data);
-    TempAlloc.getState.putLast(ret.ptr);
+    TempAlloc.getState().putLast(ret.ptr);
     return ret;
 }
 
@@ -638,8 +638,8 @@ version (TempAllocUnittest) unittest {
     check (asArray.length == 1024 * 1025);
     TempAlloc.free;
     TempAlloc.free;
-    while(TempAlloc.getState.freelist.index > 0) {
-        TempAlloc.getState.freelist.pop;
+    while(TempAlloc.getState().freelist.index > 0) {
+        TempAlloc.getState().freelist.pop;
     }
 }
 
@@ -655,7 +655,7 @@ version (TempAllocUnittest) unittest {
  * are allocated, due to caching of data stored in thread-local
  * storage.*/
 immutable char[] newFrame =
-    "TempAlloc.frameInit; scope(exit) TempAlloc.frameFree;";
+    "TempAlloc.frameInit(); scope(exit) TempAlloc.frameFree();";
 
 version (TempAllocUnittest) unittest {
     /* Not a particularly good unittest in that it depends on knowing the
@@ -668,13 +668,13 @@ version (TempAllocUnittest) unittest {
      foreach(i; 0..nIter) {
          TempAlloc(TempAlloc.alignBytes);
      }
-     assert(TempAlloc.getState.nblocks == 5, to!string(TempAlloc.getState.nblocks));
-     assert(TempAlloc.getState.nfree == 0);
+     assert(TempAlloc.getState().nblocks == 5, to!string(TempAlloc.getState().nblocks));
+     assert(TempAlloc.getState().nfree == 0);
      foreach(i; 0..nIter) {
         TempAlloc.free;
     }
-    assert(TempAlloc.getState.nblocks == 1);
-    assert(TempAlloc.getState.nfree == 2);
+    assert(TempAlloc.getState().nblocks == 1);
+    assert(TempAlloc.getState().nfree == 2);
 
     // Make sure logic for freeing excess blocks works.  If it doesn't this
     // test will run out of memory.

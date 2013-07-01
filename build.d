@@ -114,7 +114,7 @@ void buildLib(string compiler, string[] extraOptions)
 
     immutable buildCmd = compiler ~ " "
         ~std.string.join(sources, " ")
-        ~" -lib -od"~libDir~" -of"~libFile
+        ~" -property -w -lib -od"~libDir~" -of"~libFile
         ~" "~std.string.join(extraOptions, " ");
     writeln(buildCmd);
     enforce(system(buildCmd) == 0, "Error building library");
