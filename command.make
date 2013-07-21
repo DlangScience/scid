@@ -6,7 +6,7 @@ ifdef SystemRoot
     message         = @(echo $1)
     SHELL           = cmd.exe
     Filter          = %/linux/%.d %/darwin/%.d %/freebsd/%.d %/solaris/%.d
-    getSource       =$(shell dir $(ROOT_SOURCE_DIR) /s /b)
+    getSource       =$(shell dir $(ROOT_SOURCE_DIR)$(PATH_SEP)$(REPO_SRC_DIR) /s /b)
 else ifneq (,$(findstring /mingw/,$PATH))
     OS              = "MinGW"
     STATIC_LIB_EXT  = .lib
@@ -15,11 +15,11 @@ else ifneq (,$(findstring /mingw/,$PATH))
     message         = @(echo $1)
     SHELL           = cmd.exe
     Filter          = %/linux/%.d %/darwin/%.d %/freebsd/%.d %/solaris/%.d
-    getSource       =$(shell dir $(ROOT_SOURCE_DIR) /s /b)
+    getSource       =$(shell dir $(ROOT_SOURCE_DIR)$(PATH_SEP)$(REPO_SRC_DIR)  /s /b)
 else
     SHELL           = sh
     PATH_SEP        =/
-    getSource       =$(shell find $(ROOT_SOURCE_DIR) -name "*.d")
+    getSource       =$(shell find $(ROOT_SOURCE_DIR)$(PATH_SEP)$(REPO_SRC_DIR)  -name "*.d")
     ifneq (,$(findstring /cygdrive/,$PATH))
         OS              = "Cygwin"
         STATIC_LIB_EXT  = .a
