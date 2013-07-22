@@ -10,6 +10,7 @@ export PATCH_VERSION    = 0
 export PROJECT_VERSION  = $(MAJOR_VERSION).$(MINOR_VERSION).$(PATCH_VERSION)
 export LICENSE          = "Boost License 1.0"
 export ROOT_SOURCE_DIR  = "./"
+export LIBS		= lapack blas gfortran
 DDOCFILES               = modules.ddoc settings.ddoc cutedoc.ddoc
 
 # include some command
@@ -23,6 +24,7 @@ DOCUMENTATIONS      = $(patsubst %.d,$(DOC_PATH)$(PATH_SEP)%.html,   $(SOURCES))
 DDOCUMENTATIONS     = $(patsubst %.d,$(DDOC_PATH)$(PATH_SEP)%.html,  $(SOURCES))
 DDOC_FLAGS          = $(foreach macro,$(DDOCFILES), $(DDOC_MACRO)$(macro))
 DCFLAGS_IMPORT     += $(foreach dir,$(ROOT_SOURCE_DIR), -I$(dir))
+LIBS_TO_LINK        = $(foreach lib,$(LIBS),  $(LINKERFLAG)-l$(lib))
 space :=
 space +=
 
@@ -118,7 +120,7 @@ $(STATIC_LIBNAME): $(OBJECTS)
 $(SHARED_LIBNAME): $(PICOBJECTS)
 	@echo ------------------ Building shared library
 	$(MKDIR) $(DLIB_PATH)
-	$(DC) -shared $(SONAME_FLAG) $@.$(MAJOR_VERSION) $(OUTPUT)$(DLIB_PATH)$(PATH_SEP)$@.$(PROJECT_VERSION) $^
+	$(DC) $(LIBS_TO_LINK) -shared $(SONAME_FLAG) $@.$(MAJOR_VERSION) $(OUTPUT)$(DLIB_PATH)$(PATH_SEP)$@.$(PROJECT_VERSION) $^
 #$(CC) -l$(PHOBOS) -l$(DRUNTIME) -shared -Wl,-soname,$@.$(MAJOR_VERSION) -o $(DLIB_PATH)$(PATH_SEP)$@.$(PROJECT_VERSION) $^
 
 # create object files
