@@ -292,8 +292,56 @@ public:
         cols = n;
     }
 
-
-
+    MatrixView!(T) opBinary(string op)(MatrixView!(T) rhs) pure
+    in
+    {
+        static if (op == "+" || op == "-") {
+            assert (rows == rhs.rows && cols == rhs.cols);
+        } else static if (op == "*") {
+            assert (cols == rhs.rows);
+        }
+        
+    }
+    body
+    {
+        static if (op == "+" || op == "-") {
+            T[] a = array.dup;
+            foreach( ulong i; 0..a.length ) {
+                a[i] = mixin("a[i] "~op~" rhs.array[i]");
+            }
+            return MatrixView!(T)(a, rows, cols);
+        } else static if (op == "*") {
+            ulong r = rows;
+            ulong c = rhs.cols;
+            T[] a;
+            a.length = r * c;
+            foreach( ulong j; 0..r ) {
+                foreach( ulong i; 0..c ) {
+                    a[j * c + i] = 0;
+                    foreach( size_t k; 0..cols ) {
+                        a[j * c + i] += array[j * c + k] * rhs.array[k * c + i];
+                    }
+                }
+            }
+            return MatrixView!(T)(a, r, c);
+        } else static assert(0, "Operator "~op~" not implemented");
+    }
+    
+    MatrixView!(T) opBinary(string op)(T rhs) pure
+    in
+    {
+    }
+    body
+    {
+        static if (op == "*" || op == "/") {
+            T[] a = array.dup;
+            foreach( ulong i; 0..a.length ) {
+                a[i] = mixin("a[i] "~op~" rhs");
+            }
+            return MatrixView!(T)(a, rows, cols);
+        } else static assert(0, "Operator "~op~" not implemented");
+    }
+    
     /** Return (a reference to) the element at row i, column j.
 
         Warning:
