@@ -327,14 +327,18 @@ public:
         } else static assert(0, "Operator "~op~" not implemented");
     }
     
-    MatrixView!(T) opBinary(string op)(T rhs) pure nothrow
+    MatrixView!(T) opBinary(string op)(T rhs) pure
     in
     {
     }
     body
     {
-        static if (op == "*") {
-            return data + rhs.data;
+        static if (op == "*" || op == "/") {
+            T[] a = array.dup;
+            foreach( ulong i; 0..a.length ) {
+                a[i] = mixin("a[i] "~op~" rhs");
+            }
+            return MatrixView!(T)(a, rows, cols);
         } else static assert(0, "Operator "~op~" not implemented");
     }
     
