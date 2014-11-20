@@ -164,7 +164,7 @@ void hybrd(Real, Func)(Func fcn, size_t n, Real* x, Real* fvec,
     size_t i, j, l;
     ptrdiff_t jm1;
     long msum;
-    int iflag;
+    int iflag, iter, ncsuc, ncfail, nslow1, nslow2;
     size_t[1] iwa;
     bool jeval, sing;
     Real actred, delta, fnorm, fnorm1, pnorm, prered, ratio, sum, temp, xnorm;
@@ -213,11 +213,11 @@ void hybrd(Real, Func)(Func fcn, size_t n, Real* x, Real* fvec,
 
 
     // Initialize iteration counter and monitors.
-    int iter = 1;
-    int nsuc = 0;
-    int ncfail = 0;
-    int nslow1 = 0;
-    int nslow2 = 0;
+    iter = 1;
+    ncsuc = 0;
+    ncfail = 0;
+    nslow1 = 0;
+    nslow2 = 0;
 
 
     // Beginning of the outer loop.
@@ -379,15 +379,15 @@ void hybrd(Real, Func)(Func fcn, size_t n, Real* x, Real* fvec,
             // Update the step bound.
             if (ratio < p1)
             {
-                nsuc = 0;
+                ncsuc = 0;
                 ncfail++;
                 delta *= p5;
             }
             else
             {
                 ncfail = 0;
-                nsuc++;
-                if (ratio >= p5  ||  nsuc > 1)
+                ncsuc++;
+                if (ratio >= p5  ||  ncsuc > 1)
                     delta = max(delta, pnorm/p5);
                 if (abs(ratio-one) <= p1)  delta = pnorm/p5;
             }

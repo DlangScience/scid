@@ -243,14 +243,12 @@ void qage(Real, Func)(Func f, Real a, Real b, Real epsabs, Real epsrel,
       if(key <= 0) keyf = 1;
       if(key >= 7) keyf = 6;
       neval = 0;
-      typeof(&qk15!(Real, Func)) qkXX;
-      if(keyf == 1)      qkXX = &qk15!(Real, Func);
-      else if(keyf == 2) qkXX = &qk21!(Real, Func);
-      else if(keyf == 3) qkXX = &qk31!(Real, Func);
-      else if(keyf == 4) qkXX = &qk41!(Real, Func);
-      else if(keyf == 5) qkXX = &qk51!(Real, Func);
-      else if(keyf == 6) qkXX = &qk61!(Real, Func);
-      qkXX(f,a,b,result,abserr,defabs,resabs);
+      if(keyf == 1)      qk15!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
+      else if(keyf == 2) qk21!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
+      else if(keyf == 3) qk31!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
+      else if(keyf == 4) qk41!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
+      else if(keyf == 5) qk51!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
+      else if(keyf == 6) qk61!(Real, Func)(f,a,b,result,abserr,defabs,resabs);
       last = 1;
       rlist[1] = result;
       elist[1] = abserr;
@@ -287,8 +285,18 @@ void qage(Real, Func)(Func f, Real a, Real b, Real epsabs, Real epsrel,
         b1 = 0.5*(alist[maxerr]+blist[maxerr]);
         a2 = b1;
         b2 = blist[maxerr];
-        qkXX(f,a1,b1,area1,error1,resabs,defab1);
-        qkXX(f,a2,b2,area2,error2,resabs,defab2);
+        if(keyf == 1)      qk15!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        else if(keyf == 2) qk21!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        else if(keyf == 3) qk31!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        else if(keyf == 4) qk41!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        else if(keyf == 5) qk51!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        else if(keyf == 6) qk61!(Real, Func)(f,a1,b1,area1,error1,resabs,defab1);
+        if(keyf == 1)      qk15!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
+        else if(keyf == 2) qk21!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
+        else if(keyf == 3) qk31!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
+        else if(keyf == 4) qk41!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
+        else if(keyf == 5) qk51!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
+        else if(keyf == 6) qk61!(Real, Func)(f,a2,b2,area2,error2,resabs,defab2);
 //
 //           improve previous approximations to integral
 //           and error and test for accuracy.
