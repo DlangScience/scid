@@ -502,20 +502,25 @@ unittest
     auto e = eigenvalues(m);
     ---
 */
-EigenvalueType!(ElementT)[] eigenvalues (ElementT) (MatrixView!ElementT m)
+EigenvalueType!ElementT[] eigenvalues(ElementT, Storage stor, Triangle tri)
+    (MatrixView!(ElementT, stor, tri) m)
+    if (stor == Storage.General)
 {
     return eigenvalues_(copy(m));
 }
 
 /// ditto
-ComplexT[] eigenvalues (ElementT, ComplexT)
-    (MatrixView!ElementT m, ComplexT[] buffer)
+ComplexT[] eigenvalues(ElementT, ComplexT, Storage stor, Triangle tri)
+    (MatrixView!(ElementT, stor, tri) m, ComplexT[] buffer)
+    if (stor == Storage.General)
 {
-    return eigenvalues_(copy(m), buffer, workspace);
+    return eigenvalues_(copy(m), buffer);
 }
 
 /// ditto
-EigenvalueType!(ElementT)[] eigenvalues_ (ElementT) (MatrixView!ElementT m)
+EigenvalueType!ElementT[] eigenvalues_(ElementT, Storage stor, Triangle tri)
+    (MatrixView!(ElementT, stor, tri) m)
+    if (stor == Storage.General)
 {
     static assert (isFortranType!ElementT,
         "eigenvalues: Not a FORTRAN-compatible type: "~T.stringof);
@@ -527,8 +532,9 @@ EigenvalueType!(ElementT)[] eigenvalues_ (ElementT) (MatrixView!ElementT m)
 }
 
 /// ditto
-ComplexT[] eigenvalues_ (ElementT, ComplexT)
-    (MatrixView!ElementT m, ComplexT[] buffer)
+ComplexT[] eigenvalues_(ElementT, ComplexT, Storage stor, Triangle tri)
+    (MatrixView!(ElementT, stor, tri) m, ComplexT[] buffer)
+    if (stor == Storage.General)
 {
     static assert (scid.core.traits.isComplex!ComplexT,
         "eigenvalues: Not a complex type: "~ComplexT.stringof);
