@@ -1,0 +1,13 @@
+{
+	"name": "scid",
+	"sourcePaths": ["scid"],
+	"importPaths": ["./"],
+	"libs": ["lapack","blas"],
+	"targetType": "library",
+	"targetPath": "generated",
+	"homepage": "https://github.com/kyllingstad/scid",
+	"description": "SciD is a collection of numerical routines and bindings written in and for the D programming language",
+	"copyright": "Copyright (c) 2009-2010, Lars T. Kyllingstad.",
+	"authors": ["Lars Tandle Kyllingstad"],
+	"license": "Boost License 1.0"
+}
