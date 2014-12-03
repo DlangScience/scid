@@ -61,7 +61,8 @@ version (Windows)
 immutable libName   = "scid";
 
 /** The top-level directory of the source files. */
-immutable srcDir    = "scid";
+immutable importDir = "source";
+immutable srcDir    = importDir ~ "/scid";
 
 
 int main(string[] args)
@@ -114,6 +115,7 @@ void buildLib(string compiler, string[] extraOptions)
 
     immutable buildCmd = compiler ~ " "
         ~std.string.join(sources, " ")
+        ~" -I"~importDir
         ~" -property -w -lib -od"~libDir~" -of"~libFile
         ~" "~std.string.join(extraOptions, " ");
     writeln(buildCmd);
@@ -132,8 +134,10 @@ void buildHeaders(string compiler, string[] extraOptions)
         immutable diPath = buildPath(headerDir, s).setExtension(".di");
         ensureDir(dirName(diPath));
 
-        immutable cmd = compiler~" "~s~" -c -o- -H -Hf"~diPath
-                        ~" "~std.string.join(extraOptions, " ");
+        immutable cmd = compiler
+          ~" -I"~importDir
+          ~" "~s~" -c -o- -H -Hf"~diPath
+          ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);
         enforce(system(cmd) == 0, "Error making header file: "~baseName(diPath));
     }
@@ -176,6 +180,7 @@ void buildHTML(string compiler, string[] extraOptions)
     {
         immutable cmd =
             compiler~" "~sources[i]~" "~candyDdoc~" "~modulesDdoc
+            ~" -I"~importDir
             ~" -c -o- -D -Dd"~htmlDir~" -Df"~htmlFiles[i]
             ~" "~std.string.join(extraOptions, " ");
         writeln(cmd);

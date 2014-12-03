@@ -1,7 +1,5 @@
 {
 	"name": "scid",
-	"sourcePaths": ["scid"],
-	"importPaths": ["./"],
 	"libs": ["lapack","blas"],
 	"targetType": "library",
 	"targetPath": "generated",
