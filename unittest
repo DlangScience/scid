@@ -1,2 +1,2 @@
 #!/bin/sh
-rdmd --force -w -g -unittest -L-lgfortran -L-lblas -L-llapack $@ unittests.d
+rdmd --force -w -g -unittest -I./source -L-lgfortran -L-lblas -L-llapack $@ unittests.d
