@@ -110,14 +110,14 @@ void buildLib(string compiler, string[] extraOptions)
     ensureDir(libDir);
     auto sources = getSources();
 
-    version (Posix)     immutable libFile = "lib"~libName~".a";
-    version (Windows)   immutable libFile = libName~".lib";
+    version (Posix)     immutable libFile = "lib" ~ libName ~ ".a";
+    version (Windows)   immutable libFile = libName ~ ".lib";
 
     immutable buildCmd = compiler ~ " "
-        ~std.string.join(sources, " ")
-        ~" -I"~importDir
-        ~" -property -w -lib -od"~libDir~" -of"~libFile
-        ~" "~std.string.join(extraOptions, " ");
+        ~ std.string.join(sources, " ")
+        ~ " -I"~importDir
+        ~ " -property -w -lib -od"~libDir~" -of"~libFile
+        ~ " "~std.string.join(extraOptions, " ");
     writeln(buildCmd);
     enforce(system(buildCmd) == 0, "Error building library");
 }
@@ -135,11 +135,11 @@ void buildHeaders(string compiler, string[] extraOptions)
         ensureDir(dirName(diPath));
 
         immutable cmd = compiler
-          ~" -I"~importDir
-          ~" "~s~" -c -o- -H -Hf"~diPath
-          ~" "~std.string.join(extraOptions, " ");
+          ~ " -I" ~ importDir
+          ~ " " ~ s ~ " -c -o- -H -Hf" ~ diPath
+          ~ " " ~ std.string.join(extraOptions, " ");
         writeln(cmd);
-        enforce(system(cmd) == 0, "Error making header file: "~baseName(diPath));
+        enforce(system(cmd) == 0, "Error making header file: " ~ baseName(diPath));
     }
 }
 
@@ -167,24 +167,24 @@ void buildHTML(string compiler, string[] extraOptions)
         if (std.string.indexOf(s, "internal") == -1)
             moduleList ~=
                 "\t$(MODULE "
-                ~baseName(replace(s, slash, "."), ".d")
-                ~")\n";
+                ~ baseName(replace(s, slash, "."), ".d")
+                ~ ")\n";
     }
 
     immutable modulesDdoc = buildPath(htmlDir, "candydoc", "modules.ddoc");
-    writeln("Writing "~modulesDdoc);
+    writeln("Writing " ~ modulesDdoc);
     std.file.write(modulesDdoc, moduleList);
 
     immutable candyDdoc = buildPath(htmlDir, "candydoc", "candy.ddoc");
     foreach (i; 0 .. sources.length)
     {
         immutable cmd =
-            compiler~" "~sources[i]~" "~candyDdoc~" "~modulesDdoc
-            ~" -I"~importDir
-            ~" -c -o- -D -Dd"~htmlDir~" -Df"~htmlFiles[i]
-            ~" "~std.string.join(extraOptions, " ");
+            compiler ~ " "~sources[i]~" " ~ candyDdoc ~ " " ~ modulesDdoc
+            ~ " -I" ~ importDir
+            ~ " -c -o- -D -Dd" ~ htmlDir ~ " -Df" ~ htmlFiles[i]
+            ~ " " ~ std.string.join(extraOptions, " ");
         writeln(cmd);
-        enforce(system(cmd) == 0, "Error making HTML file: "~htmlFiles[i]);
+        enforce(system(cmd) == 0, "Error making HTML file: " ~ htmlFiles[i]);
     }
 }
 
@@ -204,7 +204,7 @@ void buildClean()
     rm(libDir);
     rm(headerDir);
     rm(htmlDir);
-    rm(__FILE__~".deps");   // Clean up after rdmd as well
+    rm(__FILE__ ~ ".deps");   // Clean up after rdmd as well
 }
 
 
@@ -226,14 +226,14 @@ string[] getSources()
 
 void ensureDir(string dir)
 {
-    if (exists(dir)) enforce(isDir(dir), "Not a directory: "~dir);
+    if (exists(dir)) enforce(isDir(dir), "Not a directory: " ~ dir);
     else mkdirRecurse(dir);
 }
 
 
 void unzip(string zipFile, string toDir)
 {
-    writeln("Unzipping "~zipFile~" to "~toDir);
+    writeln("Unzipping " ~ zipFile ~ " to " ~ toDir);
     auto zip = new ZipArchive(std.file.read(zipFile));
     foreach (member; zip.directory)
     {
