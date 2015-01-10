@@ -3198,12 +3198,13 @@ f_double dlamch(char[]cmach) {
     return dlamch_(cmach.ptr, toInt(cmach.length));
 }
 
-///
-lapack_float_ret_t second() {
-    return second_();
+version(netlib_clapack)
+{
+    ///
+    lapack_float_ret_t second() {
+        return second_();
+    }
+    f_double secnd() {
+        return dsecnd_();
+    }
 }
-f_double secnd() {
-    return dsecnd_();
-}
-
-
