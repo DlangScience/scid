@@ -1,4 +1,10 @@
 language: d
+os:
+  - linux
+  - osx
+d:
+  - dmd-2.066.1
+  - ldc-0.15.1
 before_install:
   - sudo apt-get update
   - sudo apt-get install liblapack-dev
