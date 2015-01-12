@@ -1722,8 +1722,9 @@ void ilaenvset_(f_int *ispec, char *name, char *opts, f_int *n1, f_int *n2, f_in
 f_float slamch_(char *cmach, f_int cmach_len);
 f_double dlamch_(char *cmach, f_int cmach_len);
 
-///
-lapack_float_ret_t second_();
-f_double dsecnd_();
-
-
+version(netlib_clapack)
+{
+    ///
+    lapack_float_ret_t second_();
+    f_double dsecnd_();
+}
