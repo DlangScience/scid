@@ -9,7 +9,7 @@ module scid.matrix;
 
 
 //private import std.conv;
-import std.string: format, repeat;
+import std.string: format;
 import std.traits;
 
 import scid.core.meta;

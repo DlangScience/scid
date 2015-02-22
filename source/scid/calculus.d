@@ -921,7 +921,7 @@ Result!Real integrateDEI(Func, Real)(scope Func f, Real a,
     Real epsRel = cast(Real) 1e-6)
 {
     Real result, error;
-    intdei(f, a, epsRel, &result, &error);
+    intdei!Real(f, a, epsRel, &result, &error);
     if (error < 0) throw new IntegrationException(
         "Integration failed",
         "The integrand may have discontinuities, singularities or "
