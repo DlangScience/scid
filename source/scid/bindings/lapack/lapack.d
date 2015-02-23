@@ -7,9 +7,15 @@
 */
 module scid.bindings.lapack.lapack;
 
+import std.complex: Complex;
 
-public import scid.bindings.blas.types;
+alias f_float  = float ;
+alias f_double = double;
+alias f_cfloat  = Complex!float ;
+alias f_cdouble = Complex!double;
 
+import cblas.cblas;
+alias f_int = blasint;
 
 /*
   Copyright (C) 2006--2008 William V. Baxter III, OLM Digital, Inc.
@@ -1722,9 +1728,10 @@ void ilaenvset_(f_int *ispec, char *name, char *opts, f_int *n1, f_int *n2, f_in
 f_float slamch_(char *cmach, f_int cmach_len);
 f_double dlamch_(char *cmach, f_int cmach_len);
 
-version(netlib_clapack)
+version(CLAPACK_NETLIB)
 {
     ///
     lapack_float_ret_t second_();
+    ///
     f_double dsecnd_();
 }

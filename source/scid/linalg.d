@@ -6,8 +6,8 @@
     ---
     float
     double
-    cfloat
-    cdouble
+    Complex!float
+    Complex!double
     ---
     Specifically, real- and creal-valued matrices/vectors cannot be used.
 
@@ -225,18 +225,18 @@ unittest
 {
     alias solve!(MatrixView!float, MatrixView!float) solve_f;
     alias solve!(MatrixView!double, MatrixView!double) solve_d;
-    alias solve!(MatrixView!cfloat, MatrixView!cfloat) solve_cf;
-    alias solve!(MatrixView!cdouble, MatrixView!cdouble) solve_cd;
+    alias solve!(MatrixView!(Complex!float), MatrixView!(Complex!float)) solve_cf;
+    alias solve!(MatrixView!(Complex!double), MatrixView!(Complex!double)) solve_cd;
 
     alias solve!(MatrixView!(float, Storage.Symmetric), MatrixView!float) solve_f_s;
     alias solve!(MatrixView!(double, Storage.Symmetric), MatrixView!double) solve_d_s;
-    alias solve!(MatrixView!(cfloat, Storage.Symmetric), MatrixView!cfloat) solve_cf_s;
-    alias solve!(MatrixView!(cdouble, Storage.Symmetric), MatrixView!cdouble) solve_cd_s;
+    alias solve!(MatrixView!(Complex!float, Storage.Symmetric), MatrixView!(Complex!float)) solve_cf_s;
+    alias solve!(MatrixView!(Complex!double, Storage.Symmetric), MatrixView!(Complex!double)) solve_cd_s;
 
     alias solve!(MatrixView!(float, Storage.Triangular), MatrixView!float) solve_f_t;
     alias solve!(MatrixView!(double, Storage.Triangular), MatrixView!double) solve_d_t;
-    alias solve!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
-    alias solve!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
+    alias solve!(MatrixView!(Complex!float, Storage.Triangular), MatrixView!(Complex!float)) solve_cf_t;
+    alias solve!(MatrixView!(Complex!double, Storage.Triangular), MatrixView!(Complex!double)) solve_cd_t;
 
     alias solve!(MatrixView!double, double) solve_vec;
 }
@@ -245,18 +245,18 @@ unittest
 {
     alias solve_!(MatrixView!float, MatrixView!float) solve_f;
     alias solve_!(MatrixView!double, MatrixView!double) solve_d;
-    alias solve_!(MatrixView!cfloat, MatrixView!cfloat) solve_cf;
-    alias solve_!(MatrixView!cdouble, MatrixView!cdouble) solve_cd;
+    alias solve_!(MatrixView!(Complex!float), MatrixView!(Complex!float)) solve_cf;
+    alias solve_!(MatrixView!(Complex!double), MatrixView!(Complex!double)) solve_cd;
 
     alias solve_!(MatrixView!(float, Storage.Symmetric), MatrixView!float) solve_f_s;
     alias solve_!(MatrixView!(double, Storage.Symmetric), MatrixView!double) solve_d_s;
-    alias solve_!(MatrixView!(cfloat, Storage.Symmetric), MatrixView!cfloat) solve_cf_s;
-    alias solve_!(MatrixView!(cdouble, Storage.Symmetric), MatrixView!cdouble) solve_cd_s;
+    alias solve_!(MatrixView!(Complex!float, Storage.Symmetric), MatrixView!(Complex!float)) solve_cf_s;
+    alias solve_!(MatrixView!(Complex!double, Storage.Symmetric), MatrixView!(Complex!double)) solve_cd_s;
 
     alias solve_!(MatrixView!(float, Storage.Triangular), MatrixView!float) solve_f_t;
     alias solve_!(MatrixView!(double, Storage.Triangular), MatrixView!double) solve_d_t;
-    alias solve_!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
-    alias solve_!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
+    alias solve_!(MatrixView!(Complex!float, Storage.Triangular), MatrixView!(Complex!float)) solve_cf_t;
+    alias solve_!(MatrixView!(Complex!double, Storage.Triangular), MatrixView!(Complex!double)) solve_cd_t;
 
     alias solve_!(MatrixView!double, double) solve_vec;
 }
@@ -304,7 +304,7 @@ unittest
 
     The type of the return value depends on the element type of
     the matrix. For float or double matrices the determinant is of
-    type real, and for cfloat or cdouble matrices the determinant
+    type real, and for Complex!float or Complex!double matrices the determinant
     is of type creal. The reason for choosing the widest type is that
     determinants are often very big numbers, and therefore tend
     to overflow.
@@ -417,10 +417,22 @@ body
 
 template DetType(MatrixT)
 {
-    static if (scid.core.traits.isComplex!(BaseElementType!MatrixT))
-        alias creal DetType;
-    else
-        alias real DetType;
+    version(X86)
+    {
+        static if (scid.core.traits.isComplex!(BaseElementType!MatrixT))
+        {
+            static if(is(BaseElementType!MatrixT : Complex!E, E))
+                alias DetType = Complex!real;
+            else
+                alias DetType = creal;
+        }
+        else
+            alias DetType = real;
+    }
+    else // Don't use x87 on modern CPUs
+    {
+        alias DetType = BaseElementType!MatrixT;
+    }
 }
 
 
@@ -429,13 +441,13 @@ unittest
     // Check for all FORTRAN compatible types.
     alias det!(float, Storage.General) det_fd;
     alias det!(double, Storage.General) det_dd;
-    alias det!(cfloat, Storage.General) cfdet_cfd;
-    alias det!(cdouble, Storage.General) cddet_cdd;
+    alias det!(Complex!float, Storage.General) cfdet_cfd;
+    alias det!(Complex!double, Storage.General) cddet_cdd;
 
     alias det!(float, Storage.Symmetric) det_fs;
     alias det!(double, Storage.Symmetric) det_ds;
-    alias det!(cfloat, Storage.Symmetric) cfdet_cfs;
-    alias det!(cdouble, Storage.Symmetric) cddet_cds;
+    alias det!(Complex!float, Storage.Symmetric) cfdet_cfs;
+    alias det!(Complex!double, Storage.Symmetric) cddet_cds;
 
     // Check for zero-determinant shortcut.
     double[] dsinga = [4.0, 2, 2, 1];   // dense singular
@@ -642,19 +654,13 @@ body
 {
     mixin (newFrame);
 
-    // Until std.complex finally replaces cfloat and cdouble, we use this
-    // little hack:
-    static if (is(typeof(T.re) == float)) alias cfloat cT;
-    else static if (is(typeof(T.re) == double)) alias cdouble cT;
-    else static assert(0);
-
     immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
     // Calculate optimal workspace size.
     int info;
-    cT optimal;
+    T optimal;
     geev('N', 'N',
         n, null, n,     // Need matrix info.
         null,           // Eigenvalues, not calculated.
@@ -670,11 +676,11 @@ body
 
     // Call LAPACK routine GEEV to calculate eigenvalues.
     geev('N', 'N',                              // Don't compute eigenvectors.
-        n, cast(cT*) m.array.ptr, n,            // Input matrix.
-        cast(cT*) buffer.ptr,                   // Eigenvalues.
+        n, cast(T*) m.array.ptr, n,            // Input matrix.
+        cast(T*) buffer.ptr,                   // Eigenvalues.
         null, 1,                    // Left eigenvectors, not calculated.
         null, 1,                    // Right eigenvectors, not calculated.
-        cast(cT*) work.ptr, toInt(work.length), // Workspace 1.
+        cast(T*) work.ptr, toInt(work.length), // Workspace 1.
         rwork.ptr,                              // Workspace 2.
         info);
 

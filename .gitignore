@@ -3,3 +3,9 @@
 .dub
 /build
 dub.selections.json
+
+__test__library__
+
+libscid.a
+
+project.sublime-project

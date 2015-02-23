@@ -5,53 +5,13 @@
     Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
+deprecated("Use `cblas` instead.")
 module scid.bindings.blas.dblas;
 
 
 import scid.bindings.blas.blas;
 public import scid.bindings.blas.types;
 import scid.core.fortran;
-
-
-
-
-/*  This unittest just checks whether the system is correctly
-    set up to call BLAS routines.
-*/
-version(unittest)  import std.math: approxEqual;
-unittest
-{
-    f_float[] fx = [1.0,2,3];
-    f_float[] fy = [1.0,2,3];
-    f_double[] dx = [1.0,2,3];
-    f_double[] dy = [1.0,2,3];
-    f_cfloat[] cx = [1.0+0i, 2+0i, 3+0i];
-    f_cfloat[] cy = [1.0+0i, 2+0i, 3+0i];
-    f_cdouble[] zx = [1.0+0i, 2+0i, 3+0i];
-    f_cdouble[] zy = [1.0+0i, 2+0i, 3+0i];
-
-    f_float fret = dot(toInt(fx.length), fx.ptr, 1,  fy.ptr, 1);
-    assert (approxEqual(fret, 14.0, 1e-7));
-
-    f_double dret = dot(toInt(dx.length), dx.ptr, 1,  dy.ptr, 1);
-    assert (approxEqual(dret, 14.0, 1e-7));
-
-    // This test causes segmentation fault, for reasons unknown.
-    /*
-    f_cfloat cret = dotu(toInt(cx.length), cx.ptr, 1,  cy.ptr, 1);
-    assert (approxEqual(cret.re, 14.0, 1e-7)
-            && approxEqual(cret.im, 0.0, 1e-7));
-    */
-
-
-    // This test fails on 64-bit, also for unknown reason.
-    version(X86)
-    {
-    f_cdouble zret = dotu(toInt(zx.length), zx.ptr, 1,  zy.ptr, 1);
-    assert (approxEqual(zret.re, 14.0, 1e-7)
-            && approxEqual(zret.im, 0.0, 1e-7));
-    }
-}
 
 
 /* BLAS routines */
