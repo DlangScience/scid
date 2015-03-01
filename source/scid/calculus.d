@@ -4,7 +4,7 @@
     any of the functions in this module, as it discusses features and
     issues that are common to several of them.
 
-    # Integration
+    Integration:
 
     This module contains several different integration methods, suitable
     for a wide range of problems.  The choice of which method to use
@@ -41,7 +41,7 @@
     $(LINK2 http://www.kurims.kyoto-u.ac.jp/~ooura/intde.html,DE-Quadrature package),
     and are available in this module through the $(D integrateDE*()) functions.
 
-    # Differentiation
+    Differentiation:
 
     The simplest, but fastest, form of numerical differentiation is using
     finite differences. The functions in this module use three different
