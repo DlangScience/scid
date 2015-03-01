@@ -2,37 +2,46 @@ SciD
 ====
 
 SciD is a collection of numerical routines and bindings written in and for
-the D programming language.  The project page can be found at
+the D programming language.  It contains:
 
-    https://github.com/kyllingstad/scid
+  * `scid.calculus`: Numerical integration (quadrature) and differentiation.
+  * `scid.constants`: Fundamental constants of mathematics and Nature.
+  * `scid.functions`: Mathematical special functions.
+  * `scid.linalg`: Linear algebra (i.e., nice interfaces to a few LAPACK functions).
+  * `scid.matrix`: LAPACK-compatible matrix view of ordinary arrays.
+  * `scid.nonlinear`: Methods for nonlinear equation solving.
 
+The API documentation may be viewed at
+[DDocs.org](http://ddocs.org/scid/~master/index.html).
 
-Author:     Lars Tandle Kyllingstad
-Copyright:  Copyright (c) 2009-2010, Lars T. Kyllingstad.
-Licence:    Boost License 1.0 (see licence.txt)
+There are several ways to get SciD:
 
+  * It is available as a [Dub package](http://code.dlang.org/packages/scid).
+  * Users of Debian, Ubuntu, Linux Mint and similar operating systems may
+    install it from the [D-APT package repository](http://d-apt.sourceforge.net/).
+  * You can clone the [GitHub repository](https://github.com/kyllingstad/scid)
+    and build it yourself.
 
+Please submit questions and bug reports using the
+[GitHub issue tracker](https://github.com/kyllingstad/scid/issues).
 
-How to build
-============
+Requirements
+------------
+All you need in order to use SciD is:
 
-To build the library and generate header (.di) files, run
+  * A somewhat up-to-date D compiler
+  * The LAPACK library (and, by extension, a BLAS library)
 
-    rdmd build
+Contributing
+------------
+Contributions are very welcome!  Please submit your work as
+[pull requests on GitHub](https://github.com/kyllingstad/scid/pulls).
+By submitting a pull request, you implicitly accept that your contribution
+is placed under the same licence as SciD.  See LICENCE.txt for details.
 
-To build only the library file, run
+While there is no formal coding style guide for SciD, new code is expected to
+follow the same style as existing code (which is more or less conventional
+in the D community anyway).
 
-    rdmd build lib
-
-To only generate header files, run
-
-    rdmd build headers
-
-To make the documentation, run
-
-    rdmd build html
-
-To clean up after the build script, run
-
-    rdmd build clean
-
+Use four spaces for indentation (we don't need no stinkin' tabs!) , and UNIX
+line endings (a single newline).
