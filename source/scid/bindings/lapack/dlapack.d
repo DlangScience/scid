@@ -7,13 +7,10 @@
 */
 module scid.bindings.lapack.dlapack;
 
-
-public  import scid.bindings.blas.types;
 import scid.bindings.lapack.lapack;
 import scid.core.fortran;
 
-
-
+public import scid.bindings.lapack.lapack: f_int, f_float, f_double, f_cfloat, f_cdouble;
 
 /* LAPACK routines */
 

@@ -5,6 +5,7 @@
     Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
     License:    Boost License 1.0
 */
+deprecated("Use http://code.dlang.org/packages/cblas instead.")
 module scid.bindings.blas.types;
 
 

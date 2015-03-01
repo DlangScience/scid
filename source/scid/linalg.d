@@ -6,8 +6,8 @@
     ---
     float
     double
-    cfloat
-    cdouble
+    Complex!float
+    Complex!double
     ---
     Specifically, real- and creal-valued matrices/vectors cannot be used.
 
@@ -48,7 +48,6 @@ import scid.core.traits;
 import scid.matrix;
 import scid.util;
 
-pragma(lib, "blas");
 pragma(lib, "lapack");
 
 
@@ -225,18 +224,18 @@ unittest
 {
     alias solve!(MatrixView!float, MatrixView!float) solve_f;
     alias solve!(MatrixView!double, MatrixView!double) solve_d;
-    alias solve!(MatrixView!cfloat, MatrixView!cfloat) solve_cf;
-    alias solve!(MatrixView!cdouble, MatrixView!cdouble) solve_cd;
+    alias solve!(MatrixView!(Complex!float), MatrixView!(Complex!float)) solve_cf;
+    alias solve!(MatrixView!(Complex!double), MatrixView!(Complex!double)) solve_cd;
 
     alias solve!(MatrixView!(float, Storage.Symmetric), MatrixView!float) solve_f_s;
     alias solve!(MatrixView!(double, Storage.Symmetric), MatrixView!double) solve_d_s;
-    alias solve!(MatrixView!(cfloat, Storage.Symmetric), MatrixView!cfloat) solve_cf_s;
-    alias solve!(MatrixView!(cdouble, Storage.Symmetric), MatrixView!cdouble) solve_cd_s;
+    alias solve!(MatrixView!(Complex!float, Storage.Symmetric), MatrixView!(Complex!float)) solve_cf_s;
+    alias solve!(MatrixView!(Complex!double, Storage.Symmetric), MatrixView!(Complex!double)) solve_cd_s;
 
     alias solve!(MatrixView!(float, Storage.Triangular), MatrixView!float) solve_f_t;
     alias solve!(MatrixView!(double, Storage.Triangular), MatrixView!double) solve_d_t;
-    alias solve!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
-    alias solve!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
+    alias solve!(MatrixView!(Complex!float, Storage.Triangular), MatrixView!(Complex!float)) solve_cf_t;
+    alias solve!(MatrixView!(Complex!double, Storage.Triangular), MatrixView!(Complex!double)) solve_cd_t;
 
     alias solve!(MatrixView!double, double) solve_vec;
 }
@@ -245,18 +244,18 @@ unittest
 {
     alias solve_!(MatrixView!float, MatrixView!float) solve_f;
     alias solve_!(MatrixView!double, MatrixView!double) solve_d;
-    alias solve_!(MatrixView!cfloat, MatrixView!cfloat) solve_cf;
-    alias solve_!(MatrixView!cdouble, MatrixView!cdouble) solve_cd;
+    alias solve_!(MatrixView!(Complex!float), MatrixView!(Complex!float)) solve_cf;
+    alias solve_!(MatrixView!(Complex!double), MatrixView!(Complex!double)) solve_cd;
 
     alias solve_!(MatrixView!(float, Storage.Symmetric), MatrixView!float) solve_f_s;
     alias solve_!(MatrixView!(double, Storage.Symmetric), MatrixView!double) solve_d_s;
-    alias solve_!(MatrixView!(cfloat, Storage.Symmetric), MatrixView!cfloat) solve_cf_s;
-    alias solve_!(MatrixView!(cdouble, Storage.Symmetric), MatrixView!cdouble) solve_cd_s;
+    alias solve_!(MatrixView!(Complex!float, Storage.Symmetric), MatrixView!(Complex!float)) solve_cf_s;
+    alias solve_!(MatrixView!(Complex!double, Storage.Symmetric), MatrixView!(Complex!double)) solve_cd_s;
 
     alias solve_!(MatrixView!(float, Storage.Triangular), MatrixView!float) solve_f_t;
     alias solve_!(MatrixView!(double, Storage.Triangular), MatrixView!double) solve_d_t;
-    alias solve_!(MatrixView!(cfloat, Storage.Triangular), MatrixView!cfloat) solve_cf_t;
-    alias solve_!(MatrixView!(cdouble, Storage.Triangular), MatrixView!cdouble) solve_cd_t;
+    alias solve_!(MatrixView!(Complex!float, Storage.Triangular), MatrixView!(Complex!float)) solve_cf_t;
+    alias solve_!(MatrixView!(Complex!double, Storage.Triangular), MatrixView!(Complex!double)) solve_cd_t;
 
     alias solve_!(MatrixView!double, double) solve_vec;
 }
@@ -302,13 +301,6 @@ unittest
 
 /** Calculate the determinant of a square matrix.
 
-    The type of the return value depends on the element type of
-    the matrix. For float or double matrices the determinant is of
-    type real, and for cfloat or cdouble matrices the determinant
-    is of type creal. The reason for choosing the widest type is that
-    determinants are often very big numbers, and therefore tend
-    to overflow.
-
     Examples:
     ---
     import scid.matrix;
@@ -321,7 +313,7 @@ unittest
     writeln(d);   // Prints "-2"
     ---
 */
-DetType!(MatrixView!(T, stor)) det
+Unqual!T det
     (T, Storage stor)
     (const MatrixView!(T, stor) m)
 {
@@ -330,7 +322,7 @@ DetType!(MatrixView!(T, stor)) det
 
 
 /// ditto
-DetType!(MatrixView!(T, stor)) det_
+Unqual!T det_
     (T, Storage stor)
     (MatrixView!(T, stor) m)
 in
@@ -345,6 +337,24 @@ body
         "det: Not a FORTRAN-compatible type: "~T.stringof);
 
     alias typeof(return) DT;
+    DT d = One!DT;
+    size_t sign;
+    static if(isFloatingPoint!DT)
+        long exp;
+
+    //accumulates exponent and mantissa for floating points numbers and
+    //annihilates exponent overflow in some cases.
+    //See Also: std.numeric.sumOfLog2s
+    void mul(DT x)
+    {
+        d *= x;
+        static if(isFloatingPoint!DT)
+        {
+            int lexp = void;
+            d = frexp(d, lexp);
+            exp += lexp;      
+        }
+    }
 
     // LU factorise matrix.
     int info;
@@ -360,15 +370,12 @@ body
         // The determinant is the product of the diagonal entries
         // of the upper triangular matrix. The array ipiv contains
         // the pivots.
-        DT d = One!DT;
         for (int i=0; i<m.rows; i++)
         {
             auto p = ipiv[i];
-            if (p == i+1) d *= m[i,i];  // i.e. row interchanged with itself
-            else          d *= -m[i,i]; // i.e. row interchanged with another
+            mul(m[i,i]);
+            sign += p != i+1; // i.e. row interchanged with another
         }
-
-        return d;
     }
 
     else static if (m.storage == Storage.Symmetric)
@@ -381,46 +388,36 @@ body
         if (info > 0)  return Zero!DT;
 
         // Calculate determinant.
-        DT d = One!DT;
         for (int k=0; k<m.rows; k++)
         {
             auto p = ipiv[k];
             if (p > 0)  // 1x1 block at m[k,k]
             {
-                if (p == k+1) d *= m[k,k];  // row interchanged with self
-                else          d *= -m[k,k]; // row interchanged with other
+                mul(m[k,k]);
+                sign += p != k+1; // row interchanged with other
             }
             else // p < 0, 2x2 block at m[k..k+1, k..k+1]
             {
                 auto kp1 = k+1;
                 auto offDiag = m[k, kp1];
                 auto blockDet = m[k,k]*m[kp1,kp1] - offDiag*offDiag;
-                if (-p == kp1 || -p == k+2) // row interchanged with self
-                    d *= blockDet;
-                else                        // row interchanged with other
-                    d *= -blockDet;
+                mul(blockDet);
+                sign += -p != kp1 && -p != k+2; // row interchanged with other
                 k++;
             }
         }
-
-        return d;
     }
     else static if (m.storage == Storage.Triangular)
     {
-        DT d = m[0,0];
-        foreach (i; 1 .. m.rows)  d *= m[i,i];
-        return d;
+        foreach (i; 0 .. m.rows)  d *= m[i,i];
     }
     else static assert (false, "det: Unsupported matrix storage.");
-}
-
-
-template DetType(MatrixT)
-{
-    static if (scid.core.traits.isComplex!(BaseElementType!MatrixT))
-        alias creal DetType;
+    if(sign & 1)
+        d = -d;
+    static if(isFloatingPoint!DT)
+        return cast(int)exp == exp ? ldexp(d, cast(int)exp) : d * DT.infinity;
     else
-        alias real DetType;
+        return d;
 }
 
 
@@ -429,13 +426,13 @@ unittest
     // Check for all FORTRAN compatible types.
     alias det!(float, Storage.General) det_fd;
     alias det!(double, Storage.General) det_dd;
-    alias det!(cfloat, Storage.General) cfdet_cfd;
-    alias det!(cdouble, Storage.General) cddet_cdd;
+    alias det!(Complex!float, Storage.General) cfdet_cfd;
+    alias det!(Complex!double, Storage.General) cddet_cdd;
 
     alias det!(float, Storage.Symmetric) det_fs;
     alias det!(double, Storage.Symmetric) det_ds;
-    alias det!(cfloat, Storage.Symmetric) cfdet_cfs;
-    alias det!(cdouble, Storage.Symmetric) cddet_cds;
+    alias det!(Complex!float, Storage.Symmetric) cfdet_cfs;
+    alias det!(Complex!double, Storage.Symmetric) cddet_cds;
 
     // Check for zero-determinant shortcut.
     double[] dsinga = [4.0, 2, 2, 1];   // dense singular
@@ -460,10 +457,11 @@ unittest
                 d[k,l] = (k+1)*(k+1) + 1.0;
             else
                 d[k,l] = 2.0*(k+1)*(l+1);
+            d[k,l] /= 2;
         }
     }
     auto dd = det(d);
-    assert (approxEqual(dd, 8.972817920259982e319L, sqrt(real.epsilon)));
+    assert (approxEqual(dd, ldexp(8.972817920259982e319L, -dn), sqrt(real.epsilon)));
 
 
     // Symmetric packed matrix
@@ -642,19 +640,13 @@ body
 {
     mixin (newFrame);
 
-    // Until std.complex finally replaces cfloat and cdouble, we use this
-    // little hack:
-    static if (is(typeof(T.re) == float)) alias cfloat cT;
-    else static if (is(typeof(T.re) == double)) alias cdouble cT;
-    else static assert(0);
-
     immutable int n = toInt(m.rows);
     if (n == 0) return null;    // Empty matrix.
     buffer.length = n;
 
     // Calculate optimal workspace size.
     int info;
-    cT optimal;
+    T optimal;
     geev('N', 'N',
         n, null, n,     // Need matrix info.
         null,           // Eigenvalues, not calculated.
@@ -670,11 +662,11 @@ body
 
     // Call LAPACK routine GEEV to calculate eigenvalues.
     geev('N', 'N',                              // Don't compute eigenvectors.
-        n, cast(cT*) m.array.ptr, n,            // Input matrix.
-        cast(cT*) buffer.ptr,                   // Eigenvalues.
+        n, cast(T*) m.array.ptr, n,            // Input matrix.
+        cast(T*) buffer.ptr,                   // Eigenvalues.
         null, 1,                    // Left eigenvectors, not calculated.
         null, 1,                    // Right eigenvectors, not calculated.
-        cast(cT*) work.ptr, toInt(work.length), // Workspace 1.
+        cast(T*) work.ptr, toInt(work.length), // Workspace 1.
         rwork.ptr,                              // Workspace 2.
         info);
 

@@ -6,11 +6,9 @@
 */
 module scid.core.meta;
 
-
-private import std.traits;
-private import scid.core.traits;
-
-
+import std.traits;
+import scid.core.traits;
+import std.complex: Complex;
 
 
 /** Evaluates to the zero value for a given type.
@@ -22,6 +20,8 @@ template Zero(T)
 {
     static if (isFloatingPoint!T)
         enum T Zero = 0.0;
+    else static if (is(T : Complex!E, E))
+        enum T Zero = T(0, 0);
     else static if (isComplex!T)
         enum T Zero = 0.0 + 0.0i;
     else static if (isIntegral!T)
@@ -46,6 +46,8 @@ template One(T)
 {
     static if (isFloatingPoint!T)
         enum T One = 1.0;
+    else static if (is(T : Complex!E, E))
+        enum T One = T(1, 0);
     else static if (isComplex!T)
         enum T One = 1.0 + 0.0i;
     else static if (isIntegral!T)
