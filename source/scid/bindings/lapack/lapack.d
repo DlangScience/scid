@@ -14,8 +14,12 @@ alias f_double = double;
 alias f_cfloat  = Complex!float ;
 alias f_cdouble = Complex!double;
 
-import cblas.cblas;
-alias f_int = blasint;
+version(LAPACKNATIVEINT)
+  ///
+  alias f_int = ptrdiff_t;
+else
+  ///
+  alias f_int = int;
 
 /*
   Copyright (C) 2006--2008 William V. Baxter III, OLM Digital, Inc.
