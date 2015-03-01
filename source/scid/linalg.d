@@ -48,7 +48,6 @@ import scid.core.traits;
 import scid.matrix;
 import scid.util;
 
-pragma(lib, "blas");
 pragma(lib, "lapack");
 
 
