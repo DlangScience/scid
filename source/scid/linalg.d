@@ -320,7 +320,7 @@ unittest
     writeln(d);   // Prints "-2"
     ---
 */
-T det
+Unqual!T det
     (T, Storage stor)
     (const MatrixView!(T, stor) m)
 {
@@ -329,7 +329,7 @@ T det
 
 
 /// ditto
-T det_
+Unqual!T det_
     (T, Storage stor)
     (MatrixView!(T, stor) m)
 in
