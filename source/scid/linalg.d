@@ -320,7 +320,7 @@ unittest
     writeln(d);   // Prints "-2"
     ---
 */
-DetType!(MatrixView!(T, stor)) det
+T det
     (T, Storage stor)
     (const MatrixView!(T, stor) m)
 {
@@ -329,7 +329,7 @@ DetType!(MatrixView!(T, stor)) det
 
 
 /// ditto
-DetType!(MatrixView!(T, stor)) det_
+T det_
     (T, Storage stor)
     (MatrixView!(T, stor) m)
 in
@@ -411,27 +411,6 @@ body
         return d;
     }
     else static assert (false, "det: Unsupported matrix storage.");
-}
-
-
-template DetType(MatrixT)
-{
-    version(X86)
-    {
-        static if (scid.core.traits.isComplex!(BaseElementType!MatrixT))
-        {
-            static if(is(BaseElementType!MatrixT : Complex!E, E))
-                alias DetType = Complex!real;
-            else
-                alias DetType = creal;
-        }
-        else
-            alias DetType = real;
-    }
-    else // Don't use x87 on modern CPUs
-    {
-        alias DetType = BaseElementType!MatrixT;
-    }
 }
 
 
