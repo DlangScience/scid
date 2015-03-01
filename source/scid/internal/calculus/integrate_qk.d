@@ -456,7 +456,7 @@ unittest
             double resabs, variance;
             auto result = qk!rule(&f, 0.0, 1.0, resabs, variance);
             auto expect = (exp(alpha) - 1) / alpha;
-            check(isAccurate(result.value, result.error, expect, 1e-8));
+            assert (isAccurate(result.value, result.error, expect, 1e-8));
         }
     }
 

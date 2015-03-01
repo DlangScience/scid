@@ -10,11 +10,7 @@
 */
 module scid.functions;
 
-
-
 import std.math;
-
-import scid.core.testing;
 
 
 
@@ -136,10 +132,10 @@ real besselI0(real x) pure
 
 unittest
 {
-    check (approxEqual(besselI0( 1), 1.2660658777520083356e0, 8.2e-17));
-    check (approxEqual(besselI0(10), 2.8157166284662544715e3, 8.2e-17));
-    check (besselI0(- 1) == besselI0( 1));
-    check (besselI0(-10) == besselI0(10));
+    assert (approxEqual(besselI0( 1), 1.2660658777520083356e0, 8.2e-17));
+    assert (approxEqual(besselI0(10), 2.8157166284662544715e3, 8.2e-17));
+    assert (besselI0(- 1) == besselI0( 1));
+    assert (besselI0(-10) == besselI0(10));
 }
 
 
@@ -234,10 +230,10 @@ real besselI1(real x) pure
 
 unittest
 {
-    check (approxEqual(besselI1( 1), 5.6515910399248502721e-1, 1.2e-16));
-    check (approxEqual(besselI1(10), 2.6709883037012546543e3,  1.2e-16));
-    check (besselI1(- 1) == -besselI1( 1));
-    check (besselI1(-10) == -besselI1(10));
+    assert (approxEqual(besselI1( 1), 5.6515910399248502721e-1, 1.2e-16));
+    assert (approxEqual(besselI1(10), 2.6709883037012546543e3,  1.2e-16));
+    assert (besselI1(- 1) == -besselI1( 1));
+    assert (besselI1(-10) == -besselI1(10));
 }
 
 
@@ -306,8 +302,8 @@ body {
 
 unittest
 {
-    check (approxEqual(besselK0( 1), 4.2102443824070833334e-1, 1.3e-16));
-    check (approxEqual(besselK0(10), 1.7780062316167651811e-5, 1.3e-16));
+    assert (approxEqual(besselK0( 1), 4.2102443824070833334e-1, 1.3e-16));
+    assert (approxEqual(besselK0(10), 1.7780062316167651811e-5, 1.3e-16));
 }
 
 
@@ -377,7 +373,7 @@ body {
 
 unittest
 {
-    check (approxEqual(besselK1( 1), 6.0190723019723457474e-1, 8.9e-17));
-    check (approxEqual(besselK1(10), 1.8648773453825584597e-5, 8.9e-17));
+    assert (approxEqual(besselK1( 1), 6.0190723019723457474e-1, 8.9e-17));
+    assert (approxEqual(besselK1(10), 1.8648773453825584597e-5, 8.9e-17));
 }
 

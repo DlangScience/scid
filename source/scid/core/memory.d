@@ -42,7 +42,6 @@ static import std.c.stdio;
 version(unittest)
 {
     import std.conv;
-    import scid.core.testing;
 }
 
 
@@ -166,7 +165,7 @@ unittest {
     foo.appendDelOld(3);
     foo.appendDelOld(2);
     foo.appendDelOld(1);
-    check (foo == cast(uint[]) [5,4,3,2,1]);
+    assert (foo == cast(uint[]) [5,4,3,2,1]);
     //writefln("Passed appendDelOld test.");
 }
 
@@ -635,7 +634,7 @@ version (TempAllocUnittest) unittest {
     foreach(i, elem; asArray) {
         assert (i == elem, to!(string)(i) ~ "\t" ~ to!(string)(elem));
     }
-    check (asArray.length == 1024 * 1025);
+    assert (asArray.length == 1024 * 1025);
     TempAlloc.free;
     TempAlloc.free;
     while(TempAlloc.getState().freelist.index > 0) {
@@ -732,8 +731,8 @@ version (TempAllocUnittest) unittest {
         }
     }
     TempAlloc.frameFree;
-    check (space == TempAlloc.state.space);
-    check (used == TempAlloc.state.used);
+    assert (space == TempAlloc.state.space);
+    assert (used == TempAlloc.state.used);
     while(TempAlloc.state.nblocks > 1 || TempAlloc.state.used > 0) {
         TempAlloc.free;
     }

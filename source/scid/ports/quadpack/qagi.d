@@ -248,18 +248,18 @@ unittest
     int inf = 1; // (bound,+inf)
     qagi(&f, bound, inf, epsabs, epsrel, result, abserr, neval, ier,
         limit, lenw, last, iwork.ptr, work.ptr);
-    check (isAccurate(result, abserr, sqrtPi/2, epsrel, epsabs));
+    assert (isAccurate(result, abserr, sqrtPi/2, epsrel, epsabs));
 
     inf = -1; // (-inf,bound)
     qagi(&f, bound, inf, epsabs, epsrel, result, abserr, neval, ier,
         limit, lenw, last, iwork.ptr, work.ptr);
-    check (isAccurate(result, abserr, sqrtPi/2, epsrel, epsabs));
+    assert (isAccurate(result, abserr, sqrtPi/2, epsrel, epsabs));
     
     inf = 2; // (-inf,+inf)
     qagi(&f, bound, inf, epsabs, epsrel, result, abserr, neval, ier,
         limit, lenw, last, iwork.ptr, work.ptr);
 
-    check (isAccurate(result, abserr, sqrtPi, epsrel, epsabs));
+    assert (isAccurate(result, abserr, sqrtPi, epsrel, epsabs));
 }
 
 unittest
@@ -281,7 +281,7 @@ unittest
             limit, lenw, last, iwork.ptr, work.ptr);
 
         double ans = 2.0^^(3*alpha+1.0);
-        check (isAccurate(result, abserr, ans, epsrel, epsabs));
+        assert (isAccurate(result, abserr, ans, epsrel, epsabs));
     }
 }
 
@@ -309,6 +309,6 @@ unittest
         if (alpha == 1.0)  ans = 0.1;
         else ans = (10.0^^(-alpha))*(1-alpha)*PI/sin(PI*alpha);
 
-        check (isAccurate(result, abserr, ans, epsrel, epsabs));
+        assert (isAccurate(result, abserr, ans, epsrel, epsabs));
     }
 }

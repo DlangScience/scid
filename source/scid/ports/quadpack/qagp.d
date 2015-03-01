@@ -284,5 +284,5 @@ unittest
         result, abserr, neval, ier, leniw, lenw, last, iwork.ptr, work.ptr);
 
     double ans = 61*log(2.0) + 77*log(7.0)/4 - 27;
-    check (isAccurate(result, abserr, ans, epsrel, epsabs));
+    assert (isAccurate(result, abserr, ans, epsrel, epsabs));
 }

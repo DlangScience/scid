@@ -13,8 +13,6 @@ import std.math;
 import std.string: format;
 import std.traits;
 
-import scid.core.testing;
-
 
 
 
@@ -140,19 +138,19 @@ unittest
     auto r1 = Result!double(1.0, 0.1);
     auto r2 = Result!double(2.0, 0.2);
 
-    check (+r1 == r1);
+    assert (+r1 == r1);
     
     auto ra = -r1;
-    check (ra.value == -1.0);
-    check (ra.error == 0.1);
+    assert (ra.value == -1.0);
+    assert (ra.error == 0.1);
 
     auto rb = r1 + r2;
-    check (abs(rb.value - 3.0) < double.epsilon);
-    check (abs(rb.error - 0.3) < double.epsilon);
+    assert (abs(rb.value - 3.0) < double.epsilon);
+    assert (abs(rb.error - 0.3) < double.epsilon);
 
     auto rc = r1 - r2;
-    check (abs(rc.value + 1.0) < double.epsilon);
-    check (abs(rc.error - 0.3) < double.epsilon);
+    assert (abs(rc.value + 1.0) < double.epsilon);
+    assert (abs(rc.error - 0.3) < double.epsilon);
 
     auto rd = r1 * r2;
 
@@ -163,10 +161,10 @@ unittest
 unittest
 {
     auto r1 = Result!double(1.0, 0.1);
-    check (r1.toString() == "1±0.1");
+    assert (r1.toString() == "1±0.1");
 
     auto r2 = Result!double(0.123456789, 0.00123456789);
-    check (r2.toString("%.8e") == "1.23456789e-01±1.23456789e-03");
+    assert (r2.toString("%.8e") == "1.23456789e-01±1.23456789e-03");
 }
 
 
@@ -252,18 +250,18 @@ Interval!(CommonType!(T, U)) interval(T, U)(T a, U b)
 unittest
 {
     auto fin = interval(1, 4);
-    check(fin.a == 1);
-    check(fin.b == 4);
-    check(fin.length == 3);
-    check(!fin.isInfinite);
-    check(fin.isOrdered);
+    assert (fin.a == 1);
+    assert (fin.b == 4);
+    assert (fin.length == 3);
+    assert (!fin.isInfinite);
+    assert (fin.isOrdered);
     fin.a = 9;
-    check(!fin.isOrdered);
+    assert (!fin.isOrdered);
     fin.order();
-    check(fin.a == 4 && fin.b == 9);
-    check(fin.isOrdered);
+    assert (fin.a == 4 && fin.b == 9);
+    assert (fin.isOrdered);
 
     auto uin = interval(0.0, real.infinity);
-    check(uin.isInfinite);
-    check(uin.isOrdered);
+    assert (uin.isInfinite);
+    assert (uin.isOrdered);
 }

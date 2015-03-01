@@ -44,7 +44,6 @@ import scid.bindings.lapack.dlapack;
 import scid.core.fortran;
 import scid.core.memory;
 import scid.core.meta;
-import scid.core.testing;
 import scid.core.traits;
 import scid.matrix;
 import scid.util;
@@ -271,13 +270,13 @@ unittest
     auto da = MatrixView!double(daa, 3);
     auto db = MatrixView!double(dba, 3);
     auto dx = solve(da, db);
-    check (approxEqual(dx.array, dxa, double.epsilon));
+    assert (approxEqual(dx.array, dxa, double.epsilon));
 
     // Vector version.
     double[] dbva = [ 2.0, -6, 9 ];
     double[] dxva = [ 1.0,  2, 3 ];
     auto dxv = solve(da, dbva);
-    check (approxEqual(dxv, dxva, double.epsilon));
+    assert (approxEqual(dxv, dxva, double.epsilon));
 
     // A is symmetric, packed storage.
     float[] saa = [1.0, 2, 4, -3, 5, -6];
@@ -286,7 +285,7 @@ unittest
     auto sa = MatrixView!(float, Storage.Symmetric)(saa, 3);
     auto sb = MatrixView!(float)(sba, 3);
     auto sx = solve(sa, sb);
-    check (approxEqual(sx.array, sxa, float.epsilon));
+    assert (approxEqual(sx.array, sxa, float.epsilon));
 
     // A is triangular, packed storage.
     double[] taa = [1.0, 2, 4, -3, 5, -6];
@@ -295,7 +294,7 @@ unittest
     auto ta = MatrixView!(double, Storage.Triangular)(taa, 3);
     auto tb = MatrixView!(double)(tba, 3);
     auto tx = solve(ta, tb);
-    check (approxEqual(tx.array, txa, double.epsilon));
+    assert (approxEqual(tx.array, txa, double.epsilon));
 }
 
 
@@ -442,12 +441,12 @@ unittest
     double[] dsinga = [4.0, 2, 2, 1];   // dense singular
     auto dsing = MatrixView!double(dsinga, 2);
     auto dsingd = det(dsing);
-    check (dsingd == 0.0);
+    assert (dsingd == 0.0);
 
     double[] ssinga = [4.0, 2, 1];      // symmetric packed singular
     auto ssing = MatrixView!(double, Storage.Symmetric)(ssinga, 2);
     auto ssingd = det(ssing);
-    check (ssingd == 0.0);
+    assert (ssingd == 0.0);
 
 
     // General dense matrix.
@@ -464,21 +463,21 @@ unittest
         }
     }
     auto dd = det(d);
-    check (approxEqual(dd, 8.972817920259982e319L, sqrt(real.epsilon)));
+    assert (approxEqual(dd, 8.972817920259982e319L, sqrt(real.epsilon)));
 
 
     // Symmetric packed matrix
     double[] spa = [ 1.0, -2, 3, 4, 5, -6, -7, -8, -9, 10];
     auto sp = MatrixView!(double, Storage.Symmetric)(spa, 4);
     auto spd = det(sp);
-    check (approxEqual(spd, 5874.0, sqrt(double.epsilon)));
+    assert (approxEqual(spd, 5874.0, sqrt(double.epsilon)));
 
 
     // Triangular packed matrix
     double[] tpa = [ 1.0, -2, 3, 4, 5, -6, -7, -8, -9, 10];
     auto tp = MatrixView!(double, Storage.Triangular)(tpa, 4);
     auto tpd = det(tp);
-    check (approxEqual(tpd, -180.0, sqrt(double.epsilon)));
+    assert (approxEqual(tpd, -180.0, sqrt(double.epsilon)));
 }
 
 
@@ -698,9 +697,9 @@ unittest
     foreach (i; 0 .. m.rows)
         foreach (j; 0 .. m.cols)  m[i,j] = i + 2.0*j;
     auto v = eigenvalues(m);
-    check (approxEqual(v[0].re, (9+sqrt(129.0))/2, 1e-10) && v[0].im == 0);
-    check (approxEqual(v[1].re, (9-sqrt(129.0))/2, 1e-10) && v[1].im == 0);
-    check (approxEqual(v[2].re,               0.0, 1e-10) && v[1].im == 0);
+    assert (approxEqual(v[0].re, (9+sqrt(129.0))/2, 1e-10) && v[0].im == 0);
+    assert (approxEqual(v[1].re, (9-sqrt(129.0))/2, 1e-10) && v[1].im == 0);
+    assert (approxEqual(v[2].re,               0.0, 1e-10) && v[1].im == 0);
 }
 
 unittest
@@ -716,10 +715,10 @@ unittest
 
     double a = 1.5;
     double b = cos(PI_4)*sqrt(42.0)*0.5;
-    check (approxEqual(ev[0].re, a+b, 1e-10));
-    check (approxEqual(ev[1].re, a-b, 1e-10));
-    check (approxEqual(ev[2].re, 0.0, 1e-10));
-    foreach (e; ev) check (approxEqual(e.re, e.im, 1e-10));
+    assert (approxEqual(ev[0].re, a+b, 1e-10));
+    assert (approxEqual(ev[1].re, a-b, 1e-10));
+    assert (approxEqual(ev[2].re, 0.0, 1e-10));
+    foreach (e; ev) assert (approxEqual(e.re, e.im, 1e-10));
 }
 
 
@@ -752,8 +751,8 @@ unittest
     auto m = MatrixView!(double, Storage.Triangular)(a, 3);
     auto v = eigenvalues(m);
     assert (v.length == 3);
-    check (v[0] == 1.0 && v[1] == 3.0 && v[2] == 6.0);
-    foreach (e; v)  check (e.im == 0.0);
+    assert (v[0] == 1.0 && v[1] == 3.0 && v[2] == 6.0);
+    foreach (e; v)  assert (e.im == 0.0);
 }
 
 
@@ -820,9 +819,9 @@ unittest
     auto m = MatrixView!(double, Storage.Symmetric, Triangle.Lower)(a, 3);
     auto v = eigenvalues(m);
     assert (v.length == 3);
-    check (approxEqual(v[0], - 0.5157294716, 1e-10));
-    check (approxEqual(v[1],   0.1709151888, 1e-10));
-    check (approxEqual(v[2],  11.34481428,   1e-10));
+    assert (approxEqual(v[0], - 0.5157294716, 1e-10));
+    assert (approxEqual(v[1],   0.1709151888, 1e-10));
+    assert (approxEqual(v[2],  11.34481428,   1e-10));
 }
 
 
@@ -898,7 +897,7 @@ unittest
     invert(a);
     enum : real { _13 = 1.0L/3.0, _16 = 1.0L/6.0, _23 = 2.0L/3.0 }
     real[] ans = [_13, _13, -_23, -_13, _16, _23, _13, -_16, _13];
-    foreach (i, e; aa)  check (approxEqual(cast(real) e, ans[i], 1e-10L));
+    foreach (i, e; aa)  assert (approxEqual(cast(real) e, ans[i], 1e-10L));
 }
 
 unittest
@@ -907,6 +906,6 @@ unittest
     foreach (i, ref e; aa)  e = i;
     auto a = MatrixView!double(aa, 3, 3);
     
-    try { invert(a); check(false, "Matrix should be detected as singular"); }
-    catch (Exception e) { check (true); }
+    try { invert(a); assert (false, "Matrix should be detected as singular"); }
+    catch (Exception e) { assert (true); }
 }

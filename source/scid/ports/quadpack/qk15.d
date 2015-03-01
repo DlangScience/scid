@@ -213,5 +213,5 @@ unittest
     double f(double x) { return x^^3; }
     double result, abserr, resabs, resasc;
     qk15(&f, 0.0, 1.0, result, abserr, resabs, resasc);
-    check (isAccurate(result, abserr, 0.25, 1e-6));
+    assert (isAccurate(result, abserr, 0.25, 1e-6));
 }

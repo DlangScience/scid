@@ -22,8 +22,6 @@ import scid.core.traits;
 import scid.ports.minpack.hybrd;
 import scid.util;
 
-version (unittest) { import scid.core.testing; }
-
 
 
 
@@ -176,7 +174,7 @@ unittest
 
     real[] guess = [ 2.0, 2.0 ];
     auto root = findRoot(&dRosenbrock, guess, 0.0L);
-    check (approxEqual(root, [1.0L, 1.0L].dup, 1e-6));
+    assert (approxEqual(root, [1.0L, 1.0L].dup, 1e-6));
 }
 
 
@@ -261,19 +259,19 @@ unittest
 
     immutable inaccurateRoot =
         findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity, 2);
-    check(matchDigits(inaccurateRoot, 1.0, 2));
-    check(!matchDigits(inaccurateRoot, 1.0, 10));
+    assert (matchDigits(inaccurateRoot, 1.0, 2));
+    assert (!matchDigits(inaccurateRoot, 1.0, 10));
 
     immutable accurateRoot =
         findRoot(&f, 0.5L, 1.0L, real.epsilon, real.infinity);
-    check(accurateRoot == 1.0);
+    assert (accurateRoot == 1.0);
 }
 
 unittest
 {
     // Function
     static real f(real x) { return x; }
-    check(findRoot(&f, 1.0L, 1.0L) == 0.0L);
+    assert (findRoot(&f, 1.0L, 1.0L) == 0.0L);
 }
 
 unittest
@@ -281,7 +279,7 @@ unittest
     // Functor
     struct Functor { real opCall(real x) { return x^^3; } }
     Functor g;
-    check(findRoot(g, 1.0L, 1.0L) == 0.0L);
+    assert (findRoot(g, 1.0L, 1.0L) == 0.0L);
 }
 
 
@@ -431,14 +429,14 @@ unittest
 {
     real f(real x) { return 1 - x; }
     auto b = bracketRoot(&f, -100.0L, 1.0L);
-    check (b.contains(1));
+    assert (b.contains(1));
 }
 
 unittest
 {
     real f(real x) { return log(x); }
     auto b = bracketRoot(&f, 2*real.epsilon, 0.1L, real.epsilon, real.infinity);
-    check (b.contains(1));
+    assert (b.contains(1));
 }
 
 
@@ -512,8 +510,8 @@ unittest
     }
 
     auto r = findRoots(&f, -2.0L, 2.0L, 15);
-    check (r.length == 5);
-    check (approxEqual(r, [-2.0, -1.0, 0.0, 1.0, 2.0], real.epsilon));
+    assert (r.length == 5);
+    assert (approxEqual(r, [-2.0, -1.0, 0.0, 1.0, 2.0], real.epsilon));
 }
 
 
@@ -582,17 +580,17 @@ unittest
     }
 
     auto b = bracketRoots(&f, -2.0L, 2.0L, 15);
-    check(b.length == 5);
+    assert (b.length == 5);
     foreach (i; b)
     {
-        check(i.y1 == f(i.x1));
-        check(i.y2 == f(i.x2));
+        assert (i.y1 == f(i.x1));
+        assert (i.y2 == f(i.x2));
     }
-    check(b[0].x1 == -2);
-    check(b[1].contains(-1));
-    check(b[2].contains(0));
-    check(b[3].contains(1));
-    check(b[4].x1 ==  2);
+    assert (b[0].x1 == -2);
+    assert (b[1].contains(-1));
+    assert (b[2].contains(0));
+    assert (b[3].contains(1));
+    assert (b[4].x1 ==  2);
 }
 
 
@@ -705,12 +703,12 @@ unittest
         );
 
     enum root = 0.0L;
-    check(abs(r.xTrue - root) <= 1e-10);
-    check(abs(r.xFalse - root) <= 1e-10);
+    assert (abs(r.xTrue - root) <= 1e-10);
+    assert (abs(r.xFalse - root) <= 1e-10);
 
-    check(r.fTrue == r.xTrue^^3);
-    check(r.fFalse == r.xFalse^^3);
-    check(r.fTrue < 0);
-    check(r.fFalse >= 0);
-    check(abs(r.xTrue - r.xFalse) <= 1e-10);
+    assert (r.fTrue == r.xTrue^^3);
+    assert (r.fFalse == r.xFalse^^3);
+    assert (r.fTrue < 0);
+    assert (r.fFalse >= 0);
+    assert (abs(r.xTrue - r.xFalse) <= 1e-10);
 }

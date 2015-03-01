@@ -254,5 +254,5 @@ unittest
         neval, ier, limit, lenw, last, iwork.ptr, work.ptr);
 
     double ans = -0.18927518788;
-    check (isAccurate(result, abserr, ans, epsrel, epsabs));
+    assert (isAccurate(result, abserr, ans, epsrel, epsabs));
 }

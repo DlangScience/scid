@@ -347,7 +347,7 @@ unittest
         alpha = 1 + i*0.2;
         auto result = qng(&f, 0.0, 1.0, epsabs, epsrel);
         auto expect = (alpha + 1)^^(-2);
-        check(isAccurate(result.value, result.error, expect, epsrel, epsabs));
+        assert (isAccurate(result.value, result.error, expect, epsrel, epsabs));
     }
 }
 
@@ -366,7 +366,7 @@ unittest
         alpha = i;
         auto result = qng(&f, 0.0, 1.0, epsabs, epsrel);
         double expect = atan((4-PI) * 4^^(alpha-1)) + atan(PI * 4^^(alpha-1));
-        check(isAccurate(result.value, result.error, expect, epsrel, epsabs));
+        assert (isAccurate(result.value, result.error, expect, epsrel, epsabs));
     }
 }
 
@@ -394,8 +394,8 @@ unittest
     {
         alpha = i;
         auto result = qng(&f, 0.0, cast(double) PI, epsabs, epsrel);
-        //check(isAccurate(result.value, result.error, expect[i], epsrel, epsabs));
-        check(abs((result.value-expect[i])/result.value) <= epsrel);
+        //assert (isAccurate(result.value, result.error, expect[i], epsrel, epsabs));
+        assert (abs((result.value-expect[i])/result.value) <= epsrel);
     }
     // TODO:
     // Some of the error estimates are a bit too low, which is why we

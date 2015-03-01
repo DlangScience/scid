@@ -276,7 +276,7 @@ unittest
         neval, ier, leniw, maxp1, lenw, last, iwork.ptr, work.ptr);
 
     double ans = -0.128136848399167;
-    check (isAccurate!double(result, abserr, ans, epsrel, epsabs));
+    assert (isAccurate!double(result, abserr, ans, epsrel, epsabs));
 }
 
 
@@ -312,6 +312,6 @@ unittest
     real eps = 1e-20;
     real ans = (1 + eps)*sqrt(PI) * ((1+(4.0L^^(-alpha)))^^(-0.25L))
         * cos(atan(2.0L^^alpha)/2);
-    check (isAccurate(result, abserr, ans, epsrel, epsabs));
+    assert (isAccurate(result, abserr, ans, epsrel, epsabs));
 }
 

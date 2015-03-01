@@ -218,8 +218,8 @@ unittest
     // Tests for when both limits are finite.
     real logsqrt(real x) { return (x <= 0.0 ? 0.0 : log(x)/sqrt(x)); }
     auto logsqrtResult = integrate(&logsqrt, 0.0L, 1.0L, 0.0L, 1e-10L);
-    check (approxEqual(logsqrtResult.value, -4.0L, 0.0L, logsqrtResult.error));
-    check (logsqrtResult.error < abs(logsqrtResult.value*1e-10L));
+    assert (approxEqual(logsqrtResult.value, -4.0L, 0.0L, logsqrtResult.error));
+    assert (logsqrtResult.error < abs(logsqrtResult.value*1e-10L));
 
 
     // Tests for when both limits are infinite.
@@ -230,20 +230,20 @@ unittest
 
     auto gaussResult1 =
         integrate(&gauss, -real.infinity, real.infinity, 1e-10L);
-    check (approxEqual(gaussResult1.value, sqrt(PI), 0.0L, gaussResult1.error));
-    check (gaussResult1.error < abs(gaussResult1.value*1e-10));
+    assert (approxEqual(gaussResult1.value, sqrt(PI), 0.0L, gaussResult1.error));
+    assert (gaussResult1.error < abs(gaussResult1.value*1e-10));
 
     auto gaussResult2 =
         integrate(&gauss, real.infinity, -real.infinity, 1e-10L);
-    check (approxEqual(gaussResult2.value,-sqrt(PI), 0.0L, gaussResult2.error));
+    assert (approxEqual(gaussResult2.value,-sqrt(PI), 0.0L, gaussResult2.error));
 
     auto gaussResult3 =
         integrate(&gauss, -real.infinity, -real.infinity, 1e-10L);
-    check (gaussResult3.value == 0.0);
+    assert (gaussResult3.value == 0.0);
 
     auto gaussResult4 =
         integrate(&gauss, real.infinity, real.infinity, 1e-10L);
-    check (gaussResult4.value == 0.0);
+    assert (gaussResult4.value == 0.0);
 
 
     // Tests for when one limit is infinite.
@@ -256,10 +256,10 @@ unittest
     auto lResult = integrate(&l, -real.infinity, 0.0L, 0.001L);
     auto mlResult = integrate(&l, 0.0L, -real.infinity, 0.001L);
 
-    check (approxEqual(uResult.value, ulExact, 0.0L, uResult.error));
-    check (approxEqual(lResult.value, ulExact, 0.0L, lResult.error));
-    check (uResult.value == -muResult.value);
-    check (lResult.value == -mlResult.value);
+    assert (approxEqual(uResult.value, ulExact, 0.0L, uResult.error));
+    assert (approxEqual(lResult.value, ulExact, 0.0L, lResult.error));
+    assert (uResult.value == -muResult.value);
+    assert (lResult.value == -mlResult.value);
 }
 
 
@@ -299,7 +299,7 @@ unittest
 {
     double f(double x) { return x^^2 * log(1/x); }
     auto result = integrateQNG(&f, 0.0, 1.0);
-    check (abs(result.value - 1.0/9) <= result.error);
+    assert (abs(result.value - 1.0/9) <= result.error);
 }
 
 
@@ -369,7 +369,7 @@ unittest
 {
     double f(double x) { return cos(100 * sin(x)); }
     auto i = integrateQAG(&f, 0.0, cast(double) PI, GaussKronrod.rule61);
-    check (isAccurate(i.value, i.error, 0.062787400491492695655, 1e-6));
+    assert (isAccurate(i.value, i.error, 0.062787400491492695655, 1e-6));
 }
 
 
@@ -427,7 +427,7 @@ unittest
     double f(double x) { return 1/sqrt(abs(x-1.0/3)); }
     auto i = integrateQAGS(&f, 0.0, 1.0);
     double expected = 2 * (sqrt(2.0/3) + sqrt(1.0/3));
-    check (isAccurate(i, expected, 1e-8));
+    assert (isAccurate(i, expected, 1e-8));
 }
 
 
@@ -486,7 +486,7 @@ unittest
     real f(real x) { return abs(x - PI/4)^^(-0.4L); }
     auto i = integrateQAGP(&f, 0.0L, 1.0L, [PI/4], 1e-8L);
     auto expect = ((1-PI/4)^^0.6L + (PI/4)^^0.6L)/0.6L;
-    check (isAccurate(i, expect, 1e-8L));
+    assert (isAccurate(i, expect, 1e-8L));
 }
 
 
@@ -553,7 +553,7 @@ unittest
     double f(double x) { return (1 + 10*x)^^(-2) / sqrt(x); }
     auto i = integrateQAGI(&f, 0.0, Infinite.upper);
     double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
-    check(isAccurate(i.value, i.error, expected, 1e-6));
+    assert (isAccurate(i.value, i.error, expected, 1e-6));
 }
 
 
@@ -624,7 +624,7 @@ unittest
     real f(real x) { return exp(20*(x-1)); }
     auto i = integrateQAWO(&f, 0.0L, 1.0L, 256.0L, Oscillation.sin, eps);
     real expect = (20*sin(256) - 256*cos(256) + 256*exp(-20.0L))/(400+65536);
-    check(isAccurate(i, expect, eps));
+    assert (isAccurate(i, expect, eps));
 }
 
 
@@ -726,7 +726,7 @@ unittest
     real f(real x) { return x <= 0 ? 0 : exp(-x/64) / sqrt(x); }
     auto i = integrateQAWF(&f, 0.0L, 1.0L, Oscillation.cos, eps);
     real expect = sqrt(PI) * (1 + 1.0L/4096)^^(-0.25L) * cos(atan(64.0L)/2);
-    check(isAccurate(i, expect, 0.0L, eps));
+    assert (isAccurate(i, expect, 0.0L, eps));
 }
 
 
@@ -810,7 +810,7 @@ unittest
     real f(real x) { return 1/(x + 1.5L); }
     auto i = integrateQAWS(&f, 1.0L, -1.0L, -0.5L, -0.5L, Weight.unity, eps);
     auto expected = -PI / sqrt(1.5L^^2 - 1);
-    check (isAccurate(i, expected, eps));
+    assert (isAccurate(i, expected, eps));
 }
 
 
@@ -868,7 +868,7 @@ unittest
     enum expect = 0.085576905873896861036L;
     static real f(real x) { return cos(x-1); }
     auto i = integrateQAWC(&f, 0.0L, 3.0L, 1.0L, eps);
-    check(abs(i.value-expect) < eps*expect && i.error <= eps);
+    assert (abs(i.value-expect) < eps*expect && i.error <= eps);
 }
 
 
@@ -902,7 +902,7 @@ unittest
 {
     double f(double x) { return x^^2 * log(1/x); }
     auto result = integrateDE(&f, 0.0, 1.0, 1e-7);
-    check (isAccurate(result.value, result.error, 1.0/9, 1e-6));
+    assert (isAccurate(result.value, result.error, 1.0/9, 1e-6));
 }
 
 
@@ -937,7 +937,7 @@ unittest
     double f(double x) { return (1 + 10*x)^^(-2) / sqrt(x); }
     auto result = integrateDEI(&f, 0.0);
     double expected = PI / (2 * sin(PI/2)) / sqrt(10.0);
-    check(matchDigits(result.value, expected, 6));
+    assert (matchDigits(result.value, expected, 6));
 }
 
 
@@ -979,7 +979,7 @@ unittest
     real f(real x) { return x <= 0 ? 0 : cos(x) * exp(-x/64) / sqrt(x); }
     auto i = integrateDEO(&f, 0.0L, 1.0L, 1e-18L);
     real expect = sqrt(PI) * (1 + 1.0L/4096)^^(-0.25L) * cos(atan(64.0L)/2);
-    check(matchDigits(i.value, expect, 18));
+    assert (matchDigits(i.value, expect, 18));
 }
 
 
@@ -1221,7 +1221,7 @@ unittest
 
     real f(real x) { return exp(x)/(sin(x)-x*x); }
     auto r = diff(&f, 1.0, 0.01, 5);
-    check (approxEqual(r.value, 140.73773557129660339L,
+    assert (approxEqual(r.value, 140.73773557129660339L,
         0.0L, min(r.error, sqrt(real.epsilon))));
 }
 
@@ -1270,7 +1270,7 @@ unittest
 
     foreach (x; iota(0.1, 1.0, 0.1))
     {
-        check (matchDigits(diff2(&f, x, f(x)), df(x), 8));
+        assert (matchDigits(diff2(&f, x, f(x)), df(x), 8));
     }
 }
 
@@ -1311,7 +1311,7 @@ unittest
 
     foreach (x; iota(0.1, 1.0, 0.1))
     {
-        check (matchDigits(diff3(&f, x), df(x), 11));
+        assert (matchDigits(diff3(&f, x), df(x), 11));
     }
 }
 
@@ -1460,10 +1460,10 @@ unittest
     auto j2 = jacobian(&f, 2, x, 1.0, buffer);
 
     double e = 1e-6;
-    check (approxEqual(j1[0,0], 2.0, e) && approxEqual(j1[0,1],  1.0, e)
+    assert (approxEqual(j1[0,0], 2.0, e) && approxEqual(j1[0,1],  1.0, e)
       &&  approxEqual(j1[1,0], 1.0, e) && approxEqual(j1[1,1], -1.0, e));
 
-    check (approxEqual(j2[0,0], 2.0, e) && approxEqual(j2[0,1],  1.0, e)
+    assert (approxEqual(j2[0,0], 2.0, e) && approxEqual(j2[0,1],  1.0, e)
       &&  approxEqual(j2[1,0], 1.0, e) && approxEqual(j2[1,1], -1.0, e));
 }
 
@@ -1591,10 +1591,10 @@ unittest
     // Central difference
     real e = 1e-10;
     auto j = jacobian(&f, 4, p);
-    check (approxEqual(j.array, answer, e, e));
+    assert (approxEqual(j.array, answer, e, e));
 
     j = jacobian(&f, 4, p, 1.0, buffer);
-    check (approxEqual(j.array, answer, e, e));
+    assert (approxEqual(j.array, answer, e, e));
 
 
     // The next ones are less accurate.
@@ -1602,11 +1602,11 @@ unittest
 
     // Forward difference
     j = jacobian2(&f, 4, p);
-    check (approxEqual(j.array, answer, e, e));
+    assert (approxEqual(j.array, answer, e, e));
 
     // Backward difference
     j = jacobian2(&f, 4, p, -1.0, f(p), buffer);
-    check (approxEqual(j.array, answer, e, e));
+    assert (approxEqual(j.array, answer, e, e));
 }
 
 
@@ -1695,7 +1695,7 @@ unittest
 
     real[] fgrad(real[] x) { return [exp(x[1]), x[0]*exp(x[1])]; }
     auto gtest = fgrad(p);
-    check (approxEqual(g, gtest, 1e-10, 1e-10));
+    assert (approxEqual(g, gtest, 1e-10, 1e-10));
 }
 
 
@@ -1769,7 +1769,7 @@ unittest
     real[] ans = df(p);
     auto g = gradient(&f, p);
 
-    check (approxEqual(g, ans, sqrt(real.epsilon)));
+    assert (approxEqual(g, ans, sqrt(real.epsilon)));
 }
 
 
@@ -1910,8 +1910,8 @@ unittest
 
     auto h = hessian(&f, x, PI*0.25, buffer);
 
-    check (approxEqual(h[0,0], fxx(x), 1e-6L));
-    check (approxEqual(h[0,1], fxy(x), 1e-6L));
-    check (approxEqual(h[1,0], fyx(x), 1e-6L));
-    check (approxEqual(h[1,1], fyy(x), 1e-6L));
+    assert (approxEqual(h[0,0], fxx(x), 1e-6L));
+    assert (approxEqual(h[0,1], fxy(x), 1e-6L));
+    assert (approxEqual(h[1,0], fyx(x), 1e-6L));
+    assert (approxEqual(h[1,1], fyy(x), 1e-6L));
 }

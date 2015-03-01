@@ -243,6 +243,6 @@ unittest
             )
           / (1 + 4.0^^(-alpha));
 
-        check(isAccurate(result, abserr, exact, epsrel, epsabs));
+        assert (isAccurate(result, abserr, exact, epsrel, epsabs));
     }
 }

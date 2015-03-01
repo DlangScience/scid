@@ -16,7 +16,6 @@ import scid.core.meta;
 import scid.core.traits;
 
 version(unittest) {
-    import scid.core.testing; 
     import std.math;
 }
 
@@ -95,20 +94,20 @@ MatrixView!(T, stor, tri) matrix
 unittest
 {
     auto dense1 = matrix!real(3, 4);
-    check (dense1.rows == 3  &&  dense1.cols == 4);
-    check (isNaN(dense1[1,2]));
+    assert (dense1.rows == 3  &&  dense1.cols == 4);
+    assert (isNaN(dense1[1,2]));
 
     auto dense2 = matrix(4, 3, 1.0);
-    check (dense2.rows == 4  &&  dense2.cols == 3);
-    check (dense2[1,2] == 1.0);
+    assert (dense2.rows == 4  &&  dense2.cols == 3);
+    assert (dense2[1,2] == 1.0);
 
     auto upTri = matrix!(real, Storage.Triangular)(3);
-    check (upTri.rows == 3  &&  upTri.cols == 3);
-    check (isNaN(upTri[0,2])  &&  upTri[2,0] == 0);
+    assert (upTri.rows == 3  &&  upTri.cols == 3);
+    assert (isNaN(upTri[0,2])  &&  upTri[2,0] == 0);
 
     auto loTri = matrix!(double, Storage.Triangular, Triangle.Lower)(3, 1.0);
-    check (loTri.rows == 3  &&  loTri.cols == 3);
-    check (loTri[0,2] == 0  &&  loTri[2,0] == 1.0);
+    assert (loTri.rows == 3  &&  loTri.cols == 3);
+    assert (loTri[0,2] == 0  &&  loTri[2,0] == 1.0);
 
 }
 
@@ -133,7 +132,7 @@ unittest
     a[1,0] = 1.0;
     auto b = copy(a);
     b[1,0] = 2.0;
-    check (b[1,0] == 2.0  &&  a[1,0] == 1.0);
+    assert (b[1,0] == 2.0  &&  a[1,0] == 1.0);
 }
 
 
@@ -387,65 +386,65 @@ unittest
     auto gm1 = GeneralMatrix(g, 2);
     auto gm2 = GeneralMatrix(g, 3);
 
-    check (gm1.cols == 3);
-    check (gm2.cols == 2);
+    assert (gm1.cols == 3);
+    assert (gm2.cols == 2);
 
-    check (gm1[1,0] == 2);
-    check (gm2[1,0] == 2);
+    assert (gm1[1,0] == 2);
+    assert (gm2[1,0] == 2);
 
-    check (gm1[1,1] == 4);
-    check (gm2[1,1] == 5);
+    assert (gm1[1,1] == 4);
+    assert (gm2[1,1] == 5);
 
-    gm2[1,1] += 1; check (gm2[1,1] == 6);
-    gm2[1,1] = 10; check (gm2[1,1] == 10);
+    gm2[1,1] += 1; assert (gm2[1,1] == 6);
+    gm2[1,1] = 10; assert (gm2[1,1] == 10);
 
 
     alias MatrixView!(real, Storage.Triangular) UTMatrix;
     real[] u = [1.0, 2, 3, 4, 5, 6];
     
     auto um1 = UTMatrix(u, 3);
-    check (um1.cols == 3);
-    check (um1[1,0] == 0.0);
-    check (um1[1,1] == 3.0);
-    um1[0,2] += 3; check (u[3] == 7);
-    um1[2,2] = 10; check (u[5] == 10);
+    assert (um1.cols == 3);
+    assert (um1[1,0] == 0.0);
+    assert (um1[1,1] == 3.0);
+    um1[0,2] += 3; assert (u[3] == 7);
+    um1[2,2] = 10; assert (u[5] == 10);
 
 
     alias MatrixView!(real, Storage.Triangular, Triangle.Lower) LTMatrix;
     real[] l = [1.0, 2, 3, 4, 5, 6];
     
     auto lm1 = LTMatrix(l, 3);
-    check (lm1.cols == 3);
-    check (lm1[0,1] == 0.0);
-    check (lm1[1,1] == 4.0);
-    lm1[2,0] += 4; check (l[2] == 7);
-    lm1[2,2] = 10; check (l[5] == 10);
+    assert (lm1.cols == 3);
+    assert (lm1[0,1] == 0.0);
+    assert (lm1[1,1] == 4.0);
+    lm1[2,0] += 4; assert (l[2] == 7);
+    lm1[2,2] = 10; assert (l[5] == 10);
 
 
     alias MatrixView!(real, Storage.Symmetric) USMatrix;
     real[] us = [1.0, 2, 3, 4, 5, 6];
     
     auto usm1 = USMatrix(us, 3);
-    check (usm1.cols == 3);
-    check (usm1[1,2] == 5.0);
+    assert (usm1.cols == 3);
+    assert (usm1[1,2] == 5.0);
     foreach (i; 0 .. usm1.rows)
         foreach (j; 0 .. i)
-            check (usm1[i,j] == usm1[j,i]);
-    usm1[0,2] += 3; check (usm1[2,0] == 7);
-    usm1[1,2] = 10; check (usm1[2,1] == 10);
+            assert (usm1[i,j] == usm1[j,i]);
+    usm1[0,2] += 3; assert (usm1[2,0] == 7);
+    usm1[1,2] = 10; assert (usm1[2,1] == 10);
 
 
     alias MatrixView!(real, Storage.Symmetric, Triangle.Lower) LSMatrix;
     real[] ls = [1.0, 2, 3, 4, 5, 6];
     
     auto lsm1 = LSMatrix(ls, 3);
-    check (lsm1.cols == 3);
-    check (lsm1[1,2] == 5.0);
+    assert (lsm1.cols == 3);
+    assert (lsm1[1,2] == 5.0);
     foreach (i; 0 .. lsm1.rows)
         foreach (j; 0 .. i)
-            check (lsm1[i,j] == lsm1[j,i]);
-    lsm1[0,2] += 3; check (lsm1[2,0] == 6);
-    lsm1[1,2] = 10; check (lsm1[2,1] == 10);
+            assert (lsm1[i,j] == lsm1[j,i]);
+    lsm1[0,2] += 3; assert (lsm1[2,0] == 6);
+    lsm1[1,2] = 10; assert (lsm1[2,1] == 10);
 }
 
 

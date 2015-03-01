@@ -14,7 +14,6 @@ import std.range;
 import std.traits;
 import std.typetuple: allSatisfy;
 
-import scid.core.testing;
 import scid.core.traits;
 
 
@@ -84,20 +83,20 @@ body
 
 unittest
 {
-    check(matchDigits(1.0, 1.0, 15));
-    check(matchDigits(0.1234567, 0.1234568, 6));
-    check(!matchDigits(0.1234567, 0.1234568, 7));
+    assert (matchDigits(1.0, 1.0, 15));
+    assert (matchDigits(0.1234567, 0.1234568, 6));
+    assert (!matchDigits(0.1234567, 0.1234568, 7));
 
     auto z = Complex!real(0.1234567, 0.0);
-    check(matchDigits(z, 0.1234568, 6));
-    check(matchDigits(0.1234568, z, 6));
+    assert (matchDigits(z, 0.1234568, 6));
+    assert (matchDigits(0.1234568, z, 6));
 
     auto u = Complex!real(0.1234567, 0.1234567);
     auto v = Complex!real(0.1234568, 0.1234567);
     auto w = Complex!real(0.1234567, 0.1234568);
-    check(matchDigits(u, v, 6));
-    check(matchDigits(u, w, 6));
-    check(matchDigits(v, w, 6));
+    assert (matchDigits(u, v, 6));
+    assert (matchDigits(u, w, 6));
+    assert (matchDigits(v, w, 6));
 }
 
 
@@ -142,9 +141,9 @@ bool matchDigits(L, R)
 
 unittest
 {
-    check(matchDigits([0.1234566, 0.1234567, 0.1234568], 0.1234567, 6));
-    check(matchDigits(0.1234567, [0.1234566, 0.1234567, 0.1234568], 6));
-    check(matchDigits([0.1234566, 0.1234567, 0.1234568], 
+    assert (matchDigits([0.1234566, 0.1234567, 0.1234568], 0.1234567, 6));
+    assert (matchDigits(0.1234567, [0.1234566, 0.1234567, 0.1234568], 6));
+    assert (matchDigits([0.1234566, 0.1234567, 0.1234568], 
         [0.1234567, 0.1234567, 0.1234567], 6));
 }
 
@@ -166,8 +165,8 @@ Real chop(Real)(Real x, real threshold = 1e-10L) pure nothrow
 
 unittest
 {
-    check (chop(1.0) == 1.0);
-    check (chop(1e-20) == 0.0);
+    assert (chop(1.0) == 1.0);
+    assert (chop(1e-20) == 0.0);
 }
 
 
@@ -202,10 +201,10 @@ unittest
     real[] x = [1.0L, 0.0, 2.0];
 
     auto b = chop(a);
-    check (b == x);
+    assert (b == x);
 
     chop(a, 1e-12L, a);
-    check (a == x);
+    assert (a == x);
 }
 
 
@@ -244,8 +243,8 @@ unittest
     auto a = staticArray(0.0, 1.0, 2.0);
     auto b = staticArrayOf!double(0.0F, 1.0, 2.0L);
     double[3] c = [0.0, 1.0, 2.0];
-    check (a == c);
-    check (b == c);
+    assert (a == c);
+    assert (b == c);
 }
 
 
@@ -310,16 +309,16 @@ auto steps(T, U)(T a, U b, int n)
 unittest
 {
     auto s1 = steps(-5.0, 5.0, 11);
-    check (equal(s1, [-5.0, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]));
+    assert (equal(s1, [-5.0, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5]));
 
     auto s2 = steps(0.0, 1.0, 1);
-    check (equal(s2, [0.0]));
+    assert (equal(s2, [0.0]));
 
     // From the example
     int i = 0;
     foreach (x; steps(0.0, 9.0, 10))
     {
-        check (x == i);
+        assert (x == i);
         ++i;
     }
 }
@@ -424,12 +423,12 @@ unittest
     auto f = limitCalls(&add, 2);
     f(3);
     f(1);
-    try { f(10); check(false); } catch (Exception e) { check(true); }
-    check(sum == 4);
+    try { f(10); assert (false); } catch (Exception e) { assert (true); }
+    assert (sum == 4);
 
     auto g = scopeLimitCalls(&add, 2);
     g(2);
     g(5);
-    try { g(10); check(false); } catch (Exception e) { check(true); }
-    check(sum == 11);
+    try { g(10); assert (false); } catch (Exception e) { assert (true); }
+    assert (sum == 11);
 }

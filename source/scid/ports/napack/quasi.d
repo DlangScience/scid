@@ -156,5 +156,5 @@ unittest
 
     double dif, size;
     quasi(guess, invJacAtGuess, 2, 2, dif, size, 6, 500, &rosenbrock, work);
-    check (guess == [1.0, 1.0]);
+    assert (guess == [1.0, 1.0]);
 }

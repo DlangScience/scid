@@ -318,5 +318,5 @@ unittest
         lst, leniw, maxp1, lenw, iwork.ptr, work.ptr);
     real ans = sqrt(PI) * ((1+(4.0L^^(-alpha)))^^(-0.25L))
         * cos(atan(2.0L^^alpha)/2);
-    check (isAccurate(result, abserr, ans, 0.0L, epsabs));
+    assert (isAccurate(result, abserr, ans, 0.0L, epsabs));
 }

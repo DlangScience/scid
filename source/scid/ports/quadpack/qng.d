@@ -457,5 +457,5 @@ unittest
 
     qng(&f, a, b, epsabs, epsrel, result, abserr, neval, ier);
     
-    check(isAccurate(result, abserr, -4.0f/9.0f, epsrel, epsabs));
+    assert (isAccurate(result, abserr, -4.0f/9.0f, epsrel, epsabs));
 }

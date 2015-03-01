@@ -10,8 +10,6 @@ module scid.core.fortran;
 import std.conv;
 import std.traits: Unqual;
 
-import scid.core.testing;
-
 
 
 
@@ -116,23 +114,23 @@ unittest
     auto b = dimension(a.ptr, 3);
 
     // Basic functionality
-    check (b[3] == a[2]);
+    assert (b[3] == a[2]);
     b[3] = 5;
-    check (b[3] == 5);
+    assert (b[3] == 5);
     b[3] -= 2;
-    check (b[3] == 3);
+    assert (b[3] == 3);
 
-    check (b.ptr[2] == 3);
+    assert (b.ptr[2] == 3);
 
     // Binary compatible with D arrays.
     int[] d = *(cast(int[]*) &b);
-    check (d == a);
+    assert (d == a);
 
     // Works with const and immutable
     immutable int[] ia = [1,2,3];
     auto ib = dimension(ia.ptr, 3);
-    check (ib[3] == 3);
-    check (!__traits(compiles, { ib[3] = 5; }));
+    assert (ib[3] == 3);
+    assert (!__traits(compiles, { ib[3] = 5; }));
 
 }
 
@@ -220,23 +218,23 @@ unittest
     auto b = dimension(a.ptr, 3, 2);
 
     // Basic functionality
-    check (b[2,2] == a[4]);
+    assert (b[2,2] == a[4]);
     b[2,2] = 5;
-    check (b[2,2] == 5);
+    assert (b[2,2] == 5);
     b[2,2] -= 2;
-    check (b[2,2] == 3);
+    assert (b[2,2] == 3);
 
-    check (b.ptr[4] == 3);
+    assert (b.ptr[4] == 3);
 
     // Binary compatible with D arrays.
     int[] d = *(cast(int[]*) &b);
-    check (d == a);
+    assert (d == a);
 
     // Works with const and immutable
     const int[] ia = [1, 2, 3, 4, 5, 6];
     auto ib = dimension(ia.ptr, 3, 2);
-    check (ib[2,2] == ia[4]);
-    check (!__traits(compiles, { ib[2,2] = 5; }));
+    assert (ib[2,2] == ia[4]);
+    assert (!__traits(compiles, { ib[2,2] = 5; }));
 }
 
 
@@ -262,6 +260,6 @@ int toInt(size_t u) @safe pure nothrow
 
 unittest
 {
-    check(toInt(10uL) == 10);
-    check(toInt(10u) == 10);
+    assert (toInt(10uL) == 10);
+    assert (toInt(10u) == 10);
 }

@@ -414,7 +414,7 @@ unittest
     double ans = 2*(2*cos(2.0) + sin(2.0));
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (isAccurate(result, abserr, ans, 1e-8));
+    assert (isAccurate(result, abserr, ans, 1e-8));
 
 
     // Compute using Clenshaw-Curtis method.
@@ -422,13 +422,13 @@ unittest
     ans = 2*(6*cos(6.0) + 17*sin(6.0))/27;
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (isAccurate(result, 1e-10, ans, 1e-8));
+    assert (isAccurate(result, 1e-10, ans, 1e-8));
 
     // Compute again, using the stored moments.
     ksave = 1;
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (isAccurate(result, 1e-10, ans, 1e-8));
+    assert (isAccurate(result, 1e-10, ans, 1e-8));
 }
 
 
@@ -448,7 +448,7 @@ unittest
     double ans = 0.0729155596656107239492740504503422453;
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (approxEqual(result, ans, 1e-8));
+    assert (approxEqual(result, ans, 1e-8));
 
 
     // Compute using Clenshaw-Curtis method.
@@ -456,12 +456,12 @@ unittest
     ans = -0.50789465569969289260403404655063469;
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (approxEqual(result, ans, 1e-8));
+    assert (approxEqual(result, ans, 1e-8));
 
     // Compute again, using the stored moments.
     ksave = 1;
     qc25f(&f, a, b, omega, integr, nrmom, maxp1, ksave, result, abserr,
         neval, resabs, resasc, momcom, chebmo.ptr);
-    check (approxEqual(result, ans, 1e-8));
+    assert (approxEqual(result, ans, 1e-8));
 }
 

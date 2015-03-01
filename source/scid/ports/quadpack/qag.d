@@ -238,7 +238,7 @@ unittest
     {
         qag(&f, a, b, epsabs, epsrel, key, result, abserr, neval, ier,
             limit, lenw, last, iwork.ptr, work.ptr);
-        check (isAccurate(result, abserr, ans, epsrel, epsabs));
+        assert (isAccurate(result, abserr, ans, epsrel, epsabs));
     }
 }
 
@@ -264,7 +264,7 @@ unittest
             qag(&f, a, b, epsabs, epsrel, key, result, abserr, neval, ier,
                 limit, lenw, last, iwork.ptr, work.ptr);
 
-            check (isAccurate(result, abserr, ans, epsrel, epsabs));
+            assert (isAccurate(result, abserr, ans, epsrel, epsabs));
         }
     }
 }
@@ -290,6 +290,6 @@ unittest
         
         double eps = 1e-15;
         double ans = (1+eps)*(2.0^^(3*alpha+1.0));
-        check (isAccurate(result, abserr, ans, epsrel, epsabs));
+        assert (isAccurate(result, abserr, ans, epsrel, epsabs));
     }
 }

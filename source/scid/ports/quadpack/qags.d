@@ -242,5 +242,5 @@ unittest
     qags(&f, a, b, epsabs, epsrel, result, abserr, neval, ier,
         limit, lenw, last, iwork.ptr, work.ptr);
 
-    check (isAccurate(result, abserr, -4.0, epsrel, epsabs));
+    assert (isAccurate(result, abserr, -4.0, epsrel, epsabs));
 }
