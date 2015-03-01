@@ -12,7 +12,7 @@ the D programming language.  It contains:
   * `scid.nonlinear`: Methods for nonlinear equation solving.
 
 The API documentation may be viewed at
-[DDocs.org](http://ddocs.org/scid/~master/index.html).
+[DDocs.org](http://ddocs.org/scid/latest/index.html).
 
 There are several ways to get SciD:
 
