@@ -301,13 +301,6 @@ unittest
 
 /** Calculate the determinant of a square matrix.
 
-    The type of the return value depends on the element type of
-    the matrix. For float or double matrices the determinant is of
-    type real, and for Complex!float or Complex!double matrices the determinant
-    is of type creal. The reason for choosing the widest type is that
-    determinants are often very big numbers, and therefore tend
-    to overflow.
-
     Examples:
     ---
     import scid.matrix;
@@ -344,6 +337,24 @@ body
         "det: Not a FORTRAN-compatible type: "~T.stringof);
 
     alias typeof(return) DT;
+    DT d = One!DT;
+    size_t sign;
+    static if(isFloatingPoint!DT)
+        long exp;
+
+    //accumulates exponent and mantissa for floating points numbers and
+    //annihilates exponent overflow in some cases.
+    //See Also: std.numeric.sumOfLog2s
+    void mul(DT x)
+    {
+        d *= x;
+        static if(isFloatingPoint!DT)
+        {
+            int lexp = void;
+            d = frexp(d, lexp);
+            exp += lexp;      
+        }
+    }
 
     // LU factorise matrix.
     int info;
@@ -359,15 +370,12 @@ body
         // The determinant is the product of the diagonal entries
         // of the upper triangular matrix. The array ipiv contains
         // the pivots.
-        DT d = One!DT;
         for (int i=0; i<m.rows; i++)
         {
             auto p = ipiv[i];
-            if (p == i+1) d *= m[i,i];  // i.e. row interchanged with itself
-            else          d *= -m[i,i]; // i.e. row interchanged with another
+            mul(m[i,i]);
+            sign += p != i+1; // i.e. row interchanged with another
         }
-
-        return d;
     }
 
     else static if (m.storage == Storage.Symmetric)
@@ -380,37 +388,36 @@ body
         if (info > 0)  return Zero!DT;
 
         // Calculate determinant.
-        DT d = One!DT;
         for (int k=0; k<m.rows; k++)
         {
             auto p = ipiv[k];
             if (p > 0)  // 1x1 block at m[k,k]
             {
-                if (p == k+1) d *= m[k,k];  // row interchanged with self
-                else          d *= -m[k,k]; // row interchanged with other
+                mul(m[k,k]);
+                sign += p != k+1; // row interchanged with other
             }
             else // p < 0, 2x2 block at m[k..k+1, k..k+1]
             {
                 auto kp1 = k+1;
                 auto offDiag = m[k, kp1];
                 auto blockDet = m[k,k]*m[kp1,kp1] - offDiag*offDiag;
-                if (-p == kp1 || -p == k+2) // row interchanged with self
-                    d *= blockDet;
-                else                        // row interchanged with other
-                    d *= -blockDet;
+                mul(blockDet);
+                sign += -p != kp1 && -p != k+2; // row interchanged with other
                 k++;
             }
         }
-
-        return d;
     }
     else static if (m.storage == Storage.Triangular)
     {
-        DT d = m[0,0];
-        foreach (i; 1 .. m.rows)  d *= m[i,i];
-        return d;
+        foreach (i; 0 .. m.rows)  d *= m[i,i];
     }
     else static assert (false, "det: Unsupported matrix storage.");
+    if(sign & 1)
+        d = -d;
+    static if(isFloatingPoint!DT)
+        return cast(int)exp == exp ? ldexp(d, cast(int)exp) : d * DT.infinity;
+    else
+        return d;
 }
 
 
@@ -450,10 +457,11 @@ unittest
                 d[k,l] = (k+1)*(k+1) + 1.0;
             else
                 d[k,l] = 2.0*(k+1)*(l+1);
+            d[k,l] /= 2;
         }
     }
     auto dd = det(d);
-    assert (approxEqual(dd, 8.972817920259982e319L, sqrt(real.epsilon)));
+    assert (approxEqual(dd, ldexp(8.972817920259982e319L, -dn), sqrt(real.epsilon)));
 
 
     // Symmetric packed matrix
