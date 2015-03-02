@@ -1,7 +1,7 @@
 
 export PROJECT_NAME     = scid
 export AUTHOR           = "Lars T. Kyllingstad"
-export DESCRIPTION      = "Is a collection of numerical routines and bindings"
+export DESCRIPTION      = "A collection of numerical routines and bindings for the D programming language"
 export REPO_SRC_DIR     = "scid"
 export LOGO_SRC         =
 export MAJOR_VERSION    = 0
@@ -10,7 +10,7 @@ export PATCH_VERSION    = 0
 export PROJECT_VERSION  = $(MAJOR_VERSION).$(MINOR_VERSION).$(PATCH_VERSION)
 export LICENSE          = "Boost License 1.0"
 export ROOT_SOURCE_DIR  = "source"
-export LIBS		= lapack blas gfortran
+export LIBS				= lapack blas gfortran
 DDOCFILES               = modules.ddoc settings.ddoc cutedoc.ddoc
 
 # include some command
