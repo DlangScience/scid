@@ -1,28 +1,21 @@
-/** This module contains the MatrixView class as well as some
-    functions related to it.
+/**
+This module contains the MatrixView class as well as some
+functions related to it.
 
-    Authors:    Lars Tandle Kyllingstad
-    Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
-    License:    Boost License 1.0
+Authors:    Lars Tandle Kyllingstad
+Copyright:  Copyright (c) 2009, Lars T. Kyllingstad. All rights reserved.
+License:    Boost License 1.0
 */
 module scid.matrix;
 
-
-//private import std.conv;
 import std.string: format;
 import std.traits;
 
 import scid.core.meta;
 import scid.core.traits;
 
-version(unittest) {
-    import std.math;
-}
 
-
-
-
-/** Various matrix representations. */
+/// Various matrix representations.
 enum Storage
 {
     General,        /// General (dense) matrices
@@ -31,8 +24,9 @@ enum Storage
 }
 
 
-/** In packed storage (triangular, symmetric, and Hermitian matrices),
-    one can choose to store either the upper or lower triangle.
+/**
+In packed storage (triangular, symmetric, and Hermitian matrices),
+one can choose to store either the upper or lower triangle.
 */
 enum Triangle : char
 {
@@ -41,33 +35,31 @@ enum Triangle : char
 }
 
 
+/**
+A convenience function that allocates memory for a matrix (using the
+GC), optionally sets the values of the matrix elements, and returns
+a MatrixView of the allocated memory.
 
+Examples:
+---
+// Allocate general dense 3x4 matrix:
+auto denseMatrix = matrix!real(3, 4);
 
-/** A convenience function that allocates heap memory for a matrix,
-    optionally sets the values of the matrix elements, and returns
-    a MatrixView of the allocated memory.
+// Allocate dense 3x2 zero-filled matrix:
+auto denseZeroMatrix = matrix!real(3, 2, 0.0L);
 
-    Examples:
-    ---
-    // Allocate general dense 3x4 matrix:
-    auto denseMatrix = matrix!real(3, 4);
+// Allocate lower triangular 3x3 matrix:
+auto loMatrix = matrix!(real, Storage.Triangular, Triangle.Lower)(3);
 
-    // Allocate dense 3x2 zero-filled matrix:
-    auto denseZeroMatrix = matrix!real(3, 2, 0.0L);
-
-    // Allocate lower triangular 3x3 matrix:
-    auto loMatrix = matrix!(real, Storage.Triangular, Triangle.Lower)(3);
-
-    // Allocate upper triangular 2x2 matrix where the upper
-    // triangular elements are set to 3.14.
-    auto upMatrix = matrix!(real, Storage.Triangular)(2, 3.14L);
-    ---
+// Allocate upper triangular 2x2 matrix where the upper
+// triangular elements are set to 3.14.
+auto upMatrix = matrix!(real, Storage.Triangular)(2, 3.14L);
+---
 */
 MatrixView!(T) matrix (T) (size_t rows, size_t cols) pure
 {
     return typeof(return)(new T[rows*cols], rows, cols);
 }
-
 
 /// ditto
 MatrixView!(T) matrix(T) (size_t rows, size_t cols, T init) pure
@@ -77,8 +69,7 @@ MatrixView!(T) matrix(T) (size_t rows, size_t cols, T init) pure
     return typeof(return)(array, rows, cols);
 }
 
-
-///ditto
+/// ditto
 MatrixView!(T, stor, tri) matrix
     (T, Storage stor, Triangle tri = Triangle.Upper)
     (size_t n, T init=T.init)
@@ -93,6 +84,7 @@ MatrixView!(T, stor, tri) matrix
 
 unittest
 {
+    import std.math;
     auto dense1 = matrix!real(3, 4);
     assert (dense1.rows == 3  &&  dense1.cols == 4);
     assert (isNaN(dense1[1,2]));
@@ -108,13 +100,13 @@ unittest
     auto loTri = matrix!(double, Storage.Triangular, Triangle.Lower)(3, 1.0);
     assert (loTri.rows == 3  &&  loTri.cols == 3);
     assert (loTri[0,2] == 0  &&  loTri[2,0] == 1.0);
-
 }
 
 
-
-
-/** A convenience function that creates a copy of the input matrix. */
+/**
+A convenience function that creates a copy of the input matrix. Memory for
+the copy is allocated using the GC.
+*/
 MatrixView!(T, stor, tri) copy(T, Storage stor, Triangle tri)
     (const MatrixView!(T, stor, tri) m)
     pure
@@ -136,56 +128,56 @@ unittest
 }
 
 
+/**
+A matrix-like view of the contents of an array.
 
+In order to be compatible with LAPACK routines, the following matrix
+representations (i.e., memory layouts) are supported.
 
-/** This struct provides a matrix-like view of the contents of an
-    array. In order to be compatible with LAPACK routines, it supports
-    the following matrix representations (i.e. memory layouts).
-    
-    General_matrices:
-    The elements of dense matrices are stored in column-major order.
-    This means that if the wrapped array contains the elements
-    ---
-    a b c d e f g h i j k l
-    ---
-    then a 3x4 dense matrix view of this array looks like this:
-    ---
-    a d g j
-    b e h k
-    c f i l
-    ---
+General_matrices:
+The elements of dense matrices are stored in column-major order.
+This means that if the wrapped array contains the elements
+---
+a b c d e f g h i j k l
+---
+then a 3x4 dense matrix view of this array looks like this:
+---
+a d g j
+b e h k
+c f i l
+---
 
-    Triangular_matrices:
-    Triangular matrices are required to be square. If the wrapped
-    array contains the six elements
-    ---
-    a b c d e f
-    ---
-    then the resulting 3x3 upper and lower triangular matrix views
-    will look like this, respectively:
-    ---
-    a b d         a 0 0
-    0 c e   and   b d 0
-    0 0 f         c e f
-    ---
+Triangular_matrices:
+Triangular matrices are required to be square. If the wrapped
+array contains the six elements
+---
+a b c d e f
+---
+then the resulting 3x3 upper and lower triangular matrix views
+will look like this, respectively:
+---
+a b d         a 0 0
+0 c e   and   b d 0
+0 0 f         c e f
+---
 
-    Symmetric_matrices:
-    Symmetric matrices are stored in the same way as triangular
-    matrices. This means that for the array above, the corresponding
-    symmetric matrix view will be
-    ---
-    a b d       a b c
-    b c e   or  b d c
-    d e f       c e f
-    ---
-    depending on whether the upper or lower triangle is stored.
+Symmetric_matrices:
+Symmetric matrices are stored in the same way as triangular
+matrices. This means that for the array above, the corresponding
+symmetric matrix view will be
+---
+a b d       a b c
+b c e   or  b d c
+d e f       c e f
+---
+depending on whether the upper or lower triangle is stored.
 
-    Hermitian_matrices:
-    Hermitian matrices are not implemented yet.
+Hermitian_matrices:
+Hermitian matrices are not implemented yet.
 
-    See_also:
-    LAPACK User's Guide: Matrix storage schemes, 
-    $(LINK http://www.netlib.org/lapack/lug/node121.html)
+See_also:
+LAPACK User's Guide: Matrix storage schemes,
+$(LINK http://www.netlib.org/lapack/lug/node121.html)
 */
 struct MatrixView (T, Storage stor = Storage.General,
     Triangle tri = Triangle.Upper)
@@ -239,13 +231,13 @@ public:
     alias rows leading;
 
 
+    /**
+    Wraps a MatrixView with m rows around the given array.
 
-    /** Wrap a MatrixView with m rows around the given array.
-        
-        For general matrices, the number of columns in the matrix
-        is set to a.length/m, whereas for triangular and symmetric
-        matrices the number of columns is set equal to the number
-        of rows.
+    For general matrices, the number of columns in the matrix
+    is set to a.length/m, whereas for triangular and symmetric
+    matrices the number of columns is set equal to the number
+    of rows.
     */
     this (T[] a, size_t m)  pure nothrow
     in
@@ -260,18 +252,19 @@ public:
 
 
 
-    /** Wrap a MatrixView with m rows and n columns around the given array.
-        For a given set of a, m, and n, the following must be true for
-        a general matrix:
-        ---
-        a.length >= m*n
-        ---
-        For triangular and symmetric matrices, there are two constraints:
-        ---
-        m == n
-        a.length >= (n*n + n)/2
-        ---
-        These conditions are only checked in non-release builds.
+    /**
+    Wraps a MatrixView with m rows and n columns around the given array.
+    For a given set of a, m, and n, the following must be true for
+    a general matrix:
+    ---
+    a.length >= m*n
+    ---
+    For triangular and symmetric matrices, there are two constraints:
+    ---
+    m == n
+    a.length >= (n*n + n)/2
+    ---
+    These conditions are only checked in non-release builds.
     */
     this (T[] a, size_t m, size_t n) pure nothrow
     in
@@ -292,23 +285,23 @@ public:
     }
 
 
+    /**
+    Returns (a reference to) the element at row i, column j.
 
-    /** Return (a reference to) the element at row i, column j.
-
-        Warning:
-        For convenience, this method returns values by reference. This
-        means that one can do stuff like this:
-        ---
-        m[1,2] += 3.14;
-        ---
-        Unfortunately, it also means that in a triangular matrix one
-        can change the zero element (which is common for all zero elements).
-        ---
-        assert ((m[1,0] == 0.0)  &&  m[2,0] == 0.0);
-        m[1,0] += 3.14;
-        assert (m[2,0] == 3.14);    // passes
-        ---
-        You are hereby warned.
+    Warning:
+    For convenience, this method returns values by reference. This
+    means that one can do stuff like this:
+    ---
+    m[1,2] += 3.14;
+    ---
+    Unfortunately, it also means that in a triangular matrix one
+    can change the zero element (which is common for all zero elements).
+    ---
+    assert ((m[1,0] == 0.0)  &&  m[2,0] == 0.0);
+    m[1,0] += 3.14;
+    assert (m[2,0] == 3.14);    // passes
+    ---
+    You are hereby warned.
     */
     ref T opIndex(size_t i, size_t j) pure nothrow
     in
@@ -343,11 +336,12 @@ public:
     }
 
 
-    /** Assign a value to the element at row i, column j.
-        
-        Unlike opIndex(), this method checks that zero elements in
-        a triangular matrix aren't assigned to, but only in non-release
-        builds.
+    /**
+    Assigns a value to the element at row i, column j.
+
+    Unlike opIndex(), this method checks that zero elements in
+    a triangular matrix aren't assigned to, but only in non-release
+    builds.
     */
     T opIndexAssign(T value, size_t i, size_t j) nothrow
     in
@@ -401,7 +395,7 @@ unittest
 
     alias MatrixView!(real, Storage.Triangular) UTMatrix;
     real[] u = [1.0, 2, 3, 4, 5, 6];
-    
+
     auto um1 = UTMatrix(u, 3);
     assert (um1.cols == 3);
     assert (um1[1,0] == 0.0);
@@ -412,7 +406,7 @@ unittest
 
     alias MatrixView!(real, Storage.Triangular, Triangle.Lower) LTMatrix;
     real[] l = [1.0, 2, 3, 4, 5, 6];
-    
+
     auto lm1 = LTMatrix(l, 3);
     assert (lm1.cols == 3);
     assert (lm1[0,1] == 0.0);
@@ -423,7 +417,7 @@ unittest
 
     alias MatrixView!(real, Storage.Symmetric) USMatrix;
     real[] us = [1.0, 2, 3, 4, 5, 6];
-    
+
     auto usm1 = USMatrix(us, 3);
     assert (usm1.cols == 3);
     assert (usm1[1,2] == 5.0);
@@ -436,7 +430,7 @@ unittest
 
     alias MatrixView!(real, Storage.Symmetric, Triangle.Lower) LSMatrix;
     real[] ls = [1.0, 2, 3, 4, 5, 6];
-    
+
     auto lsm1 = LSMatrix(ls, 3);
     assert (lsm1.cols == 3);
     assert (lsm1[1,2] == 5.0);
@@ -448,11 +442,10 @@ unittest
 }
 
 
-
-
-/** Evaluates to true if the given type is an instantiation of
-    MatrixView. Optionally test the element type and/or storage
-    scheme.
+/**
+Evaluates to true if the given type is an instantiation of
+MatrixView. Optionally test the element type and/or storage
+scheme.
 */
 template isMatrixView(MatrixT)
 {
@@ -530,5 +523,3 @@ version(unittest)
         MatrixView!(int, Storage.Triangular),
         int, Storage.Symmetric));
 }
-
-
