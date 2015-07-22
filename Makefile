@@ -10,7 +10,7 @@ export PATCH_VERSION    = 0
 export PROJECT_VERSION  = $(MAJOR_VERSION).$(MINOR_VERSION).$(PATCH_VERSION)
 export LICENSE          = "Boost License 1.0"
 export ROOT_SOURCE_DIR  = "source"
-export LIBS				= lapack blas gfortran
+export LIBS             = lapack blas gfortran
 DDOCFILES               = modules.ddoc settings.ddoc cutedoc.ddoc
 
 # include some command
