@@ -96,13 +96,13 @@ body
             // actually uses it.
             auto fTest = f(x[0 .. m], fvec[0 .. m]);
             assert (fTest.ptr == fvec);
+            assert (fTest.length == m, "findRoot: The number of "
+                ~"equations must be equal to the number of variables");
         }
         else
         {
-            auto fTest = f(x[0 .. m]);
+            fvec[0 .. m] = f(x[0 .. m])[];
         }
-        assert (fTest.length == m, "findRoot: The number of "
-            ~"equations must be equal to the number of variables");
     }
 
     immutable int n = toInt(guess.length);
@@ -163,7 +163,7 @@ body
 
 unittest
 {
-    real[] dRosenbrock(real[] v, real[] fx=null)
+    real[] dRosenbrockB(real[] v, real[] fx)
     {
         assert (v.length == 2 && fx.length == 2);
         auto x = v[0], y = v[1];
@@ -171,10 +171,17 @@ unittest
         fx[1] = 200 * (y - x*x);
         return fx;
     }
+    real[] dRosenbrock(real[] v)
+    {
+        auto fx = new real[2];
+        return dRosenbrockB(v, fx);
+    }
 
     real[] guess = [ 2.0, 2.0 ];
-    auto root = findRoot(&dRosenbrock, guess, 0.0L);
+    auto root = findRoot(&dRosenbrock, guess, 0.0L); // Test bufferless function
     assert (approxEqual(root, [1.0L, 1.0L].dup, 1e-6));
+    auto rootB = findRoot(&dRosenbrockB, guess, 0.0L); // Test buffered function
+    assert (approxEqual(rootB, [1.0L, 1.0L].dup, 1e-6));
 }
 
 
