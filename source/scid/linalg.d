@@ -48,10 +48,6 @@ import scid.core.traits;
 import scid.matrix;
 import scid.util;
 
-pragma(lib, "lapack");
-
-
-
 
 /** Solve one or more systems of n linear equations in n variables.
 
