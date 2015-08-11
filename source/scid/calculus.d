@@ -623,7 +623,7 @@ unittest
     enum eps = 1e-15L;
     real f(real x) { return exp(20*(x-1)); }
     auto i = integrateQAWO(&f, 0.0L, 1.0L, 256.0L, Oscillation.sin, eps);
-    real expect = (20*sin(256) - 256*cos(256) + 256*exp(-20.0L))/(400+65536);
+    real expect = (20*sin(256.0L) - 256*cos(256.0L) + 256*exp(-20.0L))/(400+65536);
     assert (isAccurate(i, expect, eps));
 }
 
