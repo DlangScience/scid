@@ -1,11 +1,11 @@
 {
-	"name": "scid",
-	"libs": ["lapack","blas"],
-	"targetType": "library",
-	"homepage": "https://github.com/kyllingstad/scid",
-	"description": "A collection of numerical routines and bindings written in and for the D programming language",
-	"copyright": "Copyright (c) 2009-2014, Lars T. Kyllingstad.",
-	"authors": ["Lars Tandle Kyllingstad"],
-	"license": "BSL-1.0",
+    "name": "scid",
+    "libs": ["lapack","blas"],
+    "targetType": "library",
+    "homepage": "https://github.com/kyllingstad/scid",
+    "description": "A collection of numerical routines and bindings written in and for the D programming language",
+    "copyright": "Copyright (c) 2009-2014, Lars T. Kyllingstad.",
+    "authors": ["Lars Tandle Kyllingstad"],
+    "license": "BSL-1.0",
     "excludedSourceFiles": ["source/scid/bindings/blas/*"]
 }
