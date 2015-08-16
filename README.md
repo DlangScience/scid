@@ -23,6 +23,11 @@ There are several ways to get SciD:
 Please submit questions and bug reports using the
 [GitHub issue tracker](https://github.com/DlangScience/scid/issues).
 
+API documentation
+-----------------
+
+[Here](https://dlangscience.github.io/scid/api/)
+
 Requirements
 ------------
 All you need in order to use SciD is:
