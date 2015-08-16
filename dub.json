@@ -1,6 +1,6 @@
 {
     "name": "scid",
-    "libs": ["lapack","blas"],
+    "libs": ["lapack"],
     "targetType": "library",
     "homepage": "https://github.com/DlangScience/scid",
     "description": "A collection of numerical routines and bindings",
