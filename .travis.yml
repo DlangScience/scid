@@ -1,8 +1,18 @@
+sudo: false
+
 language: d
+
 d:
-  - dmd
-  - gdc
-  - ldc
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install liblapack-dev
+ - dmd-2.068.0
+ - dmd-2.067.1
+ - dmd-2.066.1
+ - ldc-0.15.1
+ - gdc
+
+addons:
+  apt:
+    packages:
+      liblapack-dev
+
+script:
+ - dub test --compiler=${DC}
