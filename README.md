@@ -11,19 +11,16 @@ the D programming language.  It contains:
   * `scid.matrix`: LAPACK-compatible matrix view of ordinary arrays.
   * `scid.nonlinear`: Methods for nonlinear equation solving.
 
-The API documentation may be viewed at
-[DDocs.org](http://ddocs.org/scid/latest/index.html).
-
 There are several ways to get SciD:
 
   * It is available as a [Dub package](http://code.dlang.org/packages/scid).
   * Users of Debian, Ubuntu, Linux Mint and similar operating systems may
     install it from the [D-APT package repository](http://d-apt.sourceforge.net/).
-  * You can clone the [GitHub repository](https://github.com/kyllingstad/scid)
+  * You can clone the [GitHub repository](https://github.com/DlangScience/scid)
     and build it yourself.
 
 Please submit questions and bug reports using the
-[GitHub issue tracker](https://github.com/kyllingstad/scid/issues).
+[GitHub issue tracker](https://github.com/DlangScience/scid/issues).
 
 Requirements
 ------------
@@ -35,7 +32,7 @@ All you need in order to use SciD is:
 Contributing
 ------------
 Contributions are very welcome!  Please submit your work as
-[pull requests on GitHub](https://github.com/kyllingstad/scid/pulls).
+[pull requests on GitHub](https://github.com/DlangScience/scid/pulls).
 By submitting a pull request, you implicitly accept that your contribution
 is placed under the same licence as SciD.  See LICENCE.txt for details.
 
