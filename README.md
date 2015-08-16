@@ -33,7 +33,7 @@ Requirements
 All you need in order to use SciD is:
 
   * A somewhat up-to-date D compiler
-  * The LAPACK library (and, by extension, a BLAS library)
+  * The LAPACK library
 
 Contributing
 ------------
