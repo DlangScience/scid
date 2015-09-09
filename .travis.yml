@@ -13,6 +13,3 @@ addons:
   apt:
     packages:
       liblapack-dev
-
-script:
- - dub test --compiler=${DC}
