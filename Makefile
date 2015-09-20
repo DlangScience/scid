@@ -1,16 +1,16 @@
 
 export PROJECT_NAME     = scid
 export AUTHOR           = "Lars T. Kyllingstad"
-export DESCRIPTION      = "Is a collection of numerical routines and bindings"
+export DESCRIPTION      = "A collection of numerical routines and bindings for the D programming language"
 export REPO_SRC_DIR     = "scid"
 export LOGO_SRC         =
 export MAJOR_VERSION    = 0
-export MINOR_VERSION    = 1
+export MINOR_VERSION    = 3
 export PATCH_VERSION    = 0
 export PROJECT_VERSION  = $(MAJOR_VERSION).$(MINOR_VERSION).$(PATCH_VERSION)
 export LICENSE          = "Boost License 1.0"
-export ROOT_SOURCE_DIR  = "./"
-export LIBS		= lapack blas gfortran
+export ROOT_SOURCE_DIR  = source
+export LIBS             = lapack blas gfortran
 DDOCFILES               = modules.ddoc settings.ddoc cutedoc.ddoc
 
 # include some command
@@ -212,7 +212,7 @@ install-shared-lib:
 
 install-header:
 	$(MKDIR) $(DESTDIR)$(INCLUDE_DIR)
-	$(CP) $(IMPORT_PATH)$(PATH_SEP)$(PROJECT_NAME) $(DESTDIR)$(INCLUDE_DIR)
+	$(CP) $(IMPORT_PATH)$(PATH_SEP)$(ROOT_SOURCE_DIR)$(PATH_SEP)$(PROJECT_NAME) $(DESTDIR)$(INCLUDE_DIR)
 	@echo ------------------ Installing header done
 
 install-doc:
