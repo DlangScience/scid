@@ -200,7 +200,7 @@ pure: // TODO: Mark as nothrow as soon as DMD bug 5191 is fixed (DMD 2.051)
         $(UL
             $(LI a is infinite, b is finite)
             $(LI a is finite, b is infinite)
-            $(LI a and b are infinite, but have opposite sign.
+            $(LI a and b are infinite, but have opposite sign.)
         )
         If T is an integer type, this is always false.
     */

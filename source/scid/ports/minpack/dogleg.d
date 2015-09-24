@@ -31,6 +31,7 @@ import scid.ports.minpack.enorm;
     Params:
         n = a positive integer variable set to the order of R.
         r = the upper triangular matrix R.
+        lr = (not documented)
         diag = a vector of length n which must contain the diagonal
             elements of the matrix D.
         qtb = a vector of length n which must contain the first n

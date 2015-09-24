@@ -47,21 +47,21 @@
     finite differences. The functions in this module use three different
     finite-difference formulas: Forward differences,
     ---
-            f(x+h) - f(x)
-    f'(x) = -------------
-                  h
+    df   f(x+h) - f(x)
+    -- = -------------
+    dx         h
     ---
     backward differences,
     ---
-            f(x) - f(x-h)
-    f'(x) = -------------
-                  h
+    df   f(x) - f(x-h)
+    -- = -------------
+    dx         h
     ---
     and central differences,
     ---
-            f(x+h) - f(x-h)
-    f'(x) = ---------------
-                  2 h
+    df   f(x+h) - f(x-h)
+    -- = ---------------
+    dx         2 h
     ---
     Of these three, the latter is the most accurate, but in the cases where
     $(D f(x)) is already known it requires one more function evaluation compared
@@ -1478,11 +1478,16 @@ unittest
     as many function evaluations. The relative accuracy is,
     at best, on the order of $(D sqrt(real.epsilon)).
 
-    This function is used more or less like $(D jacobian()). The
-    differences lie in the parameters described below, which
-    are all optional.
-
     Params:
+        f = The set of functions. This is typically a function or delegate
+            which takes a vector as input and returns a vector. If the
+            function takes a second vector parameter, this is assumed to
+            be a buffer for the return value, and will be used as such.
+
+        m = The number of functions in $(D f).
+
+        x = The point at which to take the derivative.
+
         scale = $(D abs(scale)) is the characteristic scale of the
             function, and the sign of scale determines which
             differentiation method is used. If $(D scale) is
@@ -1493,6 +1498,9 @@ unittest
         fx = The result of evaluating the function at the point $(D x).
             Providing this saves one function evaluation if you
             for some reason have already calculated the value. (optional)
+
+        buffer = A buffer of length at least $(I m)*$(I n), for storing the calculated
+            Jacobian matrix. (optional)
 
     Examples:
     ---
