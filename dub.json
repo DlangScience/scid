@@ -15,7 +15,8 @@
             "postBuildCommands": [
                 "rm -rf site/api",
                 "ddox filter --min-protection=Protected docs.json",
-                "ddox generate-html --navigation-type=ModuleTree docs.json site/api"
+                "ddox generate-html --navigation-type=ModuleTree docs.json site/api",
+                "rm __dummy.html docs.json"
             ]
         }
     }
