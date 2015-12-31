@@ -12,3 +12,4 @@ scid.pc
 dub.selections.json
 __test__library__
 libscid.a
+/site
