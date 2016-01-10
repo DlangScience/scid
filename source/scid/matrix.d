@@ -167,7 +167,7 @@ matrices. This means that for the array above, the corresponding
 symmetric matrix view will be
 ---
 a b d       a b c
-b c e   or  b d c
+b c e   or  b d e
 d e f       c e f
 ---
 depending on whether the upper or lower triangle is stored.
