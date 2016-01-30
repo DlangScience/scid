@@ -36,7 +36,7 @@ module scid.core.memory;
 import core.memory;
 import std.range;
 import std.traits;
-static import std.c.stdio;
+static import core.stdc.stdio;
 
 
 version(unittest)
@@ -253,7 +253,7 @@ private:
     static State state;
 
     static void die() nothrow {
-        fprintf(std.c.stdio.stderr, "TempAlloc error: Out of memory.\0".ptr);
+        fprintf(core.stdc.stdio.stderr, "TempAlloc error: Out of memory.\0".ptr);
         exit(1);
     }
 
