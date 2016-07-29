@@ -12,6 +12,7 @@ import std.algorithm;
 import std.exception;
 import std.functional;
 import std.math;
+static import std.numeric;
 import std.range;
 import std.traits;
 import std.typecons;
