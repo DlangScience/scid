@@ -370,6 +370,53 @@ public:
         }
         else static assert (false);
     }
+
+    /**
+    Sum or substract operation for two matrices.
+    */
+    MatrixView opBinary(string op)(MatrixView rhs)
+    if (op == "+" || op == "-")
+    in
+    {
+        assert(rows == rhs.rows && cols == rhs.cols);
+    }
+    body
+    {
+        auto new_array = new T[rows * cols];
+        mixin("new_array[] = array[] " ~ op ~ " rhs.array[];");
+        return MatrixView!(T, stor, tri)(new_array, rows, cols);
+    }
+
+    ref MatrixView opOpAssign(string op)(MatrixView rhs)
+    if (op == "+" || op == "-")
+    in
+    {
+        assert(rows == rhs.rows && cols == rhs.cols);
+    }
+    body
+    {
+        mixin("array[] " ~ op ~ "= rhs.array[];");
+        return this;
+    }
+
+    unittest
+    {
+        import std.range;
+        void testOpBinary(NumericType)() {
+            auto m1 = MatrixView!NumericType(iota!NumericType(4).array, 2, 2);
+            auto m2 = MatrixView!NumericType(iota!NumericType(3, 7).array, 2, 2);
+            assert((m1 + m2).array == [0 + 3, 1 + 4, 2 + 5, 3 + 6]);
+            assert((m1 - m2).array == [0 - 3, 1 - 4, 2 - 5, 3 - 6]);
+            m1 += m2;
+            assert(m1.array == [0 + 3, 1 + 4, 2 + 5, 3 + 6]);
+            m1 -= m2;
+            m1 -= m2;
+            assert(m1.array == [0 - 3, 1 - 4, 2 - 5, 3 - 6]);
+        }
+        testOpBinary!float();
+        testOpBinary!double();
+        testOpBinary!int();
+    }
 }
 
 unittest
