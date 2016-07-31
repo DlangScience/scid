@@ -509,23 +509,45 @@ public:
         return matrix;
     }
 
+    /**
+    Use opOpAssign methods to generate equivalent opBinaryRight operators
+    */
+    MatrixView opBinaryRight(string op, LeftType)(LeftType lhs)
+    body
+    {
+        static if (op == "/" || op == "-") {
+            auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
+            for (int i = 0; i < matrix.array.length; ++i) {
+                mixin("matrix.array[i] = lhs " ~ op ~ " matrix.array[i];");
+            }
+            return matrix;
+        }
+        else {
+            return opBinary!op(lhs);
+        }
+    }
+
     unittest
     {
         void test(NumericType)() {
             auto m1 = MatrixView!NumericType([1, 1, 2, 3], 2, 2);
             auto m2 = MatrixView!NumericType([3, 4, 6, 6], 2, 2);
             assert((m1 + m2).array == [ 4,  5,  8,  9]);
-            assert((m1 - m2).array == [-2, -3, -4, -3]);
             assert((m1 * m2).array == [ 3,  4, 12, 18]);
+            assert((m1 - m2).array == [-2, -3, -4, -3]);
             assert((m2 / m1).array == [ 3,  4,  3,  2]);
             assert((m1 +  1).array == [ 2,  2,  3,  4]);
-            assert((m1 -  1).array == [ 0,  0,  1,  2]);
             assert((m1 *  2).array == [ 2,  2,  4,  6]);
+            assert((m1 -  1).array == [ 0,  0,  1,  2]);
             static if (isIntegral!NumericType) {
-                assert((m2 /  2).array == [1, 2, 3, 3]);
+                assert((m2 / 2).array == [  1, 2, 3, 3]);
             } else {
-                assert((m2 /  2).array == [1.5, 2, 3, 3]);
+                assert((m2 / 2).array == [1.5, 2, 3, 3]);
             }
+            assert((1 + m1).array == [ 2,  2,  3,  4]);
+            assert((2 * m1).array == [ 2,  2,  4,  6]);
+            assert((1 - m1).array == [ 0,  0, -1, -2]);
+            assert((6 / m1).array == [ 6,  6,  3,  2]);
         }
         test!float();
         test!double();
