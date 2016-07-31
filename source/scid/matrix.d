@@ -442,10 +442,10 @@ public:
     }
 
     /**
-    Elementwise sum, substract, product and division operations for matrices.
+    Sum, substract, product, division and exponentiation operations.
     */
     ref MatrixView opOpAssign(string op)(MatrixView rhs)
-    if (op == "+" || op == "-" || op == "*" || op == "/")
+    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "^^")
     in
     {
         assert(rows == rhs.rows && cols == rhs.cols);
@@ -463,8 +463,14 @@ public:
             auto m2 = MatrixView!NumericType([3, 4, 5, 6], 2, 2);
             m1 += m2;
             assert(m1.array == [3, 5, 7, 9]);
-            m1 -= m2; m1 -= m2;
-            assert(m1.array == [-3, -3, -3, -3]);
+            m1 -= m2;
+            assert(m1.array == [0, 1, 2, 3]);
+            m1 *= m2;
+            assert(m1.array == [0, 4, 10, 18]);
+            m1 /= m2;
+            assert(m1.array == [0, 1, 2, 3]);
+            m1 ^^= m2;
+            assert(m1.array == [0, 1, 32, 729]);
         }
         test!float();
         test!double();
@@ -472,10 +478,10 @@ public:
     }
 
     /**
-    Multiply a matrix by an scalar factor
+    Apply an scalar a matrix by an scalar factor
     */
     ref MatrixView opOpAssign(string op, RightType)(RightType scalar)
-    if (op == "+" || op == "-" || op == "*" || op == "/")
+    if (op == "+" || op == "-" || op == "*" || op == "/" || op == "^^")
     in 
     {
         static assert(isNumeric!RightType);
@@ -490,8 +496,16 @@ public:
     {
         void test(NumericType)() {
             auto m = MatrixView!NumericType([0, 1, 2, 3], 2, 2);
+            m += 1;
+            assert(m.array == [1, 2, 3, 4]);
+            m -= 1;
+            assert(m.array == [0, 1, 2, 3]);
             m *= 2;
             assert(m.array == [0, 2, 4, 6]);
+            m /= 2;
+            assert(m.array == [0, 1, 2, 3]);
+            m ^^= 3;
+            assert(m.array == [0, 1, 8, 27]);
         }
         test!float();
         test!double();
@@ -515,7 +529,7 @@ public:
     MatrixView opBinaryRight(string op, LeftType)(LeftType lhs)
     body
     {
-        static if (op == "/" || op == "-") {
+        static if (op == "/" || op == "-" || op == "^^") {
             auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
             for (int i = 0; i < matrix.array.length; ++i) {
                 mixin("matrix.array[i] = lhs " ~ op ~ " matrix.array[i];");
@@ -539,15 +553,17 @@ public:
             assert((m1 +  1).array == [ 2,  2,  3,  4]);
             assert((m1 *  2).array == [ 2,  2,  4,  6]);
             assert((m1 -  1).array == [ 0,  0,  1,  2]);
+            assert((m1 ^^ 3).array == [ 1,  1,  8, 27]);
             static if (isIntegral!NumericType) {
                 assert((m2 / 2).array == [  1, 2, 3, 3]);
             } else {
                 assert((m2 / 2).array == [1.5, 2, 3, 3]);
             }
-            assert((1 + m1).array == [ 2,  2,  3,  4]);
-            assert((2 * m1).array == [ 2,  2,  4,  6]);
-            assert((1 - m1).array == [ 0,  0, -1, -2]);
-            assert((6 / m1).array == [ 6,  6,  3,  2]);
+            assert((1 +  m1).array == [ 2,  2,  3,  4]);
+            assert((2 *  m1).array == [ 2,  2,  4,  6]);
+            assert((1 -  m1).array == [ 0,  0, -1, -2]);
+            assert((6 /  m1).array == [ 6,  6,  3,  2]);
+            assert((3 ^^ m1).array == [ 3,  3,  9, 27]);
         }
         test!float();
         test!double();
