@@ -538,10 +538,10 @@ public:
 /**
 Matrix-matrix inner product.
 
-Currently only supports general storage.
-
+TODO: Extend to other kinds of storage.
 TODO: Optimize to iterate the arrays in sequential order.
 TODO: Make sure the calls to the opIndex are inlined
+TODO: Use BLAS.
 */
 
 MatrixView!(T, Storage.General) dotProduct(T)(MatrixView!(T, Storage.General) a,
@@ -563,6 +563,7 @@ body
     }
     return c;
 }
+
 
 unittest
 {
