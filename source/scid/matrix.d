@@ -518,19 +518,21 @@ public:
     MatrixView opBinary(string op, RightType)(RightType rhs)
     body
     {
-        auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
+        auto matrix = copy(this);
         matrix.opOpAssign!op(rhs);
         return matrix;
     }
 
     /**
     Use opOpAssign methods to generate equivalent opBinaryRight operators
+
+    TODO: simplify this code (it looks like it can be easier).
     */
     MatrixView opBinaryRight(string op, LeftType)(LeftType lhs)
     body
     {
         static if (op == "/" || op == "-" || op == "^^") {
-            auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
+            auto matrix = copy(this);
             for (int i = 0; i < matrix.array.length; ++i) {
                 mixin("matrix.array[i] = lhs " ~ op ~ " matrix.array[i];");
             }
