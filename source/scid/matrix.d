@@ -474,11 +474,15 @@ public:
     /**
     Multiply a matrix by an scalar factor
     */
-    ref MatrixView opOpAssign(string op)(T scalar)
-    if (op == "*")
+    ref MatrixView opOpAssign(string op, RightType)(RightType scalar)
+    if (op == "+" || op == "-" || op == "*" || op == "/")
+    in 
+    {
+        static assert(isNumeric!RightType);
+    }
     body
     {
-        array[] *= scalar;
+        mixin("array[] " ~ op ~ "= scalar;");
         return this;
     }
 
@@ -497,11 +501,7 @@ public:
     /**
     Use opOpAssign methods to generate equivalent opBinary operators
     */
-    MatrixView opBinary(string op)(MatrixView rhs)
-    in
-    {
-        assert(rows == rhs.rows && cols == rhs.cols);
-    }
+    MatrixView opBinary(string op, RightType)(RightType rhs)
     body
     {
         auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
@@ -518,30 +518,14 @@ public:
             assert((m1 - m2).array == [-2, -3, -4, -3]);
             assert((m1 * m2).array == [ 3,  4, 12, 18]);
             assert((m2 / m1).array == [ 3,  4,  3,  2]);
-        }
-        test!float();
-        test!double();
-        test!int();
-    }
-
-
-    /**
-    Multiplication of a matrix by an scalar.
-    */
-    MatrixView opBinary(string op)(T scalar)
-    if (op == "*")
-    body
-    {
-        auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
-        matrix.opOpAssign!op(scalar);
-        return matrix;
-    }
-
-    unittest
-    {
-        void test(NumericType)() {
-            auto m = MatrixView!NumericType([0, 1, 2, 3], 2, 2);
-            assert((m * 2).array == [0, 2, 4, 6]);
+            assert((m1 +  1).array == [ 2,  2,  3,  4]);
+            assert((m1 -  1).array == [ 0,  0,  1,  2]);
+            assert((m1 *  2).array == [ 2,  2,  4,  6]);
+            static if (isIntegral!NumericType) {
+                assert((m2 /  2).array == [1, 2, 3, 3]);
+            } else {
+                assert((m2 /  2).array == [1.5, 2, 3, 3]);
+            }
         }
         test!float();
         test!double();
