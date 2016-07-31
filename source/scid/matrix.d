@@ -536,6 +536,49 @@ public:
 
 
 /**
+Matrix-matrix inner product.
+
+Currently only supports general storage.
+
+TODO: Optimize to iterate the arrays in sequential order.
+TODO: Make sure the calls to the opIndex are inlined
+*/
+
+MatrixView!(T, Storage.General) dotProduct(T)(MatrixView!(T, Storage.General) a,
+                                              MatrixView!(T, Storage.General) b)
+in
+{
+    assert(a.cols == b.rows);
+}
+body
+{
+    auto c = MatrixView!T(new T[a.rows * b.cols], a.rows, b.cols);
+    for (int i = 0; i < c.rows; ++i) {
+        for (int j = 0; j < c.cols; ++j) {
+            c[i,j] = 0;
+            for (int k = 0; k < a.cols; ++k) {
+                c[i,j] += a[i,k] * b[k,j];
+            }
+        }
+    }
+    return c;
+}
+
+unittest
+{
+    //             | 3 6 |
+    // | 1 2 4 |   |     |   | 35 16 |
+    // |       | * | 4 1 | = |       |
+    // | 1 3 5 |   |     |   | 45 19 |
+    //             | 6 2 |
+    auto m1 = MatrixView!double([1, 1, 2, 3, 4, 5], 2, 3);
+    auto m2 = MatrixView!double([3, 4, 6, 6, 1, 2], 3, 2);
+    auto m3 = dotProduct(m1, m2);
+    assert(m3.array == [35, 45, 16, 19]);
+}
+
+
+/**
 Evaluates to true if the given type is an instantiation of
 MatrixView. Optionally test the element type and/or storage
 scheme.
