@@ -8,6 +8,7 @@ License:    Boost License 1.0
 */
 module scid.matrix;
 
+import std.array;
 import std.string: format;
 import std.traits;
 
@@ -371,24 +372,80 @@ public:
         else static assert (false);
     }
 
-    /**
-    Sum or substract operation for two matrices.
-    */
-    MatrixView opBinary(string op)(MatrixView rhs)
-    if (op == "+" || op == "-")
-    in
+    unittest
     {
-        assert(rows == rhs.rows && cols == rhs.cols);
-    }
-    body
-    {
-        auto new_array = new T[rows * cols];
-        mixin("new_array[] = array[] " ~ op ~ " rhs.array[];");
-        return MatrixView!(T, stor, tri)(new_array, rows, cols);
+        alias MatrixView!real GeneralMatrix;
+        real[] g = [1.0L, 2, 3, 4, 5, 6];
+
+        auto gm1 = GeneralMatrix(g, 2);
+        auto gm2 = GeneralMatrix(g, 3);
+
+        assert (gm1.cols == 3);
+        assert (gm2.cols == 2);
+
+        assert (gm1[1,0] == 2);
+        assert (gm2[1,0] == 2);
+
+        assert (gm1[1,1] == 4);
+        assert (gm2[1,1] == 5);
+
+        gm2[1,1] += 1; assert (gm2[1,1] == 6);
+        gm2[1,1] = 10; assert (gm2[1,1] == 10);
+
+
+        alias MatrixView!(real, Storage.Triangular) UTMatrix;
+        real[] u = [1.0, 2, 3, 4, 5, 6];
+
+        auto um1 = UTMatrix(u, 3);
+        assert (um1.cols == 3);
+        assert (um1[1,0] == 0.0);
+        assert (um1[1,1] == 3.0);
+        um1[0,2] += 3; assert (u[3] == 7);
+        um1[2,2] = 10; assert (u[5] == 10);
+
+
+        alias MatrixView!(real, Storage.Triangular, Triangle.Lower) LTMatrix;
+        real[] l = [1.0, 2, 3, 4, 5, 6];
+
+        auto lm1 = LTMatrix(l, 3);
+        assert (lm1.cols == 3);
+        assert (lm1[0,1] == 0.0);
+        assert (lm1[1,1] == 4.0);
+        lm1[2,0] += 4; assert (l[2] == 7);
+        lm1[2,2] = 10; assert (l[5] == 10);
+
+
+        alias MatrixView!(real, Storage.Symmetric) USMatrix;
+        real[] us = [1.0, 2, 3, 4, 5, 6];
+
+        auto usm1 = USMatrix(us, 3);
+        assert (usm1.cols == 3);
+        assert (usm1[1,2] == 5.0);
+        foreach (i; 0 .. usm1.rows)
+            foreach (j; 0 .. i)
+                assert (usm1[i,j] == usm1[j,i]);
+        usm1[0,2] += 3; assert (usm1[2,0] == 7);
+        usm1[1,2] = 10; assert (usm1[2,1] == 10);
+
+
+        alias MatrixView!(real, Storage.Symmetric, Triangle.Lower) LSMatrix;
+        real[] ls = [1.0, 2, 3, 4, 5, 6];
+
+        auto lsm1 = LSMatrix(ls, 3);
+        assert (lsm1.cols == 3);
+        assert (lsm1[1,2] == 5.0);
+        foreach (i; 0 .. lsm1.rows)
+            foreach (j; 0 .. i)
+                assert (lsm1[i,j] == lsm1[j,i]);
+        lsm1[0,2] += 3; assert (lsm1[2,0] == 6);
+        lsm1[1,2] = 10; assert (lsm1[2,1] == 10);
     }
 
+    /**
+    Elementwise sum, substract, product and division operations for matrices.
+    */
     ref MatrixView opOpAssign(string op)(MatrixView rhs)
-    if (op == "+" || op == "-")
+    if (op == "+" || op == "-" || op == "*" || op == "/")
     in
     {
         assert(rows == rhs.rows && cols == rhs.cols);
@@ -401,91 +458,96 @@ public:
 
     unittest
     {
-        import std.range;
-        void testOpBinary(NumericType)() {
-            auto m1 = MatrixView!NumericType(iota!NumericType(4).array, 2, 2);
-            auto m2 = MatrixView!NumericType(iota!NumericType(3, 7).array, 2, 2);
-            assert((m1 + m2).array == [0 + 3, 1 + 4, 2 + 5, 3 + 6]);
-            assert((m1 - m2).array == [0 - 3, 1 - 4, 2 - 5, 3 - 6]);
+        void test(NumericType)() {
+            auto m1 = MatrixView!NumericType([0, 1, 2, 3], 2, 2);
+            auto m2 = MatrixView!NumericType([3, 4, 5, 6], 2, 2);
             m1 += m2;
-            assert(m1.array == [0 + 3, 1 + 4, 2 + 5, 3 + 6]);
-            m1 -= m2;
-            m1 -= m2;
-            assert(m1.array == [0 - 3, 1 - 4, 2 - 5, 3 - 6]);
+            assert(m1.array == [3, 5, 7, 9]);
+            m1 -= m2; m1 -= m2;
+            assert(m1.array == [-3, -3, -3, -3]);
         }
-        testOpBinary!float();
-        testOpBinary!double();
-        testOpBinary!int();
+        test!float();
+        test!double();
+        test!int();
     }
-}
 
-unittest
-{
-    alias MatrixView!real GeneralMatrix;
-    real[] g = [1.0L, 2, 3, 4, 5, 6];
+    /**
+    Multiply a matrix by an scalar factor
+    */
+    ref MatrixView opOpAssign(string op)(T scalar)
+    if (op == "*")
+    body
+    {
+        array[] *= scalar;
+        return this;
+    }
 
-    auto gm1 = GeneralMatrix(g, 2);
-    auto gm2 = GeneralMatrix(g, 3);
+    unittest
+    {
+        void test(NumericType)() {
+            auto m = MatrixView!NumericType([0, 1, 2, 3], 2, 2);
+            m *= 2;
+            assert(m.array == [0, 2, 4, 6]);
+        }
+        test!float();
+        test!double();
+        test!int();
+    }
 
-    assert (gm1.cols == 3);
-    assert (gm2.cols == 2);
+    /**
+    Use opOpAssign methods to generate equivalent opBinary operators
+    */
+    MatrixView opBinary(string op)(MatrixView rhs)
+    in
+    {
+        assert(rows == rhs.rows && cols == rhs.cols);
+    }
+    body
+    {
+        auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
+        matrix.opOpAssign!op(rhs);
+        return matrix;
+    }
 
-    assert (gm1[1,0] == 2);
-    assert (gm2[1,0] == 2);
-
-    assert (gm1[1,1] == 4);
-    assert (gm2[1,1] == 5);
-
-    gm2[1,1] += 1; assert (gm2[1,1] == 6);
-    gm2[1,1] = 10; assert (gm2[1,1] == 10);
-
-
-    alias MatrixView!(real, Storage.Triangular) UTMatrix;
-    real[] u = [1.0, 2, 3, 4, 5, 6];
-
-    auto um1 = UTMatrix(u, 3);
-    assert (um1.cols == 3);
-    assert (um1[1,0] == 0.0);
-    assert (um1[1,1] == 3.0);
-    um1[0,2] += 3; assert (u[3] == 7);
-    um1[2,2] = 10; assert (u[5] == 10);
-
-
-    alias MatrixView!(real, Storage.Triangular, Triangle.Lower) LTMatrix;
-    real[] l = [1.0, 2, 3, 4, 5, 6];
-
-    auto lm1 = LTMatrix(l, 3);
-    assert (lm1.cols == 3);
-    assert (lm1[0,1] == 0.0);
-    assert (lm1[1,1] == 4.0);
-    lm1[2,0] += 4; assert (l[2] == 7);
-    lm1[2,2] = 10; assert (l[5] == 10);
-
-
-    alias MatrixView!(real, Storage.Symmetric) USMatrix;
-    real[] us = [1.0, 2, 3, 4, 5, 6];
-
-    auto usm1 = USMatrix(us, 3);
-    assert (usm1.cols == 3);
-    assert (usm1[1,2] == 5.0);
-    foreach (i; 0 .. usm1.rows)
-        foreach (j; 0 .. i)
-            assert (usm1[i,j] == usm1[j,i]);
-    usm1[0,2] += 3; assert (usm1[2,0] == 7);
-    usm1[1,2] = 10; assert (usm1[2,1] == 10);
+    unittest
+    {
+        void test(NumericType)() {
+            auto m1 = MatrixView!NumericType([1, 1, 2, 3], 2, 2);
+            auto m2 = MatrixView!NumericType([3, 4, 6, 6], 2, 2);
+            assert((m1 + m2).array == [ 4,  5,  8,  9]);
+            assert((m1 - m2).array == [-2, -3, -4, -3]);
+            assert((m1 * m2).array == [ 3,  4, 12, 18]);
+            assert((m2 / m1).array == [ 3,  4,  3,  2]);
+        }
+        test!float();
+        test!double();
+        test!int();
+    }
 
 
-    alias MatrixView!(real, Storage.Symmetric, Triangle.Lower) LSMatrix;
-    real[] ls = [1.0, 2, 3, 4, 5, 6];
+    /**
+    Multiplication of a matrix by an scalar.
+    */
+    MatrixView opBinary(string op)(T scalar)
+    if (op == "*")
+    body
+    {
+        auto matrix = MatrixView!(T, stor, tri)(array.array, rows, cols);
+        matrix.opOpAssign!op(scalar);
+        return matrix;
+    }
 
-    auto lsm1 = LSMatrix(ls, 3);
-    assert (lsm1.cols == 3);
-    assert (lsm1[1,2] == 5.0);
-    foreach (i; 0 .. lsm1.rows)
-        foreach (j; 0 .. i)
-            assert (lsm1[i,j] == lsm1[j,i]);
-    lsm1[0,2] += 3; assert (lsm1[2,0] == 6);
-    lsm1[1,2] = 10; assert (lsm1[2,1] == 10);
+    unittest
+    {
+        void test(NumericType)() {
+            auto m = MatrixView!NumericType([0, 1, 2, 3], 2, 2);
+            assert((m * 2).array == [0, 2, 4, 6]);
+        }
+        test!float();
+        test!double();
+        test!int();
+    }
+
 }
 
 
