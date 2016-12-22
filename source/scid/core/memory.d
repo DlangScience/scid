@@ -206,7 +206,7 @@ private:
         void push(T elem) nothrow {
             if (capacity == index) {
                 capacity = max(16, capacity * 2);
-                data = cast(T*) ntRealloc(data, capacity * sz, cast(GC.BlkAttr) 0);
+                data = cast(T*) GC.realloc(data, capacity * sz, cast(GC.BlkAttr) 0);
                 data[index..capacity] = T.init;  // Prevent false ptrs.
             }
             data[index++] = elem;
@@ -252,45 +252,24 @@ private:
     enum nBookKeep = 1_048_576;  // How many bytes to allocate upfront for bookkeeping.
     static State state;
 
-    static void die() nothrow {
-        fprintf(core.stdc.stdio.stderr, "TempAlloc error: Out of memory.\0".ptr);
-        exit(1);
-    }
-
     static void doubleSize(ref void*[] lastAlloc) nothrow {
         size_t newSize = lastAlloc.length * 2;
         void** ptr = cast(void**)
-        ntRealloc(lastAlloc.ptr, newSize * (void*).sizeof, GC.BlkAttr.NO_SCAN);
+        GC.realloc(lastAlloc.ptr, newSize * (void*).sizeof, GC.BlkAttr.NO_SCAN);
 
         if (lastAlloc.ptr != ptr) {
-            ntFree(lastAlloc.ptr);
+            GC.free(lastAlloc.ptr);
         }
 
         lastAlloc = ptr[0..newSize];
     }
 
-    static void* ntMalloc(size_t size, GC.BlkAttr attr) nothrow {
-        try { return GC.malloc(size, attr); } catch { die(); }
-        return null;  // Can't assert b/c then it would throw.
-    }
-
-    static void* ntRealloc(void* ptr, size_t size, GC.BlkAttr attr) nothrow {
-        try { return GC.realloc(ptr, size, attr); } catch { die(); }
-        return null;
-    }
-
-    static void ntFree(void* ptr) nothrow {
-        try { GC.free(ptr); } catch {}
-        return;
-    }
-
     static State stateInit() nothrow {
-        State stateCopy;
-        try { stateCopy = new State; } catch { die(); }
+        State stateCopy = new State;
 
         with(stateCopy) {
-            space = ntMalloc(blockSize, GC.BlkAttr.NO_SCAN);
-            lastAlloc = (cast(void**) ntMalloc(nBookKeep, GC.BlkAttr.NO_SCAN))
+            space = GC.malloc(blockSize, GC.BlkAttr.NO_SCAN);
+            lastAlloc = (cast(void**) GC.malloc(nBookKeep, GC.BlkAttr.NO_SCAN))
                         [0..nBookKeep / (void*).sizeof];
             nblocks++;
         }
@@ -377,7 +356,7 @@ public:
                 ret = space + used;
                 used += nbytes;
             } else if (nbytes > blockSize) {
-                ret = ntMalloc(nbytes, GC.BlkAttr.NO_SCAN);
+                ret = GC.malloc(nbytes, GC.BlkAttr.NO_SCAN);
             } else if (nfree > 0) {
                 inUse.push(Block(used, space));
                 space = freelist.pop();
@@ -387,7 +366,7 @@ public:
                 ret = space;
             } else { // Allocate more space.
                 inUse.push(Block(used, space));
-                space = ntMalloc(blockSize, GC.BlkAttr.NO_SCAN);
+                space = GC.malloc(blockSize, GC.BlkAttr.NO_SCAN);
                 nblocks++;
                 used = nbytes;
                 ret = space;
@@ -413,7 +392,7 @@ public:
 
             // Handle large blocks.
             if (lastPos > space + blockSize || lastPos < space) {
-                ntFree(lastPos);
+                GC.free(lastPos);
                 return;
             }
 
@@ -428,7 +407,7 @@ public:
 
                 if (nfree >= nblocks * 2) {
                     foreach(i; 0..nfree / 2) {
-                        ntFree(freelist.pop());
+                        GC.free(freelist.pop());
                         nfree--;
                     }
                 }
