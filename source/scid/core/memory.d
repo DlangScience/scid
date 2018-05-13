@@ -155,7 +155,15 @@ if(Appends!(T, U)) {
     auto oldPtr = to.ptr;
     to ~= from;
     if (oldPtr != to.ptr)
-        delete oldPtr;
+    {
+        static if (__VERSION__ >= 2079)
+        {
+            import core.memory : __delete;
+            __delete(oldPtr);
+        }
+        else
+            delete oldPtr;
+    }
 }
 
 unittest {
