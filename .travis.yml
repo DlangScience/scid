@@ -21,8 +21,6 @@ d:
  - ldc-1.7.0
  - ldc-1.6.0
  - ldc-1.5.0
- - ldc-1.4.0
- - gdc
  - ldc-beta
  - dmd-beta
  - dmd
@@ -30,8 +28,6 @@ d:
 
 matrix:
   allow_failures:
-   - os: osx
-     d: gdc
    - d: dmd-beta
    - d: ldc-beta
 
