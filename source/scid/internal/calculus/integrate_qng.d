@@ -37,7 +37,7 @@ Result!Real qng(Func, Real = ReturnType!Func)
     {
         T error = estimate;
         if (variance != 0 && error != 0)
-            error = variance * fmin(1, (200*error/variance)^^1.5);
+            error = variance * fmin(T(1.0), (200*error/variance)^^T(1.5));
         if (absResult > T.min_normal/(50*T.epsilon))
             error = fmax(error, 50*T.epsilon*absResult);
         return error;
